@@ -130,7 +130,6 @@ dmypy.json
 
 # CDK Specifics
 *.swp
-package-lock.json
 __pycache__
 .pytest_cache
 .env
@@ -142,3 +141,9 @@ cdk.out
 
 # VSCode
 .vscode
+
+# npm
+node_modules
+
+# Idea
+.idea

@@ -10,10 +10,10 @@ format:
 	pipenv run black .
 
 diff:
-	pipenv run cdk diff || true
+	pipenv run npx cdk diff || true
 
 deploy:
-	pipenv run cdk deploy --require-approval never
+	pipenv run npx cdk deploy --require-approval never
 
 destroy:
-	pipenv run cdk destroy --force
+	pipenv run npx cdk destroy --force
