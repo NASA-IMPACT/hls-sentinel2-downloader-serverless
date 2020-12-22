@@ -127,3 +127,23 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# CDK Specifics
+*.swp
+__pycache__
+.pytest_cache
+.env
+*.egg-info
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# VSCode
+.vscode
+
+# npm
+node_modules
+
+# Idea
+.idea
