@@ -9,6 +9,11 @@ name = "pypi"
 flake8 = ">=3.8.4"
 isort = ">=5.6.4"
 black = ">=20.8b1"
+freezegun = ">=1.0.0"
+assertpy = ">=1.1"
+pytest = ">=6.2.1"
+responses = ">=0.12.1"
+requests = ">=2.25.1"
 "aws-cdk.core" = ">=1.82.0"
 
 [requires]

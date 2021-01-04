@@ -1,4 +1,4 @@
-.PHONEY: lint format diff deploy destroy
+.PHONEY: lint format diff deploy destroy unit-tests
 
 lint:
 	pipenv run flake8 .
@@ -17,3 +17,6 @@ deploy:
 
 destroy:
 	pipenv run npx cdk destroy --force
+
+unit-tests:
+	pipenv run pytest -s tests/unit
