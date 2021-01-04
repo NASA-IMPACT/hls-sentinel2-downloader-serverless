@@ -18,6 +18,27 @@ To develop on this project, you should install:
 
 If you're developing on MacOS, all of the above (apart from AWS CDK) can be installed using [homebrew](https://brew.sh/)
 
+## Getting started 🏃‍♀️
+
+To get setup for development, ensure you've installed all the above [requirements](#Requirements), run the following commands in the root of the repository and you'll be good to go!
+
+```bash
+$ nvm install # This sets up your node environment
+$ npm install # This installs any node packages that are within package.json (CDK etc.)
+$ pipenv install --dev # This installs any python packages that are within Pipfile
+```
+
+A file named `.env` is expected in the root of the repository, the expected values are:
+
+```bash
+OWNER="<your name>"
+IDENTIFIER="<a unique value to tie to your cdk deployment>"
+STAGE="<a value for the stage you're deploying to, e.g. $IDENTIFIER, DEV, PRODUCTION>"
+AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
+```
+
+An example that you can modify and rename to `.env` is provided: `example.env`
+
 ## Useful commands
 
 A `Makefile` is available in the root of the repository to abstract away commonly used commands for development:
@@ -41,16 +62,3 @@ A `Makefile` is available in the root of the repository to abstract away commonl
 **`make destroy`**
 
 > This will run a `cdk destroy` using the contents of your `.env` file. The destroy is auto-approved, so **make sure** you know what you're destroying first!
-
-## .env
-
-A file named `.env` is expected in the root of the repository, the expected values are:
-
-```bash
-OWNER="<your name>"
-IDENTIFIER="<a unique value to tie to your cdk deployment>"
-STAGE="<a value for the stage you're deploying to, e.g. $IDENTIFIER, DEV, PRODUCTION>"
-AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
-```
-
-An example that you can modify and rename to `.env` is provided: `example.env`

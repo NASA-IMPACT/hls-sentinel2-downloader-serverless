@@ -132,7 +132,7 @@ dmypy.json
 *.swp
 __pycache__
 .pytest_cache
-.env
+*.env
 *.egg-info
 
 # CDK asset staging directory
