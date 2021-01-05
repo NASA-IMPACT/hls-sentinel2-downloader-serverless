@@ -12,3 +12,11 @@ def mock_scihub_response():
         os.path.join(UNIT_TEST_DIR, "example_scihub_response.json"), "rb"
     ) as json_in:
         return json.load(json_in)
+
+
+@pytest.fixture
+def mock_scihub_checksum_response():
+    with open(
+        os.path.join(UNIT_TEST_DIR, "example_scihub_checksum_response.json"), "rb"
+    ) as json_in:
+        return json.load(json_in)

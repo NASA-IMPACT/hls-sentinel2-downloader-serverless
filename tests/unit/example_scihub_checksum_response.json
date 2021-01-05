@@ -1,0 +1,19 @@
+{
+    "d": {
+        "__metadata": {
+            "id": "https://scihub.copernicus.eu/dhus/odata/v1/('422fd86d-7019-47c6-be4f-036fbf5ce874')",
+            "uri": "https://scihub.copernicus.eu/dhus/odata/v1/('422fd86d-7019-47c6-be4f-036fbf5ce874')",
+            "type": "DHuS.Product",
+            "content_type": "application/octet-stream",
+            "media_src": "https://scihub.copernicus.eu/dhus/odata/v1/('422fd86d-7019-47c6-be4f-036fbf5ce874')/$value",
+            "edit_media": "https://scihub.copernicus.eu/dhus/odata/v1/('422fd86d-7019-47c6-be4f-036fbf5ce874')/$value"
+        },
+        "Checksum": {
+            "__metadata": {
+                "type": "DHuS.Checksum"
+            },
+            "Algorithm": "MD5",
+            "Value": "66865C45E90E4F5051DE616DEF7B6182"
+        }
+    }
+}

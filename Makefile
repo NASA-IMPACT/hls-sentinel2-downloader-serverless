@@ -1,13 +1,13 @@
 .PHONEY: lint format diff deploy destroy unit-tests
 
 lint:
-	pipenv run flake8 .
-	pipenv run isort --check-only --profile black .
-	pipenv run black --check --diff .
+	pipenv run flake8 lambdas/ app/ tests/ app.py
+	pipenv run isort --check-only --profile black lambdas/ app/ tests/ app.py
+	pipenv run black --check --diff lambdas/ app/ tests/ app.py
 
 format:
-	pipenv run isort --profile black .
-	pipenv run black .
+	pipenv run isort --profile black lambdas/ app/ tests/ app.py
+	pipenv run black lambdas/ app/ tests/ app.py
 
 diff:
 	pipenv run npx cdk diff || true
