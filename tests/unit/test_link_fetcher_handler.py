@@ -140,3 +140,36 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
 
     assert_that(scihub_results).is_length(40)
     assert_that(total_results).is_equal_to(6800)
+
+
+@responses.activate
+def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
+    mock_scihub_response, mock_scihub_checksum_response
+):
+    resp = mock_scihub_response.copy()
+    resp["feed"].pop("entry")
+
+    responses.add(
+        responses.GET,
+        (
+            "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) "
+            "AND (processinglevel:Level-1C) "
+            "AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])"
+            "&rows=100&format=json&orderby=ingestiondate desc&start=0"
+        ),
+        json=resp,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        re.compile(r"https://scihub.copernicus.eu/dhus/odata/v1/Products\('*."),
+        json=mock_scihub_checksum_response,
+        status=200,
+    )
+
+    scihub_results, total_results = get_page_for_query_and_total_results(
+        get_query_parameters(start=0, day=datetime(2020, 1, 1))
+    )
+
+    assert_that(scihub_results).is_length(0)
+    assert_that(total_results).is_equal_to(6800)

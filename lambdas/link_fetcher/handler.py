@@ -180,6 +180,10 @@ def get_page_for_query_and_total_results(
 
     query_feed = resp.json()["feed"]
     total_results = int(query_feed["opensearch:totalResults"])
+
+    if "entry" not in query_feed:
+        return [], total_results
+
     scihub_results = [
         create_scihub_result_from_feed_entry(entry) for entry in query_feed["entry"]
     ]
