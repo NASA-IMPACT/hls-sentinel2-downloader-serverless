@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, TypedDict
 
@@ -5,6 +6,7 @@ import humanfriendly
 import requests
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
+ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
 
 
 class ScihubResult(TypedDict):
@@ -20,11 +22,13 @@ class ScihubResult(TypedDict):
 
 
 def handler(event, context):
+    accepted_tile_ids = get_accepted_tile_ids()
     for day in get_dates_to_query(last_date=datetime.now()):
         keep_querying_for_imagery = True
         updated_total_results = False
         available_links, fetched_links = get_available_and_fetched_links()
         params = get_query_parameters(start=fetched_links, day=day)
+
         while keep_querying_for_imagery:
 
             scihub_results, total_results = get_page_for_query_and_total_results(
@@ -34,6 +38,16 @@ def handler(event, context):
             if not updated_total_results:
                 updated_total_results = update_total_results(total_results)
 
+            if not scihub_results:
+                keep_querying_for_imagery = False
+                break
+
+            params["start"] += len(scihub_results)
+
+            filtered_scihub_results = filter_scihub_results(
+                scihub_results, accepted_tile_ids
+            )
+
 
 def get_available_and_fetched_links():
     return 0, 0
@@ -41,6 +55,34 @@ def get_available_and_fetched_links():
 
 def update_total_results(total_results: int):
     return True
+
+
+def get_accepted_tile_ids() -> List[str]:
+    with open(
+        os.path.join(
+            os.path.basename(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME
+        ),
+        "r",
+    ) as tile_ids_in:
+        return [line.strip() for line in tile_ids_in]
+
+
+def filter_scihub_results(
+    scihub_results: List[ScihubResult], accepted_tile_ids: List[str]
+) -> List[ScihubResult]:
+    """
+    Filters the given SciHub results list and returns a list of results that tile ids
+    are within our accepted list of ids
+    :param scihub_results: List[ScihubResult] representing the results of a query to
+        SciHub
+    :param accepted_tile_ids: List[str] representing a list of acceptable MGRS tile ids
+    :returns: List[SciHubResult] representing a filtered version of the passed in list
+    """
+    return [
+        scihub_result
+        for scihub_result in scihub_results
+        if scihub_result["tileid"] in accepted_tile_ids
+    ]
 
 
 def get_query_parameters(start: int, day: datetime) -> Dict:
@@ -165,13 +207,18 @@ def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
 
 
 def get_page_for_query_and_total_results(
-    query_params: dict,
+    query_params: Dict,
 ) -> Tuple[List[ScihubResult], int]:
     """
     Takes a set of query parameters and retrieves the SciHub results that match that
     query. Due to the volume of results, the SciHubResult list returned is a paged
     selection, not the entirety of results matching the query. The number of matching
     results is however returned as well.
+    :param query_params: Dict representing the parameters to send to SciHub in a GET
+        request for searching imagery
+    :returns: Tuple[List[ScihubResult], int] Tuple containing the paged SciHub results
+        from the query and an int value representing the total number of results that
+        match the query
     """
     resp = requests.get(
         url="https://scihub.copernicus.eu/dhus/search", params=query_params

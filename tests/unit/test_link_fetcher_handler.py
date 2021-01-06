@@ -8,12 +8,15 @@ from freezegun import freeze_time
 from lambdas.link_fetcher.handler import (
     ScihubResult,
     create_scihub_result_from_feed_entry,
+    filter_scihub_results,
     get_dates_to_query,
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
 )
 
+from sqlalchemy import engine, create_engine
+from sqlalchemy.engine import url
 
 @freeze_time("2020-12-31")
 def test_that_link_fetcher_handler_gets_correct_dates_to_query():
@@ -173,3 +176,35 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
 
     assert_that(scihub_results).is_length(0)
     assert_that(total_results).is_equal_to(6800)
+
+
+def test_that_link_fetcher_handler_correctly_filters_scihub_results(accepted_tile_ids):
+    list_to_filter = [
+        ScihubResult(tileid="51HVC"),
+        ScihubResult(tileid="56HKK"),
+        ScihubResult(tileid="99LOL"),
+        ScihubResult(tileid="20TLT"),
+        ScihubResult(tileid="99IDK"),
+        ScihubResult(tileid="14VLM"),
+        ScihubResult(tileid="01GEM"),
+    ]
+
+    expected_results = [
+        ScihubResult(tileid="51HVC"),
+        ScihubResult(tileid="56HKK"),
+        ScihubResult(tileid="20TLT"),
+        ScihubResult(tileid="14VLM"),
+        ScihubResult(tileid="01GEM"),
+    ]
+
+    actual_results = filter_scihub_results(list_to_filter, accepted_tile_ids)
+
+    assert_that(actual_results).is_equal_to(expected_results)
+
+
+def test_postgres_container(postgres_container):
+    db_url = url.URL("postgresql", username="world", password="helloworld", host="localhost", database="hls-sentinel2-downloader")
+    pg_engine = create_engine(db_url)
+    import time
+    time.sleep(10)
+    print([r for r in pg_engine.execute("SELECT * FROM pg_catalog.pg_tables;")])

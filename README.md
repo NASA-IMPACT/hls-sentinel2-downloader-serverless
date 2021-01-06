@@ -15,6 +15,7 @@ To develop on this project, you should install:
 * [pyenv](https://github.com/pyenv/pyenv) / Python 3.8.6
 * [pipenv](https://github.com/pypa/pipenv)
 * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html)
+* [OpenSSL](https://github.com/openssl/openssl) (For Postgres/DB work)
 
 If you're developing on MacOS, all of the above (apart from AWS CDK) can be installed using [homebrew](https://brew.sh/)
 
@@ -27,6 +28,8 @@ $ nvm install # This sets up your node environment
 $ npm install # This installs any node packages that are within package.json (CDK etc.)
 $ pipenv install --dev # This installs any python packages that are within Pipfile
 ```
+
+_**Note** you might have an issue installing `psycopg2` - I found [this](https://github.com/pypa/pipenv/issues/3991#issuecomment-564645309) helpful_
 
 A file named `.env` is expected in the root of the repository, the expected values are:
 

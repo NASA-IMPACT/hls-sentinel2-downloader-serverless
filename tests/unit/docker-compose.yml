@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:13.1-alpine
+    environment:
+      POSTGRES_PASSWORD: helloworld
+      POSTGRES_USER: world
+      POSTGRES_DB: hls-sentinel2-downloader
+    ports:
+      - 5432:5432
