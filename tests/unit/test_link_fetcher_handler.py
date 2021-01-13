@@ -15,8 +15,6 @@ from lambdas.link_fetcher.handler import (
     get_query_parameters,
 )
 
-from sqlalchemy import engine, create_engine
-from sqlalchemy.engine import url
 
 @freeze_time("2020-12-31")
 def test_that_link_fetcher_handler_gets_correct_dates_to_query():
@@ -202,9 +200,5 @@ def test_that_link_fetcher_handler_correctly_filters_scihub_results(accepted_til
     assert_that(actual_results).is_equal_to(expected_results)
 
 
-def test_postgres_container(postgres_container):
-    db_url = url.URL("postgresql", username="world", password="helloworld", host="localhost", database="hls-sentinel2-downloader")
-    pg_engine = create_engine(db_url)
-    import time
-    time.sleep(10)
-    print([r for r in pg_engine.execute("SELECT * FROM pg_catalog.pg_tables;")])
+def test_postgres_container(postgres_engine_and_url):
+    engine, url = postgres_engine_and_url

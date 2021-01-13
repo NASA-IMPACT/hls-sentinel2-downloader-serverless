@@ -2,6 +2,9 @@ import json
 import os
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.engine import url, Engine
+from sqlalchemy.exc import OperationalError
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,11 +34,28 @@ def accepted_tile_ids():
         return [line.strip() for line in text_in]
 
 
+def check_pg_status(engine: Engine) -> bool:
+    try:
+        engine.execute("SELECT * FROM pg_catalog.pg_tables;")
+        return True
+    except OperationalError:
+        return False
+
+
 @pytest.fixture(scope="session")
-def postgres_container(docker_ip, docker_services):
-    port = docker_services.port_for("postgres", 5432)
-    url = f"http://{docker_ip}:{port}"
-    return url
+def postgres_engine_and_url(docker_ip, docker_services):
+    db_url = url.URL(
+        "postgresql",
+        username="world",
+        password="helloworld",
+        host="localhost",
+        database="hls-sentinel2-downloader"
+    )
+    pg_engine = create_engine(db_url)
+    docker_services.wait_until_responsive(
+        timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
+    )
+    return (pg_engine, db_url)
 
 
 @pytest.fixture(scope="session")
