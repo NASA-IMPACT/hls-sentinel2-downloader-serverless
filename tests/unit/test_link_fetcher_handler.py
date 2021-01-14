@@ -209,8 +209,8 @@ def test_postgres_container(
 ):
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
         make_a_granule()
-        print([r for r in db_session.query(Granule).all()])
+        assert_that(db_session.query(Granule).all()).is_length(1)
 
 
 def test_postgres_container_two(db_session):
-    print([r for r in db_session.query(Granule).all()])
+    assert_that(db_session.query(Granule).all()).is_empty()
