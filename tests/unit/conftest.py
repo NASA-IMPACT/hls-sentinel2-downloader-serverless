@@ -3,7 +3,7 @@ import os
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.engine import url, Engine
+from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,10 +46,10 @@ def check_pg_status(engine: Engine) -> bool:
 def postgres_engine_and_url(docker_ip, docker_services):
     db_url = url.URL(
         "postgresql",
-        username="world",
-        password="helloworld",
+        username=os.environ["PG_USER"],
+        password=os.environ["PG_PASSWORD"],
         host="localhost",
-        database="hls-sentinel2-downloader"
+        database=os.environ["PG_DB"],
     )
     pg_engine = create_engine(db_url)
     docker_services.wait_until_responsive(

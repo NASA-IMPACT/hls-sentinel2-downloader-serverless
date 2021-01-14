@@ -3,8 +3,8 @@ services:
   postgres:
     image: postgres:13.1-alpine
     environment:
-      POSTGRES_PASSWORD: helloworld
-      POSTGRES_USER: world
-      POSTGRES_DB: hls-sentinel2-downloader
+      POSTGRES_PASSWORD: "${PG_PASSWORD}"
+      POSTGRES_USER: "${PG_USER}"
+      POSTGRES_DB: "${PG_DB}"
     ports:
       - 5432:5432
