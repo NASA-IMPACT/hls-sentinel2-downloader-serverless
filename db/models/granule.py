@@ -1,11 +1,9 @@
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, SmallInteger, String
-from sqlalchemy.ext.declarative import declarative_base
 
-base = declarative_base()
+from .base import Base
 
 
-class Granule(base):
-    __tablename__ = "granules"
+class Granule(Base):
     id = Column(String(length=256), primary_key=True)
     filename = Column(String(length=256), nullable=False)
     tileid = Column(String(length=5), nullable=False)

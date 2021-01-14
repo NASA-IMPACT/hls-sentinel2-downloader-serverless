@@ -1,10 +1,15 @@
 import json
 import os
+from contextlib import contextmanager
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
+
+import alembic.command
+import alembic.config
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,7 +48,7 @@ def check_pg_status(engine: Engine) -> bool:
 
 
 @pytest.fixture(scope="session")
-def postgres_engine_and_url(docker_ip, docker_services):
+def postgres_engine(docker_ip, docker_services):
     db_url = url.URL(
         "postgresql",
         username=os.environ["PG_USER"],
@@ -55,7 +60,31 @@ def postgres_engine_and_url(docker_ip, docker_services):
     docker_services.wait_until_responsive(
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
-    return (pg_engine, db_url)
+
+    alembic_config = alembic.config.Config("alembic.ini")
+    alembic.command.upgrade(alembic_config, "head")
+
+    return pg_engine
+
+
+@pytest.fixture
+def db_session(postgres_engine):
+    connection = postgres_engine.connect()
+    transaction = connection.begin()
+    session = Session(bind=connection)
+    yield session
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+@pytest.fixture
+def db_session_context(db_session):
+    @contextmanager
+    def db_context():
+        yield db_session
+
+    yield db_context
 
 
 @pytest.fixture(scope="session")

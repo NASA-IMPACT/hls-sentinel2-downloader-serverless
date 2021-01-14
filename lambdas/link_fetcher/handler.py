@@ -5,6 +5,9 @@ from typing import Dict, List, Tuple, TypedDict
 import humanfriendly
 import requests
 
+from db.models.granule import Granule
+from db.session import get_session
+
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
 ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
 
@@ -47,6 +50,26 @@ def handler(event, context):
             filtered_scihub_results = filter_scihub_results(
                 scihub_results, accepted_tile_ids
             )
+
+
+def make_a_granule():
+    from datetime import datetime
+
+    with get_session() as db:
+        db.add(
+            Granule(
+                id="blah",
+                filename="a-filename",
+                tileid="323PY",
+                size=234234,
+                checksum="asdasd",
+                beginposition=datetime.now(),
+                endposition=datetime.now(),
+                ingestiondate=datetime.now(),
+                download_url="a-url",
+            )
+        )
+        db.commit()
 
 
 def get_available_and_fetched_links():

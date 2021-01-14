@@ -1,10 +1,12 @@
 import re
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 import responses
 from assertpy import assert_that
 from freezegun import freeze_time
 
+from db.models.granule import Granule
 from lambdas.link_fetcher.handler import (
     ScihubResult,
     create_scihub_result_from_feed_entry,
@@ -13,6 +15,7 @@ from lambdas.link_fetcher.handler import (
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
+    make_a_granule,
 )
 
 
@@ -200,5 +203,14 @@ def test_that_link_fetcher_handler_correctly_filters_scihub_results(accepted_til
     assert_that(actual_results).is_equal_to(expected_results)
 
 
-def test_postgres_container(postgres_engine_and_url):
-    engine, url = postgres_engine_and_url
+def test_postgres_container(
+    db_session,
+    db_session_context
+):
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        make_a_granule()
+        print([r for r in db_session.query(Granule).all()])
+
+
+def test_postgres_container_two(db_session):
+    print([r for r in db_session.query(Granule).all()])
