@@ -5,7 +5,7 @@ Revises:
 Create Date: 2021-01-14 12:30:09.347153
 
 """
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, SmallInteger, String
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, SmallInteger, String
 
 from alembic import op
 
@@ -38,6 +38,22 @@ def upgrade():
         Column("download_finished", DateTime, server_default=None),
     )
 
+    op.create_table(
+        "granule_count",
+        Column("date", Date, primary_key=True),
+        Column("available_links", BigInteger, nullable=False),
+        Column("fetched_links", BigInteger, nullable=False),
+        Column("last_fetched_time", DateTime, nullable=False),
+    )
+
+    op.create_table(
+        "status",
+        Column("key_name", String(length=256), primary_key=True),
+        Column("value", String(length=256), nullable=False),
+    )
+
 
 def downgrade():
     op.drop_table("granule")
+    op.drop_table("granule_count")
+    op.drop_table("status")

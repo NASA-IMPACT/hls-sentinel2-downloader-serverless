@@ -1,7 +1,9 @@
+import json
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, TypedDict
 
+import boto3
 import humanfriendly
 import requests
 
@@ -56,7 +58,7 @@ def handler(event, context):
 
 def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
     """
-    Creates a record in the `granule` table for each of the provided ScihubResult's
+    Creates a record in the `granule` table for each of the provided ScihubResults
     Firstly a check is performed to ensure that a granule isn't already present, if it
     is we don't add it
     :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
@@ -81,6 +83,24 @@ def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
         db.commit()
 
 
+def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
+    """
+    Creates messages in the `To Download` SQS queue for each of the provided
+    ScihubResults. The message is in the form {"id": <val>, "download_url": <val>}
+    :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
+        `To Download` SQS queue
+    """
+    sqs_client = boto3.client("sqs")
+    to_download_queue_url = os.environ["TO_DOWNLOAD_SQS_QUEUE_URL"]
+    for result in scihub_results:
+        sqs_client.send_message(
+            QueueUrl=to_download_queue_url,
+            MessageBody=json.dumps(
+                {"id": result["image_id"], "download_url": result["download_url"]}
+            ),
+        )
+
+
 def get_available_and_fetched_links():
     pass
 
@@ -90,6 +110,11 @@ def update_total_results(total_results: int):
 
 
 def get_accepted_tile_ids() -> List[str]:
+    """
+    Returns a list of MGRS square IDs that are acceptable for processing within the
+    downloader
+    :returns: List[str] representing all of the acceptable MGRS square IDs
+    """
     with open(
         os.path.join(
             os.path.basename(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME

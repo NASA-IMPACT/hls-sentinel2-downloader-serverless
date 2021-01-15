@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -10,6 +11,7 @@ from db.models.granule import Granule
 from lambdas.link_fetcher.handler import (
     ScihubResult,
     add_scihub_results_to_db,
+    add_scihub_results_to_sqs,
     create_scihub_result_from_feed_entry,
     filter_scihub_results,
     get_dates_to_query,
@@ -248,3 +250,28 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
         add_scihub_results_to_db([scihub_result])
         granules_in_db = db_session.query(Granule).all()
         assert_that(granules_in_db).is_length(1)
+
+
+def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_queue(
+    mock_sqs_queue, scihub_result_maker
+):
+    scihub_results = scihub_result_maker(10)
+    scihub_result_id_base = scihub_results[0]["image_id"][:-3]
+    scihub_result_url_base = scihub_results[0]["download_url"][:-12]
+
+    add_scihub_results_to_sqs(scihub_results)
+
+    mock_sqs_queue.load()
+    number_of_messages_in_queue = mock_sqs_queue.attributes[
+        "ApproximateNumberOfMessages"
+    ]
+    assert_that(int(number_of_messages_in_queue)).is_equal_to(10)
+    for idx, message in enumerate(
+        mock_sqs_queue.receive_messages(MaxNumberOfMessages=10)
+    ):
+        id_filled = str(idx).zfill(3)
+        expected_id = f"{scihub_result_id_base}{id_filled}"
+        expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
+        message_body = json.loads(message.body)
+        assert_that(expected_id).is_equal_to(message_body["id"])
+        assert_that(expected_url).is_equal_to(message_body["download_url"])

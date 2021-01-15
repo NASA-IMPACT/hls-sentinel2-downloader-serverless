@@ -4,7 +4,9 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import List
 
+import boto3
 import pytest
+from moto import mock_sqs
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
@@ -115,6 +117,28 @@ def scihub_result_maker():
         return [make_scihub_result(idx) for idx in range(0, number_of_results)]
 
     return make_scihub_results
+
+
+@pytest.fixture(autouse=True)
+def aws_credentials(monkeypatch):
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+
+
+@pytest.fixture
+def sqs_resource():
+    with mock_sqs():
+        yield boto3.resource("sqs")
+
+
+@pytest.fixture
+def mock_sqs_queue(sqs_resource, monkeypatch):
+    queue = sqs_resource.create_queue(QueueName="mock-queue")
+    monkeypatch.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
+    return queue
 
 
 @pytest.fixture(scope="session")
