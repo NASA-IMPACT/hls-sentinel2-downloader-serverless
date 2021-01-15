@@ -9,13 +9,13 @@ from freezegun import freeze_time
 from db.models.granule import Granule
 from lambdas.link_fetcher.handler import (
     ScihubResult,
+    add_scihub_results_to_db,
     create_scihub_result_from_feed_entry,
     filter_scihub_results,
     get_dates_to_query,
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
-    make_a_granule,
 )
 
 
@@ -81,7 +81,7 @@ def test_that_link_fetcher_handler_gets_product_checksum_correctly(
 
 @responses.activate
 def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
-    mock_scihub_response, mock_scihub_checksum_response
+    mock_scihub_response, mock_scihub_checksum_response, scihub_result_maker
 ):
     responses.add(
         responses.GET,
@@ -203,14 +203,48 @@ def test_that_link_fetcher_handler_correctly_filters_scihub_results(accepted_til
     assert_that(actual_results).is_equal_to(expected_results)
 
 
-def test_postgres_container(
-    db_session,
-    db_session_context
+def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_db(
+    db_session, db_session_context, scihub_result_maker
 ):
+    scihub_results = scihub_result_maker(10)
+    scihub_result_id_base = scihub_results[0]["image_id"][:-3]
+    scihub_result_url_base = scihub_results[0]["download_url"][:-12]
+
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        make_a_granule()
-        assert_that(db_session.query(Granule).all()).is_length(1)
+        add_scihub_results_to_db(scihub_results)
+        granules_in_db = db_session.query(Granule).all()
+        assert_that(granules_in_db).is_length(10)
+
+        for idx, granule in enumerate(granules_in_db):
+            id_filled = str(idx).zfill(3)
+            expected_id = f"{scihub_result_id_base}{id_filled}"
+            expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
+            granule_id = granule.id
+            granule_download_url = granule.download_url
+            assert_that(expected_id).is_equal_to(granule_id)
+            assert_that(expected_url).is_equal_to(granule_download_url)
 
 
-def test_postgres_container_two(db_session):
-    assert_that(db_session.query(Granule).all()).is_empty()
+def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
+    db_session, db_session_context, scihub_result_maker
+):
+    scihub_result = scihub_result_maker(1)[0]
+    db_session.add(
+        Granule(
+            id=scihub_result["image_id"],
+            filename=scihub_result["filename"],
+            tileid=scihub_result["tileid"],
+            size=scihub_result["size"],
+            checksum=scihub_result["checksum"],
+            beginposition=scihub_result["beginposition"],
+            endposition=scihub_result["endposition"],
+            ingestiondate=scihub_result["ingestiondate"],
+            download_url=scihub_result["download_url"],
+        )
+    )
+    db_session.commit()
+
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        add_scihub_results_to_db([scihub_result])
+        granules_in_db = db_session.query(Granule).all()
+        assert_that(granules_in_db).is_length(1)

@@ -51,33 +51,42 @@ def handler(event, context):
                 scihub_results, accepted_tile_ids
             )
 
+            add_scihub_results_to_db(filtered_scihub_results)
 
-def make_a_granule():
-    from datetime import datetime
 
+def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
+    """
+    Creates a record in the `granule` table for each of the provided ScihubResult's
+    Firstly a check is performed to ensure that a granule isn't already present, if it
+    is we don't add it
+    :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
+        `granule` table
+    """
     with get_session() as db:
-        db.add(
-            Granule(
-                id="blah",
-                filename="a-filename",
-                tileid="323PY",
-                size=234234,
-                checksum="asdasd",
-                beginposition=datetime.now(),
-                endposition=datetime.now(),
-                ingestiondate=datetime.now(),
-                download_url="a-url",
-            )
-        )
+        for result in scihub_results:
+            if not db.query(Granule).filter(Granule.id == result["image_id"]).first():
+                db.add(
+                    Granule(
+                        id=result["image_id"],
+                        filename=result["filename"],
+                        tileid=result["tileid"],
+                        size=result["size"],
+                        checksum=result["checksum"],
+                        beginposition=result["beginposition"],
+                        endposition=result["endposition"],
+                        ingestiondate=result["ingestiondate"],
+                        download_url=result["download_url"],
+                    )
+                )
         db.commit()
 
 
 def get_available_and_fetched_links():
-    return 0, 0
+    pass
 
 
 def update_total_results(total_results: int):
-    return True
+    pass
 
 
 def get_accepted_tile_ids() -> List[str]:

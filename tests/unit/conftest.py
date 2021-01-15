@@ -1,6 +1,8 @@
 import json
 import os
 from contextlib import contextmanager
+from datetime import datetime, timezone
+from typing import List
 
 import pytest
 from sqlalchemy import create_engine
@@ -10,6 +12,7 @@ from sqlalchemy.orm import Session
 
 import alembic.command
 import alembic.config
+from lambdas.link_fetcher.handler import ScihubResult
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -85,6 +88,33 @@ def db_session_context(db_session):
         yield db_session
 
     yield db_context
+
+
+def make_scihub_result(idx: int) -> ScihubResult:
+    id_filled = str(idx).zfill(3)
+    return ScihubResult(
+        image_id=f"422fd86d-7019-47c6-be4f-036fbf5ce{id_filled}",
+        filename="S2B_MSIL1C20200101T222829_N0208_R129_T51CWM_20200101T230625.SAFE",
+        tileid="51CWM",
+        size=693056307,
+        checksum="66865C45E90E4F5051DE616DEF7B6182",
+        beginposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
+        endposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
+        ingestiondate=datetime(2020, 1, 1, 23, 59, 32, 994000, tzinfo=timezone.utc),
+        download_url=(
+            "https://scihub.copernicus.eu/dhus/odata/v1/"
+            "Products('422fd86d-7019-47c6-be4f-036fbf5ce"
+            f"{id_filled}')/$value"
+        ),
+    )
+
+
+@pytest.fixture
+def scihub_result_maker():
+    def make_scihub_results(number_of_results: int) -> List[ScihubResult]:
+        return [make_scihub_result(idx) for idx in range(0, number_of_results)]
+
+    return make_scihub_results
 
 
 @pytest.fixture(scope="session")
