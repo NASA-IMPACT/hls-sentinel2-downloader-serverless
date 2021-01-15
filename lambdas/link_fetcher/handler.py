@@ -111,7 +111,7 @@ def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
                 date=day,
                 available_links=0,
                 fetched_links=0,
-                last_fetched_time=datetime.now()
+                last_fetched_time=datetime.now(),
             )
             db.add(granule_count)
             db.commit()

@@ -20,7 +20,7 @@ from lambdas.link_fetcher.handler import (
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
-    update_total_results
+    update_total_results,
 )
 
 
@@ -280,9 +280,8 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_queue(
         assert_that(expected_url).is_equal_to(message_body["download_url"])
 
 
-def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_in_db( # noqa
-    db_session,
-    db_session_context
+def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_in_db(  # noqa
+    db_session, db_session_context
 ):
     expected_available_links = 1000
     expected_fetched_links = 400
@@ -291,7 +290,8 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
             date=datetime(2020, 1, 1),
             available_links=expected_available_links,
             fetched_links=expected_fetched_links,
-            last_fetched_time=datetime(2020, 1, 1, 0, 0, 0))
+            last_fetched_time=datetime(2020, 1, 1, 0, 0, 0),
+        )
     )
     db_session.commit()
 
@@ -304,9 +304,8 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
 
 
 @freeze_time("2020-12-31 10:10:10")
-def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_not_in_db( # noqa
-    db_session,
-    db_session_context
+def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_not_in_db(  # noqa
+    db_session, db_session_context
 ):
     expected_available_links = 0
     expected_fetched_links = 0
@@ -319,18 +318,18 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
         assert_that(expected_available_links).is_equal_to(actual_available_links)
         assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
 
-    actual_last_fetched_time = db_session.query(
-        GranuleCount
-    ).filter(
-        GranuleCount.date == datetime(2020, 12, 31)
-    ).first().last_fetched_time
+    actual_last_fetched_time = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime(2020, 12, 31))
+        .first()
+        .last_fetched_time
+    )
 
     assert_that(expected_last_fetched_time).is_equal_to(actual_last_fetched_time)
 
 
 def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
-    db_session,
-    db_session_context
+    db_session, db_session_context
 ):
     expected_available_links = 500
     db_session.add(
@@ -338,17 +337,19 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
             date=datetime(2020, 1, 1),
             available_links=250,
             fetched_links=0,
-            last_fetched_time=datetime(2020, 1, 1, 0, 0, 0))
+            last_fetched_time=datetime(2020, 1, 1, 0, 0, 0),
+        )
     )
     db_session.commit()
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
         update_total_results(datetime(2020, 1, 1), 500)
 
-    actual_available_links = db_session.query(
-        GranuleCount
-    ).filter(
-        GranuleCount.date == datetime(2020, 1, 1)
-    ).first().available_links
+    actual_available_links = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime(2020, 1, 1))
+        .first()
+        .available_links
+    )
 
     assert_that(expected_available_links).is_equal_to(actual_available_links)
