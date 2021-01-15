@@ -8,6 +8,7 @@ import humanfriendly
 import requests
 
 from db.models.granule import Granule
+from db.models.granule_count import GranuleCount
 from db.session import get_session
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
@@ -31,7 +32,7 @@ def handler(event, context):
     for day in get_dates_to_query(last_date=datetime.now()):
         keep_querying_for_imagery = True
         updated_total_results = False
-        available_links, fetched_links = get_available_and_fetched_links()
+        available_links, fetched_links = get_available_and_fetched_links(day)
         params = get_query_parameters(start=fetched_links, day=day)
 
         while keep_querying_for_imagery:
@@ -41,7 +42,8 @@ def handler(event, context):
             )
 
             if not updated_total_results:
-                updated_total_results = update_total_results(total_results)
+                update_total_results(total_results)
+                updated_total_results = True
 
             if not scihub_results:
                 keep_querying_for_imagery = False
@@ -101,12 +103,26 @@ def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
         )
 
 
-def get_available_and_fetched_links():
-    pass
+def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
+    with get_session() as db:
+        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
+        if not granule_count:
+            granule_count = GranuleCount(
+                date=day,
+                available_links=0,
+                fetched_links=0,
+                last_fetched_time=datetime.now()
+            )
+            db.add(granule_count)
+            db.commit()
+        return (granule_count.available_links, granule_count.fetched_links)
 
 
-def update_total_results(total_results: int):
-    pass
+def update_total_results(day: datetime, total_results: int):
+    with get_session() as db:
+        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
+        granule_count.available_links = total_results
+        db.commit()
 
 
 def get_accepted_tile_ids() -> List[str]:
