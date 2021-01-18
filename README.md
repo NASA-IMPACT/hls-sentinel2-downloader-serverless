@@ -65,3 +65,7 @@ A `Makefile` is available in the root of the repository to abstract away commonl
 **`make destroy`**
 
 > This will run a `cdk destroy` using the contents of your `.env` file. The destroy is auto-approved, so **make sure** you know what you're destroying first!
+
+**`make unit-tests`**
+
+> This will run the unit tests of the project with `pytest` using the contents of your `.env` file
