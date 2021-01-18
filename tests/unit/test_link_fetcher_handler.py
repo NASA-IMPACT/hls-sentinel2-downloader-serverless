@@ -9,19 +9,30 @@ from freezegun import freeze_time
 
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
+from db.models.status import Status
 from lambdas.link_fetcher.handler import (
     ScihubResult,
     add_scihub_results_to_db,
     add_scihub_results_to_sqs,
     create_scihub_result_from_feed_entry,
     filter_scihub_results,
+    get_accepted_tile_ids,
     get_available_and_fetched_links,
     get_dates_to_query,
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
+    update_fetched_links,
+    update_last_fetched_link_time,
     update_total_results,
 )
+
+
+def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():
+    tile_ids = get_accepted_tile_ids()
+    assert_that(tile_ids).is_length(18501)
+    assert_that(tile_ids[0]).is_equal_to("01FBE")
+    assert_that(tile_ids[18500]).is_equal_to("60WWV")
 
 
 @freeze_time("2020-12-31")
@@ -353,3 +364,78 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     )
 
     assert_that(expected_available_links).is_equal_to(actual_available_links)
+
+
+@freeze_time("2021-01-01 00:00:01")
+def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time_when_not_present(  # noqa
+    db_session, db_session_context
+):
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        update_last_fetched_link_time()
+
+    last_linked_fetched_time = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_linked_fetched_time")
+        .first()
+        .value
+    )
+
+    assert_that(last_linked_fetched_time).is_equal_to(str(datetime.now()))
+
+
+@freeze_time("2021-01-01 00:00:01")
+def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time(
+    db_session, db_session_context
+):
+    db_session.add(
+        Status(
+            key_name="last_linked_fetched_time",
+            value=str(datetime(year=2000, month=12, day=1, hour=1, minute=1, second=2)),
+        )
+    )
+    db_session.commit()
+
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        update_last_fetched_link_time()
+
+    last_linked_fetched_time = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_linked_fetched_time")
+        .first()
+        .value
+    )
+
+    assert_that(last_linked_fetched_time).is_equal_to(str(datetime.now()))
+
+
+@freeze_time("2021-01-01 00:00:01")
+def test_that_link_fetcher_handler_correctly_updates_granule_count(
+    db_session, db_session_context
+):
+    db_session.add(
+        GranuleCount(
+            date=datetime.now().date(),
+            available_links=10000,
+            fetched_links=1000,
+            last_fetched_time=datetime.now(),
+        )
+    )
+    db_session.commit()
+
+    granule_count = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime.now().date())
+        .first()
+    )
+
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        update_fetched_links(datetime.now().date(), 1000)
+
+    granule_count = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime.now().date())
+        .first()
+    )
+
+    assert_that(granule_count.fetched_links).is_equal_to(2000)
+    assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())

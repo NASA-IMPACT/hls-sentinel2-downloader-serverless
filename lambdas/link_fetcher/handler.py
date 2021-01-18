@@ -9,6 +9,7 @@ import requests
 
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
+from db.models.status import Status
 from db.session import get_session
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
@@ -49,13 +50,18 @@ def handler(event, context):
                 keep_querying_for_imagery = False
                 break
 
-            params["start"] += len(scihub_results)
+            number_of_fetched_links = len(scihub_results)
+            params["start"] += number_of_fetched_links
 
             filtered_scihub_results = filter_scihub_results(
                 scihub_results, accepted_tile_ids
             )
 
             add_scihub_results_to_db(filtered_scihub_results)
+            add_scihub_results_to_sqs(filtered_scihub_results)
+
+            update_last_fetched_link_time()
+            update_fetched_links(day, number_of_fetched_links)
 
 
 def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
@@ -104,6 +110,17 @@ def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
 
 
 def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
+    """
+    For a given day, return the values for total `available_links` and total
+    `fetched_links`, where `available_links` is the total number of results for the day
+    from SciHub and `fetched_links` is the total number of granules that have been
+    processed (but not necessarily added to the database because of filtering)
+
+    If no entry is found, one is created
+    :param day: datetime representing the day to return results for
+    :returns: Tuple[int, int] representing a tuple of
+        (`available_links`, `fetched_links)
+    """
     with get_session() as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         if not granule_count:
@@ -119,9 +136,50 @@ def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
 
 
 def update_total_results(day: datetime, total_results: int):
+    """
+    For a given day and number of results, update the `available_links` value
+    :param day: datetime representing the day to update `available_links` for
+    :param total_results: int representing the total results available for the day,
+        this value will be applied to `available_links`
+    """
     with get_session() as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.available_links = total_results
+        db.commit()
+
+
+def update_last_fetched_link_time():
+    """
+    Update the `last_linked_fetched_time` value in the `status` table
+    Will set the value to `datetime.now()`, if not already present, the value will be
+    created
+    """
+    last_fetched_key_name = "last_linked_fetched_time"
+    datetime_now = str(datetime.now())
+    with get_session() as db:
+        last_linked_fetched_time = (
+            db.query(Status).filter(Status.key_name == last_fetched_key_name).first()
+        )
+        if not last_linked_fetched_time:
+            db.add(Status(key_name=last_fetched_key_name, value=datetime_now))
+            db.commit()
+        else:
+            last_linked_fetched_time.value = datetime_now
+            db.commit()
+
+
+def update_fetched_links(day: datetime, fetched_links: int):
+    """
+    For a given day, update the `fetched_links` value in `granule_count` to the provided
+    `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
+    :param day: datetime representing the day to update in `granule_count`
+    :param fetched_links: int representing the total number of links fetched in this run
+        it is not the total number of Granules created
+    """
+    with get_session() as db:
+        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
+        granule_count.fetched_links += fetched_links
+        granule_count.last_fetched_time = datetime.now()
         db.commit()
 
 
@@ -133,7 +191,7 @@ def get_accepted_tile_ids() -> List[str]:
     """
     with open(
         os.path.join(
-            os.path.basename(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME
+            os.path.dirname(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME
         ),
         "r",
     ) as tile_ids_in:
