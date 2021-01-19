@@ -1,11 +1,14 @@
 import json
 import os
+import re
 from contextlib import contextmanager
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import List
 
 import boto3
 import pytest
+import responses
 from moto import mock_sqs
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
@@ -139,6 +142,98 @@ def mock_sqs_queue(sqs_resource, monkeypatch):
     queue = sqs_resource.create_queue(QueueName="mock-queue")
     monkeypatch.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
+
+
+@pytest.fixture
+def generate_mock_responses_for_multiple_days(
+    mock_scihub_checksum_response,
+    mock_scihub_response,
+):
+    scihub_query_base_fmt = (
+        "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) "
+        "AND (processinglevel:Level-1C) "
+        "AND (ingestiondate:[{0}T00:00:00Z TO {0}T23:59:59Z])"
+        "&rows=100&format=json&orderby=ingestiondate desc&start={1}"
+    )
+
+    # Generate bases for responses
+    scihub_response_2020 = deepcopy(mock_scihub_response)
+    scihub_response_2019 = deepcopy(mock_scihub_response)
+    total_entries = len(scihub_response_2020["feed"]["entry"])
+
+    # Give each entry a unique ID for tests
+    for idx in range(0, total_entries):
+        scihub_response_2020["feed"]["entry"][idx]["id"] = str(idx + 1)
+        scihub_response_2019["feed"]["entry"][idx]["id"] = str(idx + 1 + total_entries)
+
+    # Generate 3 responses per year, 2x 20 entry results and 1 empty result
+    scihub_response_2020_first_20 = deepcopy(scihub_response_2020)
+    scihub_response_2020_first_20["feed"]["entry"] = scihub_response_2020["feed"][
+        "entry"
+    ][:20]
+    scihub_response_2020_next_20 = deepcopy(scihub_response_2020)
+    scihub_response_2020_next_20["feed"]["entry"] = scihub_response_2020["feed"][
+        "entry"
+    ][20:]
+    scihub_response_2020_empty = deepcopy(scihub_response_2020)
+    scihub_response_2020_empty["feed"].pop("entry")
+
+    scihub_response_2019_first_20 = deepcopy(scihub_response_2019)
+    scihub_response_2019_first_20["feed"]["entry"] = scihub_response_2019["feed"][
+        "entry"
+    ][:20]
+    scihub_response_2019_next_20 = deepcopy(scihub_response_2019)
+    scihub_response_2019_next_20["feed"]["entry"] = scihub_response_2019["feed"][
+        "entry"
+    ][20:]
+    scihub_response_2019_empty = deepcopy(scihub_response_2019)
+    scihub_response_2019_empty["feed"].pop("entry")
+
+    # Create responses for sentinel query based on year and start point
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2020-01-01", 0),
+        json=scihub_response_2020_first_20,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2019-12-31", 0),
+        json=scihub_response_2019_first_20,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2020-01-01", 20),
+        json=scihub_response_2020_next_20,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2019-12-31", 20),
+        json=scihub_response_2019_next_20,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2020-01-01", 40),
+        json=scihub_response_2020_empty,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        scihub_query_base_fmt.format("2019-12-31", 40),
+        json=scihub_response_2019_empty,
+        status=200,
+    )
+
+    # Create generic response to MD5 query
+    responses.add(
+        responses.GET,
+        re.compile(r"https://scihub.copernicus.eu/dhus/odata/v1/Products\('*."),
+        json=mock_scihub_checksum_response,
+        status=200,
+    )
 
 
 @pytest.fixture(scope="session")

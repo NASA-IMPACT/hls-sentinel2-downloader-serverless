@@ -1,8 +1,9 @@
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+import pytest
 import responses
 from assertpy import assert_that
 from freezegun import freeze_time
@@ -22,6 +23,7 @@ from lambdas.link_fetcher.handler import (
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
+    handler,
     update_fetched_links,
     update_last_fetched_link_time,
     update_total_results,
@@ -439,3 +441,63 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
 
     assert_that(granule_count.fetched_links).is_equal_to(2000)
     assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
+
+
+@responses.activate
+@freeze_time("2020-01-01")
+@pytest.mark.usefixtures("generate_mock_responses_for_multiple_days")
+def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
+    db_session,
+    db_session_context,
+    mock_sqs_queue,
+):
+    datetime_now = datetime.now()
+    datetime_day_behind_now = datetime_now - timedelta(days=1)
+
+    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+        with patch("lambdas.link_fetcher.handler.get_dates_to_query") as mock_get_dates:
+            # Only run for 2 days as generating test data for 21 is cumbersome
+            mock_get_dates.return_value = [
+                datetime_now,
+                datetime_day_behind_now,
+            ]
+            handler(None, None)
+
+    # Assert all granules present
+    granules = db_session.query(Granule).all()
+    assert_that(granules).is_length(20)
+
+    # Assert 2020-01-01 has correct granule count
+    granule_count = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime_now.date())
+        .first()
+    )
+    assert_that(granule_count.available_links).is_equal_to(6800)
+    assert_that(granule_count.fetched_links).is_equal_to(40)
+    assert_that(granule_count.last_fetched_time).is_equal_to(datetime_now)
+
+    # Assert 2019-12-31 has correct granule count
+    granule_count = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == datetime_day_behind_now.date())
+        .first()
+    )
+    assert_that(granule_count.available_links).is_equal_to(6800)
+    assert_that(granule_count.fetched_links).is_equal_to(40)
+    assert_that(granule_count.last_fetched_time).is_equal_to(datetime_now)
+
+    # Assert status is correct
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_linked_fetched_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime_now))
+
+    # Assert queue is populated
+    mock_sqs_queue.load()
+    number_of_messages_in_queue = mock_sqs_queue.attributes[
+        "ApproximateNumberOfMessages"
+    ]
+    assert_that(int(number_of_messages_in_queue)).is_equal_to(20)

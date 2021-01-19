@@ -37,13 +37,12 @@ def handler(event, context):
         params = get_query_parameters(start=fetched_links, day=day)
 
         while keep_querying_for_imagery:
-
             scihub_results, total_results = get_page_for_query_and_total_results(
                 query_params=params
             )
 
             if not updated_total_results:
-                update_total_results(total_results)
+                update_total_results(day, total_results)
                 updated_total_results = True
 
             if not scihub_results:
@@ -132,7 +131,9 @@ def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
             )
             db.add(granule_count)
             db.commit()
-        return (granule_count.available_links, granule_count.fetched_links)
+            return (0, 0)
+        else:
+            return (granule_count.available_links, granule_count.fetched_links)
 
 
 def update_total_results(day: datetime, total_results: int):
@@ -355,7 +356,6 @@ def get_page_for_query_and_total_results(
         url="https://scihub.copernicus.eu/dhus/search", params=query_params
     )
     resp.raise_for_status()
-
     query_feed = resp.json()["feed"]
     total_results = int(query_feed["opensearch:totalResults"])
 
