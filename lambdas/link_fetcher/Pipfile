@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = ">=2.25.1"
+humanfriendly = ">=9.1"
+sqlalchemy = ">=1.3.22"
+boto3 = ">=1.16.55"
+
+[requires]
+python_version = "3.8.6"
+
+[pipenv]
+allow_prereleases = true
