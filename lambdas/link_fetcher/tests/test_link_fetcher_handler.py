@@ -6,12 +6,12 @@ from unittest.mock import patch
 import pytest
 import responses
 from assertpy import assert_that
-from freezegun import freeze_time
-
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
-from lambdas.link_fetcher.handler import (
+from freezegun import freeze_time
+
+from ..handler import (
     ScihubResult,
     add_scihub_results_to_db,
     add_scihub_results_to_sqs,

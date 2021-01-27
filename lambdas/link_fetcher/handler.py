@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple, TypedDict
 import boto3
 import humanfriendly
 import requests
-
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status

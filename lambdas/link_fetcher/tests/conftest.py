@@ -17,7 +17,8 @@ from sqlalchemy.orm import Session
 
 import alembic.command
 import alembic.config
-from lambdas.link_fetcher.handler import ScihubResult
+
+from ..handler import ScihubResult
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -40,9 +41,7 @@ def mock_scihub_checksum_response():
 
 @pytest.fixture
 def accepted_tile_ids():
-    link_fetcher_dir = UNIT_TEST_DIR.replace(
-        os.path.join("tests", "unit"), os.path.join("lambdas", "link_fetcher")
-    )
+    link_fetcher_dir = UNIT_TEST_DIR.replace("tests", "")
     with open(os.path.join(link_fetcher_dir, "allowed_tiles.txt"), "r") as text_in:
         return [line.strip() for line in text_in]
 
@@ -69,7 +68,11 @@ def postgres_engine(docker_ip, docker_services):
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
 
-    alembic_config = alembic.config.Config("alembic.ini")
+    repo_root = UNIT_TEST_DIR.replace("lambdas/link_fetcher/tests", "")
+    alembic_config = alembic.config.Config(os.path.join(repo_root, "alembic.ini"))
+    alembic_config.set_main_option(
+        "script_location", os.path.join(repo_root, "alembic")
+    )
     alembic.command.upgrade(alembic_config, "head")
 
     return pg_engine
@@ -238,6 +241,4 @@ def generate_mock_responses_for_multiple_days(
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
-    return os.path.join(
-        str(pytestconfig.rootdir), "tests", "unit", "docker-compose.yml"
-    )
+    return os.path.join(UNIT_TEST_DIR, "docker-compose.yml")
