@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-db = {editable = true, path = "."}
+db = {path = "."}
 
 [dev-packages]
 

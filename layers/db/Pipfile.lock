@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "20fa41bb85564a90496c52eb8626423c26c10f1deacd1cdf10f5cc04b84bf5b1"
+            "sha256": "5518249405da6af076678cf273428c6369fbc9fd0aad7ecf84ce607378d90145"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -17,8 +17,8 @@
     },
     "default": {
         "db": {
-            "editable": true,
-            "path": "."
+            "path": ".",
+            "version": "==0.0.1"
         },
         "sqlalchemy": {
             "hashes": [
