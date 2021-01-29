@@ -6,8 +6,6 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import List
 
-import alembic.command
-import alembic.config
 import boto3
 import pytest
 import responses
@@ -16,6 +14,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+
+import alembic.command
+import alembic.config
 
 from ..handler import ScihubResult
 

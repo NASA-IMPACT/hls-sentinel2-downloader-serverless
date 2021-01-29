@@ -8,9 +8,13 @@ from app.downloader_stack import DownloaderStack
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"]
+stage = os.environ["STAGE"]
 
 DownloaderStack(
-    app, f"hls-s2-downloader-serverless-{identifier}", identifier=identifier
+    app,
+    f"hls-s2-downloader-serverless-{identifier}",
+    identifier=identifier,
+    stage=stage,
 )
 
 for k, v in {
