@@ -29,6 +29,7 @@ class ScihubResult(TypedDict):
 
 def handler(event, context):
     accepted_tile_ids = get_accepted_tile_ids()
+    scihub_auth = get_scihub_auth()
     for day in get_dates_to_query(last_date=datetime.now()):
         keep_querying_for_imagery = True
         updated_total_results = False
@@ -37,7 +38,7 @@ def handler(event, context):
 
         while keep_querying_for_imagery:
             scihub_results, total_results = get_page_for_query_and_total_results(
-                query_params=params
+                query_params=params, auth=scihub_auth
             )
 
             if not updated_total_results:
@@ -198,6 +199,21 @@ def get_accepted_tile_ids() -> List[str]:
         return [line.strip() for line in tile_ids_in]
 
 
+def get_scihub_auth() -> Tuple[str, str]:
+    """
+    Retrieves the username and password for SciHub which is stored in SecretsManager
+    :returns: Tuple[str, str] representing the SciHub username and password
+    """
+    stage = os.environ["STAGE"]
+    secrets_manager_client = boto3.client("secretsmanager")
+    secret = json.loads(
+        secrets_manager_client.get_secret_value(
+            SecretId=f"hls-s2-downloader-serverless/{stage}/scihub-credentials"
+        )["SecretString"]
+    )
+    return (secret["username"], secret["password"])
+
+
 def filter_scihub_results(
     scihub_results: List[ScihubResult], accepted_tile_ids: List[str]
 ) -> List[ScihubResult]:
@@ -254,13 +270,14 @@ def get_dates_to_query(
     ]
 
 
-def get_image_checksum(product_url: str) -> str:
+def get_image_checksum(product_url: str, auth: Tuple[str, str]) -> str:
     """
     Returns the string value of a products checksum
     :param product_url: Str representing the Scihub url for the product
+    :param auth: Tuple[str, str] representing the username and password for SciHub
     :returns: Str representing the MD5 Checksum of the product
     """
-    resp = requests.get(url=f"{product_url}?$format=json&$select=Checksum")
+    resp = requests.get(url=f"{product_url}?$format=json&$select=Checksum", auth=auth)
     resp.raise_for_status()
 
     return resp.json()["d"]["Checksum"]["Value"]
@@ -283,10 +300,13 @@ def ensure_three_decimal_points_for_milliseconds_and_replace_z(
     return f"{datetimestring_stripped}+00:00"
 
 
-def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
+def create_scihub_result_from_feed_entry(
+    feed_entry: Dict, auth: Tuple[str, str]
+) -> ScihubResult:
     """
     Creates a SciHubResult object from a feed entry returned from a SciHub query
     :param feed_entry: A Dict representing the feed entry for one image
+    :param auth: Tuple[str, str] representing the username and password for SciHub
     :returns: SciHubResult A object with information useful for the Downloader
     """
     image_id = feed_entry["id"]
@@ -300,7 +320,7 @@ def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
         elif string["name"] == "size":
             size = humanfriendly.parse_size(string["content"], binary=True)
 
-    checksum = get_image_checksum(product_url)
+    checksum = get_image_checksum(product_url, auth)
 
     for date in feed_entry["date"]:
         if date["name"] == "beginposition":
@@ -338,7 +358,7 @@ def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
 
 
 def get_page_for_query_and_total_results(
-    query_params: Dict,
+    query_params: Dict, auth: Tuple[str, str]
 ) -> Tuple[List[ScihubResult], int]:
     """
     Takes a set of query parameters and retrieves the SciHub results that match that
@@ -347,12 +367,13 @@ def get_page_for_query_and_total_results(
     results is however returned as well.
     :param query_params: Dict representing the parameters to send to SciHub in a GET
         request for searching imagery
+    :param auth: Tuple[str, str] representing the username and password for SciHub
     :returns: Tuple[List[ScihubResult], int] Tuple containing the paged SciHub results
         from the query and an int value representing the total number of results that
         match the query
     """
     resp = requests.get(
-        url="https://scihub.copernicus.eu/dhus/search", params=query_params
+        url="https://scihub.copernicus.eu/dhus/search", params=query_params, auth=auth
     )
     resp.raise_for_status()
     query_feed = resp.json()["feed"]
@@ -362,7 +383,8 @@ def get_page_for_query_and_total_results(
         return [], total_results
 
     scihub_results = [
-        create_scihub_result_from_feed_entry(entry) for entry in query_feed["entry"]
+        create_scihub_result_from_feed_entry(entry, auth)
+        for entry in query_feed["entry"]
     ]
 
     return scihub_results, total_results

@@ -6,17 +6,16 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import List
 
+import alembic.command
+import alembic.config
 import boto3
 import pytest
 import responses
-from moto import mock_sqs
+from moto import mock_secretsmanager, mock_sqs
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-
-import alembic.command
-import alembic.config
 
 from ..handler import ScihubResult
 
@@ -145,6 +144,23 @@ def mock_sqs_queue(sqs_resource, monkeypatch):
     queue = sqs_resource.create_queue(QueueName="mock-queue")
     monkeypatch.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
+
+
+@pytest.fixture
+def secrets_manager_client():
+    with mock_secretsmanager():
+        yield boto3.client("secretsmanager")
+
+
+@pytest.fixture
+def mock_secrets_manager_secret(secrets_manager_client, monkeypatch):
+    secret = {"username": "test-username", "password": "test-password"}
+    secrets_manager_client.create_secret(
+        Name="hls-s2-downloader-serverless/test/scihub-credentials",
+        SecretString=json.dumps(secret),
+    )
+    monkeypatch.setenv("STAGE", "test")
+    return secret
 
 
 @pytest.fixture

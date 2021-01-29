@@ -23,6 +23,7 @@ from ..handler import (
     get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
+    get_scihub_auth,
     handler,
     update_fetched_links,
     update_last_fetched_link_time,
@@ -35,6 +36,14 @@ def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():
     assert_that(tile_ids).is_length(18501)
     assert_that(tile_ids[0]).is_equal_to("01FBE")
     assert_that(tile_ids[18500]).is_equal_to("60WWV")
+
+
+def test_that_link_fetcher_handler_correctly_loads_scihub_credentials(
+    mock_secrets_manager_secret,
+):
+    auth = get_scihub_auth()
+    assert_that(auth[0]).is_equal_to(mock_secrets_manager_secret["username"])
+    assert_that(auth[1]).is_equal_to(mock_secrets_manager_secret["password"])
 
 
 @freeze_time("2020-12-31")
@@ -88,10 +97,11 @@ def test_that_link_fetcher_handler_gets_product_checksum_correctly(
     expected_checksum = mock_scihub_checksum_response["d"]["Checksum"]["Value"]
 
     actual_checksum = get_image_checksum(
-        (
+        product_url=(
             "https://scihub.copernicus.eu/dhus/odata/v1/"
             "Products('422fd86d-7019-47c6-be4f-036fbf5ce874')/"
-        )
+        ),
+        auth=("blah", "blah"),
     )
 
     assert_that(actual_checksum).is_equal_to(expected_checksum)
@@ -128,7 +138,7 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
     )
 
     actual_scihub_result = create_scihub_result_from_feed_entry(
-        mock_scihub_response["feed"]["entry"][0]
+        feed_entry=mock_scihub_response["feed"]["entry"][0], auth=("blah", "blah")
     )
 
     assert_that(actual_scihub_result).is_equal_to(expected_scihub_result)
@@ -136,7 +146,7 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results(
-    mock_scihub_response, mock_scihub_checksum_response
+    mock_scihub_response, mock_scihub_checksum_response, mock_secrets_manager_secret
 ):
     responses.add(
         responses.GET,
@@ -157,7 +167,11 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
     )
 
     scihub_results, total_results = get_page_for_query_and_total_results(
-        get_query_parameters(start=0, day=datetime(2020, 1, 1))
+        query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
+        auth=(
+            mock_secrets_manager_secret["username"],
+            mock_secrets_manager_secret["password"],
+        ),
     )
 
     assert_that(scihub_results).is_length(40)
@@ -166,7 +180,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
-    mock_scihub_response, mock_scihub_checksum_response
+    mock_scihub_response, mock_scihub_checksum_response, mock_secrets_manager_secret
 ):
     resp = mock_scihub_response.copy()
     resp["feed"].pop("entry")
@@ -190,7 +204,11 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
     )
 
     scihub_results, total_results = get_page_for_query_and_total_results(
-        get_query_parameters(start=0, day=datetime(2020, 1, 1))
+        query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
+        auth=(
+            mock_secrets_manager_secret["username"],
+            mock_secrets_manager_secret["password"],
+        ),
     )
 
     assert_that(scihub_results).is_length(0)
@@ -449,6 +467,7 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
 def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
     db_session,
     db_session_context,
+    mock_secrets_manager_secret,
     mock_sqs_queue,
 ):
     datetime_now = datetime.now()
