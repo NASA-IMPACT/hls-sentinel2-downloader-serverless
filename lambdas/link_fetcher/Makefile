@@ -1,4 +1,4 @@
-.PHONEY: lint format
+.PHONEY: lint format test
 
 lint:
 	pipenv run flake8 .
@@ -8,3 +8,6 @@ lint:
 format:
 	pipenv run isort --profile black .
 	pipenv run black .
+
+test:
+	pipenv run pytest -s

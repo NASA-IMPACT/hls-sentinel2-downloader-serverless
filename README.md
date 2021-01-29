@@ -1,4 +1,4 @@
-# HLS Sentinel 2 Downloader Serverless
+# HLS Sentinel 2 Downloader Serverless 🛰
 
 This project aims to provide a serverless implementation of the current [HLS S2 Downloader](https://github.com/NASA-IMPACT/hls-sentinel2-downloader/tree/version2-ajinkya). The following diagram indicates a high level design for the proposed architecture:
 

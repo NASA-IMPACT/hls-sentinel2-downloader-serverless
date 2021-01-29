@@ -19,4 +19,4 @@ destroy:
 	pipenv run npx cdk destroy --force
 
 unit-tests:
-	pipenv run pytest -s tests/unit
+	$(MAKE) -C lambdas/link_fetcher test
