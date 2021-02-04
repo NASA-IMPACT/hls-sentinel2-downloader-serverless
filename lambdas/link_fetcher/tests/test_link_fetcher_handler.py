@@ -12,7 +12,6 @@ from db.models.status import Status
 from freezegun import freeze_time
 
 from ..handler import (
-    ScihubResult,
     add_scihub_results_to_db,
     add_scihub_results_to_sqs,
     create_scihub_result_from_feed_entry,
@@ -29,6 +28,7 @@ from ..handler import (
     update_last_fetched_link_time,
     update_total_results,
 )
+from ..scihub_result import ScihubResult
 
 
 def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():
@@ -39,11 +39,11 @@ def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():
 
 
 def test_that_link_fetcher_handler_correctly_loads_scihub_credentials(
-    mock_secrets_manager_secret,
+    mock_scihub_credentials,
 ):
     auth = get_scihub_auth()
-    assert_that(auth[0]).is_equal_to(mock_secrets_manager_secret["username"])
-    assert_that(auth[1]).is_equal_to(mock_secrets_manager_secret["password"])
+    assert_that(auth[0]).is_equal_to(mock_scihub_credentials["username"])
+    assert_that(auth[1]).is_equal_to(mock_scihub_credentials["password"])
 
 
 @freeze_time("2020-12-31")
@@ -146,7 +146,7 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results(
-    mock_scihub_response, mock_scihub_checksum_response, mock_secrets_manager_secret
+    mock_scihub_response, mock_scihub_checksum_response, mock_scihub_credentials
 ):
     responses.add(
         responses.GET,
@@ -169,8 +169,8 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
     scihub_results, total_results = get_page_for_query_and_total_results(
         query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
         auth=(
-            mock_secrets_manager_secret["username"],
-            mock_secrets_manager_secret["password"],
+            mock_scihub_credentials["username"],
+            mock_scihub_credentials["password"],
         ),
     )
 
@@ -180,7 +180,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
-    mock_scihub_response, mock_scihub_checksum_response, mock_secrets_manager_secret
+    mock_scihub_response, mock_scihub_checksum_response, mock_scihub_credentials
 ):
     resp = mock_scihub_response.copy()
     resp["feed"].pop("entry")
@@ -206,8 +206,8 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
     scihub_results, total_results = get_page_for_query_and_total_results(
         query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
         auth=(
-            mock_secrets_manager_secret["username"],
-            mock_secrets_manager_secret["password"],
+            mock_scihub_credentials["username"],
+            mock_scihub_credentials["password"],
         ),
     )
 
@@ -247,7 +247,7 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_db(
     scihub_result_url_base = scihub_results[0]["download_url"][:-12]
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        add_scihub_results_to_db(scihub_results)
+        add_scihub_results_to_db(None, scihub_results)
         granules_in_db = db_session.query(Granule).all()
         assert_that(granules_in_db).is_length(10)
 
@@ -281,7 +281,7 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
     db_session.commit()
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        add_scihub_results_to_db([scihub_result])
+        add_scihub_results_to_db(None, [scihub_result])
         granules_in_db = db_session.query(Granule).all()
         assert_that(granules_in_db).is_length(1)
 
@@ -328,7 +328,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
         actual_available_links, actual_fetched_links = get_available_and_fetched_links(
-            datetime(2020, 1, 1)
+            None, datetime(2020, 1, 1)
         )
         assert_that(expected_available_links).is_equal_to(actual_available_links)
         assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
@@ -344,7 +344,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
         actual_available_links, actual_fetched_links = get_available_and_fetched_links(
-            datetime(2020, 12, 31)
+            None, datetime(2020, 12, 31)
         )
         assert_that(expected_available_links).is_equal_to(actual_available_links)
         assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
@@ -374,7 +374,7 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     db_session.commit()
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        update_total_results(datetime(2020, 1, 1), 500)
+        update_total_results(None, datetime(2020, 1, 1), 500)
 
     actual_available_links = (
         db_session.query(GranuleCount)
@@ -391,7 +391,7 @@ def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time_wh
     db_session, db_session_context
 ):
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        update_last_fetched_link_time()
+        update_last_fetched_link_time(None)
 
     last_linked_fetched_time = (
         db_session.query(Status)
@@ -416,7 +416,7 @@ def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time(
     db_session.commit()
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        update_last_fetched_link_time()
+        update_last_fetched_link_time(None)
 
     last_linked_fetched_time = (
         db_session.query(Status)
@@ -449,7 +449,7 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
     )
 
     with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        update_fetched_links(datetime.now().date(), 1000)
+        update_fetched_links(None, datetime.now().date(), 1000)
 
     granule_count = (
         db_session.query(GranuleCount)
@@ -467,7 +467,8 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
 def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
     db_session,
     db_session_context,
-    mock_secrets_manager_secret,
+    mock_scihub_credentials,
+    mock_db_connection_secret,
     mock_sqs_queue,
 ):
     datetime_now = datetime.now()

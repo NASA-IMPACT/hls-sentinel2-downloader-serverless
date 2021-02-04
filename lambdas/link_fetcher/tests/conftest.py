@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 import alembic.command
 import alembic.config
 
-from ..handler import ScihubResult
+from ..scihub_result import ScihubResult
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -92,7 +92,7 @@ def db_session(postgres_engine):
 @pytest.fixture
 def db_session_context(db_session):
     @contextmanager
-    def db_context():
+    def db_context(session_maker):
         yield db_session
 
     yield db_context
@@ -154,7 +154,7 @@ def secrets_manager_client():
 
 
 @pytest.fixture
-def mock_secrets_manager_secret(secrets_manager_client, monkeypatch):
+def mock_scihub_credentials(secrets_manager_client, monkeypatch):
     secret = {"username": "test-username", "password": "test-password"}
     secrets_manager_client.create_secret(
         Name="hls-s2-downloader-serverless/test/scihub-credentials",
@@ -162,6 +162,17 @@ def mock_secrets_manager_secret(secrets_manager_client, monkeypatch):
     )
     monkeypatch.setenv("STAGE", "test")
     return secret
+
+
+@pytest.fixture
+def mock_db_connection_secret(secrets_manager_client, monkeypatch):
+    arn = secrets_manager_client.create_secret(
+        Name="db-connection",
+        SecretString=json.dumps(
+            {"username": "blah", "password": "blah", "host": "blah", "dbname": "blah"}
+        ),
+    )["ARN"]
+    monkeypatch.setenv("DB_CONNECTION_SECRET_ARN", arn)
 
 
 @pytest.fixture

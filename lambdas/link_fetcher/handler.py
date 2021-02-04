@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, TypedDict
+from typing import Dict, List, Tuple
 
 import boto3
 import humanfriendly
@@ -9,31 +9,24 @@ import requests
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
-from db.session import get_session
+from db.session import get_session, get_session_maker
+
+from .scihub_result import ScihubResult
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
 ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
 
 
-class ScihubResult(TypedDict):
-    image_id: str
-    filename: str
-    tileid: str
-    size: int
-    checksum: str
-    beginposition: datetime
-    endposition: datetime
-    ingestiondate: datetime
-    download_url: str
-
-
 def handler(event, context):
+    session_maker = get_session_maker()
     accepted_tile_ids = get_accepted_tile_ids()
     scihub_auth = get_scihub_auth()
     for day in get_dates_to_query(last_date=datetime.now()):
         keep_querying_for_imagery = True
         updated_total_results = False
-        available_links, fetched_links = get_available_and_fetched_links(day)
+        available_links, fetched_links = get_available_and_fetched_links(
+            session_maker, day
+        )
         params = get_query_parameters(start=fetched_links, day=day)
 
         while keep_querying_for_imagery:
@@ -42,7 +35,7 @@ def handler(event, context):
             )
 
             if not updated_total_results:
-                update_total_results(day, total_results)
+                update_total_results(session_maker, day, total_results)
                 updated_total_results = True
 
             if not scihub_results:
@@ -56,14 +49,14 @@ def handler(event, context):
                 scihub_results, accepted_tile_ids
             )
 
-            add_scihub_results_to_db(filtered_scihub_results)
+            add_scihub_results_to_db(session_maker, filtered_scihub_results)
             add_scihub_results_to_sqs(filtered_scihub_results)
 
-            update_last_fetched_link_time()
-            update_fetched_links(day, number_of_fetched_links)
+            update_last_fetched_link_time(session_maker)
+            update_fetched_links(session_maker, day, number_of_fetched_links)
 
 
-def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
+def add_scihub_results_to_db(session_maker, scihub_results: List[ScihubResult]):
     """
     Creates a record in the `granule` table for each of the provided ScihubResults
     Firstly a check is performed to ensure that a granule isn't already present, if it
@@ -71,7 +64,7 @@ def add_scihub_results_to_db(scihub_results: List[ScihubResult]):
     :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
         `granule` table
     """
-    with get_session() as db:
+    with get_session(session_maker) as db:
         for result in scihub_results:
             if not db.query(Granule).filter(Granule.id == result["image_id"]).first():
                 db.add(
@@ -108,7 +101,7 @@ def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
         )
 
 
-def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
+def get_available_and_fetched_links(session_maker, day: datetime) -> Tuple[int, int]:
     """
     For a given day, return the values for total `available_links` and total
     `fetched_links`, where `available_links` is the total number of results for the day
@@ -120,7 +113,7 @@ def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
     :returns: Tuple[int, int] representing a tuple of
         (`available_links`, `fetched_links)
     """
-    with get_session() as db:
+    with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         if not granule_count:
             granule_count = GranuleCount(
@@ -136,20 +129,20 @@ def get_available_and_fetched_links(day: datetime) -> Tuple[int, int]:
             return (granule_count.available_links, granule_count.fetched_links)
 
 
-def update_total_results(day: datetime, total_results: int):
+def update_total_results(session_maker, day: datetime, total_results: int):
     """
     For a given day and number of results, update the `available_links` value
     :param day: datetime representing the day to update `available_links` for
     :param total_results: int representing the total results available for the day,
         this value will be applied to `available_links`
     """
-    with get_session() as db:
+    with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.available_links = total_results
         db.commit()
 
 
-def update_last_fetched_link_time():
+def update_last_fetched_link_time(session_maker):
     """
     Update the `last_linked_fetched_time` value in the `status` table
     Will set the value to `datetime.now()`, if not already present, the value will be
@@ -157,7 +150,7 @@ def update_last_fetched_link_time():
     """
     last_fetched_key_name = "last_linked_fetched_time"
     datetime_now = str(datetime.now())
-    with get_session() as db:
+    with get_session(session_maker) as db:
         last_linked_fetched_time = (
             db.query(Status).filter(Status.key_name == last_fetched_key_name).first()
         )
@@ -169,7 +162,7 @@ def update_last_fetched_link_time():
             db.commit()
 
 
-def update_fetched_links(day: datetime, fetched_links: int):
+def update_fetched_links(session_maker, day: datetime, fetched_links: int):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
@@ -177,7 +170,7 @@ def update_fetched_links(day: datetime, fetched_links: int):
     :param fetched_links: int representing the total number of links fetched in this run
         it is not the total number of Granules created
     """
-    with get_session() as db:
+    with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.fetched_links += fetched_links
         granule_count.last_fetched_time = datetime.now()
