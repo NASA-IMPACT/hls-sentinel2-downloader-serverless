@@ -43,11 +43,9 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
 
-    repo_root = UNIT_TEST_DIR.replace("layers/db/db/tests", "")
-    alembic_config = alembic.config.Config(os.path.join(repo_root, "alembic.ini"))
-    alembic_config.set_main_option(
-        "script_location", os.path.join(repo_root, "alembic")
-    )
+    alembic_root = UNIT_TEST_DIR.replace("layers/db/db/tests", "alembic")
+    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
+    alembic_config.set_main_option("script_location", alembic_root)
     alembic.command.upgrade(alembic_config, "head")
 
     return pg_engine

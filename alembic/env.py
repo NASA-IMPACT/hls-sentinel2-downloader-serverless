@@ -31,7 +31,9 @@ target_metadata = None
 def get_url() -> URL:
     """
     Returns a SQLAlchemy `engine.url.URL`
-    based on environment variables
+    based on a AWS SecretsManager Secret, whos ARN is available as a environment
+    variable named DB_CONNECTION_SECRET_ARN
+    :returns: URL representing a sqlalchemy url for the database
     """
     secrets_manager_client = boto3.client("secretsmanager")
     secret_arn = os.environ["DB_CONNECTION_SECRET_ARN"]
