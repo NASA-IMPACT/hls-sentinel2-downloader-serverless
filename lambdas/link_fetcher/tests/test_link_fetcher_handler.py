@@ -468,7 +468,7 @@ def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
     db_session,
     db_session_context,
     mock_scihub_credentials,
-    mock_db_connection_secret,
+    db_connection_secret,
     mock_sqs_queue,
 ):
     datetime_now = datetime.now()

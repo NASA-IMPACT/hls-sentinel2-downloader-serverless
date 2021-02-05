@@ -4,6 +4,7 @@ import os
 import boto3
 import pytest
 from moto import mock_secretsmanager
+from _pytest.monkeypatch import MonkeyPatch
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
@@ -29,7 +30,7 @@ def check_pg_status(engine: Engine) -> bool:
 
 
 @pytest.fixture(scope="session")
-def postgres_engine(docker_ip, docker_services):
+def postgres_engine(docker_ip, docker_services, db_connection_secret):
     db_url = url.URL(
         "postgresql",
         username=os.environ["PG_USER"],
@@ -52,14 +53,14 @@ def postgres_engine(docker_ip, docker_services):
     return pg_engine
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def secrets_manager_client():
     with mock_secretsmanager():
         yield boto3.client("secretsmanager")
 
 
-@pytest.fixture
-def db_connection_secret(secrets_manager_client, monkeypatch):
+@pytest.fixture(scope="session")
+def db_connection_secret(secrets_manager_client, monkeysession):
     arn = secrets_manager_client.create_secret(
         Name="db-connection",
         SecretString=json.dumps(
@@ -71,7 +72,14 @@ def db_connection_secret(secrets_manager_client, monkeypatch):
             }
         ),
     )["ARN"]
-    monkeypatch.setenv("DB_CONNECTION_SECRET_ARN", arn)
+    monkeysession.setenv("DB_CONNECTION_SECRET_ARN", arn)
+
+
+@pytest.fixture(scope="session")
+def monkeysession(request):
+    mpatch = MonkeyPatch()
+    yield mpatch
+    mpatch.undo()
 
 
 @pytest.fixture

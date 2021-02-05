@@ -1,6 +1,8 @@
+import json
 import os
 from logging.config import fileConfig
 
+import boto3
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import URL
 
@@ -31,12 +33,17 @@ def get_url() -> URL:
     Returns a SQLAlchemy `engine.url.URL`
     based on environment variables
     """
+    secrets_manager_client = boto3.client("secretsmanager")
+    secret_arn = os.environ["DB_CONNECTION_SECRET_ARN"]
+    db_connection_params = json.loads(
+        secrets_manager_client.get_secret_value(SecretId=secret_arn)["SecretString"]
+    )
     return URL(
         "postgresql",
-        username=os.environ["PG_USER"],
-        password=os.environ["PG_PASSWORD"],
-        host=os.environ.get("PG_HOST", "localhost"),
-        database=os.environ["PG_DB"],
+        username=db_connection_params["username"],
+        password=db_connection_params["password"],
+        host=db_connection_params["host"],
+        database=db_connection_params["dbname"],
     )
 
 

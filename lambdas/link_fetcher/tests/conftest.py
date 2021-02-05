@@ -10,6 +10,7 @@ import boto3
 import pytest
 import responses
 from moto import mock_secretsmanager, mock_sqs
+from _pytest.monkeypatch import MonkeyPatch
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
@@ -55,7 +56,7 @@ def check_pg_status(engine: Engine) -> bool:
 
 
 @pytest.fixture(scope="session")
-def postgres_engine(docker_ip, docker_services):
+def postgres_engine(docker_ip, docker_services, db_connection_secret):
     db_url = url.URL(
         "postgresql",
         username=os.environ["PG_USER"],
@@ -126,12 +127,12 @@ def scihub_result_maker():
 
 
 @pytest.fixture(autouse=True)
-def aws_credentials(monkeypatch):
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
-    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+def aws_credentials(monkeysession):
+    monkeysession.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeysession.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeysession.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeysession.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeysession.setenv("AWS_DEFAULT_REGION", "us-east-1")
 
 
 @pytest.fixture
@@ -141,38 +142,43 @@ def sqs_resource():
 
 
 @pytest.fixture
-def mock_sqs_queue(sqs_resource, monkeypatch):
+def mock_sqs_queue(sqs_resource, monkeysession):
     queue = sqs_resource.create_queue(QueueName="mock-queue")
-    monkeypatch.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
+    monkeysession.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def secrets_manager_client():
     with mock_secretsmanager():
         yield boto3.client("secretsmanager")
 
 
-@pytest.fixture
-def mock_scihub_credentials(secrets_manager_client, monkeypatch):
+@pytest.fixture(scope="session")
+def db_connection_secret(secrets_manager_client, monkeysession):
+    arn = secrets_manager_client.create_secret(
+        Name="db-connection",
+        SecretString=json.dumps(
+            {
+                "username": os.environ["PG_USER"],
+                "password": os.environ["PG_PASSWORD"],
+                "host": "localhost",
+                "dbname": os.environ["PG_DB"],
+            }
+        ),
+    )["ARN"]
+    monkeysession.setenv("DB_CONNECTION_SECRET_ARN", arn)
+
+
+@pytest.fixture(scope="session")
+def mock_scihub_credentials(secrets_manager_client, monkeysession):
     secret = {"username": "test-username", "password": "test-password"}
     secrets_manager_client.create_secret(
         Name="hls-s2-downloader-serverless/test/scihub-credentials",
         SecretString=json.dumps(secret),
     )
-    monkeypatch.setenv("STAGE", "test")
+    monkeysession.setenv("STAGE", "test")
     return secret
-
-
-@pytest.fixture
-def mock_db_connection_secret(secrets_manager_client, monkeypatch):
-    arn = secrets_manager_client.create_secret(
-        Name="db-connection",
-        SecretString=json.dumps(
-            {"username": "blah", "password": "blah", "host": "blah", "dbname": "blah"}
-        ),
-    )["ARN"]
-    monkeypatch.setenv("DB_CONNECTION_SECRET_ARN", arn)
 
 
 @pytest.fixture
@@ -270,3 +276,10 @@ def generate_mock_responses_for_multiple_days(
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
     return os.path.join(UNIT_TEST_DIR, "docker-compose.yml")
+
+
+@pytest.fixture(scope="session")
+def monkeysession(request):
+    mpatch = MonkeyPatch()
+    yield mpatch
+    mpatch.undo()
