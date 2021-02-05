@@ -9,8 +9,8 @@ from typing import List
 import boto3
 import pytest
 import responses
-from moto import mock_secretsmanager, mock_sqs
 from _pytest.monkeypatch import MonkeyPatch
+from moto import mock_secretsmanager, mock_sqs
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError

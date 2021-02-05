@@ -3,8 +3,8 @@ import os
 
 import boto3
 import pytest
-from moto import mock_secretsmanager
 from _pytest.monkeypatch import MonkeyPatch
+from moto import mock_secretsmanager
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError

@@ -20,3 +20,4 @@ destroy:
 
 unit-tests:
 	$(MAKE) -C lambdas/link_fetcher test
+	$(MAKE) -C layers/db test
