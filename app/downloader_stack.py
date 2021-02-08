@@ -28,8 +28,10 @@ class DownloaderStack(core.Stack):
 
         vpc = aws_ec2.Vpc(
             self,
-            id=f"{construct_id}-vpc",
+            id=f"{stage}-vpc",
             nat_gateways=0,
+            enable_dns_hostnames=True,
+            enable_dns_support=True,
             cidr="10.0.0.0/26",
             subnet_configuration=[
                 aws_ec2.SubnetConfiguration(
@@ -41,18 +43,18 @@ class DownloaderStack(core.Stack):
 
         rds_subnet_group = aws_rds.SubnetGroup(
             self,
-            id=f"{construct_id}-rds-subnet-group",
+            id=f"{stage}-rds-subnet-group",
             vpc=vpc,
             vpc_subnets=aws_ec2.SubnetSelection(subnet_type=aws_ec2.SubnetType.PUBLIC),
-            description=f"Subnet group for {construct_id}-downloader-rds",
+            description=f"Subnet group for {stage}-downloader-rds",
         )
 
         rds_security_group = aws_ec2.SecurityGroup(
             self,
-            id=f"{construct_id}-rds-security-group",
+            id=f"{stage}-rds-security-group",
             vpc=vpc,
             allow_all_outbound=True,
-            description=f"Security group for {construct_id}-downloader-rds",
+            description=f"Security group for {stage}-downloader-rds",
         )
 
         rds_security_group.add_ingress_rule(
@@ -61,88 +63,86 @@ class DownloaderStack(core.Stack):
             description="Allow all traffic for Postgres",
         )
 
-        # Doesn't work, should be publicly available as in public subnets etc
-        downloader_rds = aws_rds.ServerlessCluster(
-            self,
-            id=f"{construct_id}-downloader-rds",
-            engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
-            version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
-        ),
-            vpc=vpc,
-            subnet_group=rds_subnet_group,
-            security_groups=[rds_security_group],
-            default_database_name="hlss2downloader",
-            enable_data_api=True,
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
-        )
-
-        # # Works - Publicly available but not serverless
-        # downloader_rds = aws_rds.DatabaseCluster(
+        # # Doesn't work, should be publicly available as in public subnets etc
+        # downloader_rds = aws_rds.ServerlessCluster(
         #     self,
-        #     id=f"{construct_id}-downloader-rds",
+        #     id=f"{stage}-downloader-rds",
         #     engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
         #         version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
         #     ),
-        #     instance_props=aws_rds.InstanceProps(
-        #         vpc=vpc,
-        #         security_groups=[rds_security_group],
-        #         publicly_accessible=True,
-        #     ),
+        #     vpc=vpc,
         #     subnet_group=rds_subnet_group,
+        #     security_groups=[rds_security_group],
         #     default_database_name="hlss2downloader",
+        #     enable_data_api=True,
         #     removal_policy=core.RemovalPolicy.RETAIN
         #     if prod
         #     else core.RemovalPolicy.DESTROY,
         # )
 
-        core.CfnOutput(
-            self, id="downloader-ip", value=downloader_rds.cluster_endpoint.hostname
+        # Works - Publicly available but not serverless
+        downloader_rds = aws_rds.DatabaseCluster(
+            self,
+            id=f"{construct_id}-downloader-rds",
+            engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
+                version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
+            ),
+            instance_props=aws_rds.InstanceProps(
+                vpc=vpc,
+                security_groups=[rds_security_group],
+                publicly_accessible=True,
+            ),
+            subnet_group=rds_subnet_group,
+            default_database_name="hlss2downloader",
+            removal_policy=core.RemovalPolicy.RETAIN
+            if prod
+            else core.RemovalPolicy.DESTROY,
         )
 
-        # psycopg2_layer = aws_lambda.LayerVersion.from_layer_version_arn(
-        #     self,
-        #     id=f"{construct_id}-pyscopg2-layer",
-        #     layer_version_arn=(
-        #         "arn:aws:lambda:us-west-2:898466741470:layer:psycopg2-py38:1"
-        #     ),
-        # )
+        core.CfnOutput(
+            self,
+            id=f"{stage}-downloader-ip",
+            value=downloader_rds.cluster_endpoint.hostname,
+        )
 
-        # migration_function = aws_lambda_python.PythonFunction(
-        #     self,
-        #     id=f"{construct_id}-migration-function",
-        #     entry="alembic",
-        #     handler="handler",
-        #     index="alembic_handler.py",
-        #     runtime=aws_lambda.Runtime.PYTHON_3_8,
-        #     memory_size=128,
-        #     timeout=core.Duration.minutes(5),
-        #     layers=[
-        #         psycopg2_layer,
-        #     ],
-        #     environment={"DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn},
-        # )
+        psycopg2_layer = aws_lambda.LayerVersion.from_layer_version_arn(
+            self,
+            id=f"{construct_id}-pyscopg2-layer",
+            layer_version_arn=(
+                "arn:aws:lambda:us-west-2:898466741470:layer:psycopg2-py38:1"
+            ),
+        )
 
-        # downloader_rds.secret.grant_read(migration_function)
+        db_layer = aws_lambda_python.PythonLayerVersion(
+            self,
+            id=f"{stage}-db-layer",
+            entry="layers/db",
+            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_8],
+        )
 
-        # migration_function_resource = core.CustomResource(
-        #     self,
-        #     id=f"{construct_id}-migration-function-resource",
-        #     service_token=migration_function.function_arn,
-        # )
+        migration_function = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{stage}-migration-function",
+            entry="alembic",
+            handler="handler",
+            index="alembic_handler.py",
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            memory_size=128,
+            timeout=core.Duration.minutes(5),
+            layers=[
+                db_layer,
+                psycopg2_layer,
+            ],
+            environment={"DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn},
+        )
 
-        # lambda_security_group = aws_ec2.SecurityGroup(
-        #     self,
-        #     id=f"{construct_id}-lambda-security-group",
-        #     vpc=vpc,
-        #     allow_all_outbound=True,
-        # )
+        downloader_rds.secret.grant_read(migration_function)
 
-        # downloader_rds.connections.allow_default_port_from(
-        #     other=lambda_security_group,
-        #     description="Allow access from Lambda"
-        # )
+        migration_function_resource = core.CustomResource(
+            self,
+            id=f"{construct_id}-migration-function-resource",
+            service_token=migration_function.function_arn,
+        )
 
         # to_download_queue = aws_sqs.Queue(
         #     self,
@@ -150,39 +150,6 @@ class DownloaderStack(core.Stack):
         #     queue_name="hls-s2-downloader-serverless-to-download",
         #     retention_period=core.Duration.days(14)
         # )
-
-        # psycopg2_layer = aws_lambda.LayerVersion.from_layer_version_arn(
-        #     self,
-        #     id=f"{construct_id}-pyscopg2-layer",
-        #     layer_version_arn=(
-        #         "arn:aws:lambda:us-west-2:898466741470:layer:psycopg2-py38:1"
-        #     ),
-        # )
-
-        # db_layer = aws_lambda_python.PythonLayerVersion(
-        #     self,
-        #     id=f"{construct_id}-db-layer",
-        #     entry="layers/db",
-        #     compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_8],
-        # )
-
-        # test_function = aws_lambda.Function(
-        #     self,
-        #     "test",
-        #     code=aws_lambda.Code.from_asset(
-        #         path="guff"
-        #     ),
-        #     handler="testhandler.handler",
-        #     runtime=aws_lambda.Runtime.PYTHON_3_8,
-        #     memory_size=128,
-        #     timeout=core.Duration.minutes(5),
-        #     layers=[db_layer, psycopg2_layer],
-        #     environment={
-        #         "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
-        #     },
-        # )
-
-        # downloader_rds.secret.grant_read(test_function)
 
 
 # _ = aws_lambda_python.PythonFunction(
