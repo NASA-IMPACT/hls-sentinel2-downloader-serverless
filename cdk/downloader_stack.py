@@ -10,7 +10,7 @@ from aws_cdk import (
     core,
 )
 
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__)).replace("app", "")
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__)).replace("cdk", "")
 
 
 class DownloaderStack(core.Stack):
@@ -138,33 +138,36 @@ class DownloaderStack(core.Stack):
 
         downloader_rds.secret.grant_read(migration_function)
 
-        migration_function_resource = core.CustomResource(
+        core.CustomResource(
             self,
             id=f"{construct_id}-migration-function-resource",
             service_token=migration_function.function_arn,
         )
 
-        # to_download_queue = aws_sqs.Queue(
-        #     self,
-        #     id=f"{construct_id}-to-download-queue",
-        #     queue_name="hls-s2-downloader-serverless-to-download",
-        #     retention_period=core.Duration.days(14)
-        # )
+        to_download_queue = aws_sqs.Queue(
+            self,
+            id=f"{construct_id}-to-download-queue",
+            queue_name="hls-s2-downloader-serverless-to-download",
+            retention_period=core.Duration.days(14)
+        )
+
+        link_fetcher = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{construct_id}-link-fetcher",
+            entry=os.path.join(REPO_ROOT, "lambdas", "link_fetcher"),
+            index="handler.py",
+            handler="handler",
+            layers=[db_layer, psycopg2_layer],
+            memory_size=1024,
+            timeout=core.Duration.minutes(5),
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            environment={
+                "STAGE": stage,
+                "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
+                "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn
+            }
+        )
+
+        downloader_rds.secret.grant_read(link_fetcher)
 
 
-# _ = aws_lambda_python.PythonFunction(
-#     self,
-#     id=f"{construct_id}-link-fetcher",
-#     entry=os.path.join(REPO_ROOT, "lambdas", "link_fetcher"),
-#     index="handler.py",
-#     handler="handler",
-#     layers=[db_layer, psycopg2_layer],
-#     memory_size=1024,
-#     timeout=core.Duration.minutes(5),
-#     runtime=aws_lambda.Runtime.PYTHON_3_8,
-#     environment={
-#         "STAGE": stage,
-#         "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
-#     },
-#     vpc=vpc
-# )
