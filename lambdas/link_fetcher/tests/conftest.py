@@ -6,6 +6,8 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import List
 
+import alembic.command
+import alembic.config
 import boto3
 import pytest
 import responses
@@ -15,9 +17,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-
-import alembic.command
-import alembic.config
 
 from ..scihub_result import ScihubResult
 
@@ -69,7 +68,9 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
 
-    alembic_root = UNIT_TEST_DIR.replace("lambdas/link_fetcher/tests", "alembic")
+    alembic_root = UNIT_TEST_DIR.replace(
+        "lambdas/link_fetcher/tests", "alembic_migration"
+    )
     alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
     alembic_config.set_main_option("script_location", alembic_root)
     alembic.command.upgrade(alembic_config, "head")

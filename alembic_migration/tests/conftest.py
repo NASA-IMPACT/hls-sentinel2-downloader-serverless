@@ -1,8 +1,6 @@
 import json
 import os
 
-import alembic.command
-import alembic.config
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -41,12 +39,6 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
     docker_services.wait_until_responsive(
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
-
-    alembic_root = UNIT_TEST_DIR.replace("layers/db/db/tests", "alembic_migration")
-    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
-    alembic_config.set_main_option("script_location", alembic_root)
-    alembic.command.upgrade(alembic_config, "head")
-
     return pg_engine
 
 

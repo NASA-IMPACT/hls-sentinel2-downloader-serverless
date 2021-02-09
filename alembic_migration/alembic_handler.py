@@ -1,14 +1,15 @@
 import logging
 import os
 
-import cfnresponse
-
 import alembic.command
 import alembic.config
+from db.session import get_session, get_session_maker
 from retry import retry
 from sqlalchemy.exc import OperationalError
 
-from db.session import get_session, get_session_maker
+from .cfnresponse import FAILED as cfnresponse_failed
+from .cfnresponse import SUCCESS as cfnresponse_success
+from .cfnresponse import send
 
 
 def log(log_statement: str):
@@ -33,8 +34,8 @@ def check_rds_connection():
 def handler(event, context):
     if event["RequestType"] == "Delete":
         log("Received a Delete Request")
-        cfnresponse.send(
-            event, context, cfnresponse.SUCCESS, {"Response": "Nothing run on deletes"}
+        send(
+            event, context, cfnresponse_success, {"Response": "Nothing run on deletes"}
         )
         return
 
@@ -49,13 +50,13 @@ def handler(event, context):
         alembic.command.upgrade(alembic_config, "head")
         log("Migrations run successfully")
 
-        cfnresponse.send(
+        send(
             event,
             context,
-            cfnresponse.SUCCESS,
+            cfnresponse_success,
             {"Response": "Migrations run successfully"},
         )
     except Exception as ex:
         log(str(ex))
-        cfnresponse.send(event, context, cfnresponse.FAILED, {})
+        send(event, context, cfnresponse_failed, {"Response": str(ex)})
         raise ex
