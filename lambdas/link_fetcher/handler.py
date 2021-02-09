@@ -10,8 +10,7 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session, get_session_maker
-
-from .scihub_result import ScihubResult
+from scihub_result import ScihubResult
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
 ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"

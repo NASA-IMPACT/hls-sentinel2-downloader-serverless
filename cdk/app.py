@@ -2,7 +2,6 @@
 import os
 
 from aws_cdk import core
-
 from downloader_stack import DownloaderStack
 
 app = core.App()
