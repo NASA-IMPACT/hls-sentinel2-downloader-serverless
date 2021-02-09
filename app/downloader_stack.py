@@ -123,7 +123,7 @@ class DownloaderStack(core.Stack):
         migration_function = aws_lambda_python.PythonFunction(
             self,
             id=f"{stage}-migration-function",
-            entry="alembic",
+            entry="alembic_migration",
             handler="handler",
             index="alembic_handler.py",
             runtime=aws_lambda.Runtime.PYTHON_3_8,

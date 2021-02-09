@@ -3,7 +3,7 @@ from unittest.mock import call, patch
 import pytest
 from assertpy import assert_that
 
-from alembic_migration.alembic_handler import handler
+from ..alembic_handler import handler
 
 LIST_TABLES_SQL = """
 SELECT table_name
@@ -18,7 +18,7 @@ def test_that_alembic_handler_correctly_migrates_db(mock_log, db_session):
     result = db_session.execute(LIST_TABLES_SQL).fetchall()
     assert_that(result).is_length(0)
 
-    with patch("alembic_migration.alembic_handler.send") as mock_send:
+    with patch("alembic_migration.alembic_handler.cfnresponse.send") as mock_send:
         mock_send.return_value = True
         event = {"RequestType": "Create"}
         handler(event, None)
@@ -45,7 +45,7 @@ def test_that_alembic_handler_correctly_migrates_db(mock_log, db_session):
 
 @patch("alembic_migration.alembic_handler.log")
 def test_that_alembic_handler_correctly_does_nothing_on_deletes(mock_log, db_session):
-    with patch("alembic_migration.alembic_handler.send") as mock_send:
+    with patch("alembic_migration.alembic_handler.cfnresponse.send") as mock_send:
         mock_send.return_value = True
         event = {"RequestType": "Delete"}
         handler(event, None)
@@ -68,7 +68,7 @@ def test_that_alembic_handler_handles_exception_correctly(
     failure_exception = Exception("A Failure")
     mock_check_rds_connection.side_effect = failure_exception
 
-    with patch("alembic_migration.alembic_handler.send") as mock_send:
+    with patch("alembic_migration.alembic_handler.cfnresponse.send") as mock_send:
         mock_send.return_value = True
         event = {"RequestType": "Create"}
 

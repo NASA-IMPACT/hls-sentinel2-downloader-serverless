@@ -246,7 +246,7 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_db(
     scihub_result_id_base = scihub_results[0]["image_id"][:-3]
     scihub_result_url_base = scihub_results[0]["download_url"][:-12]
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         add_scihub_results_to_db(None, scihub_results)
         granules_in_db = db_session.query(Granule).all()
         assert_that(granules_in_db).is_length(10)
@@ -280,7 +280,7 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
     )
     db_session.commit()
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         add_scihub_results_to_db(None, [scihub_result])
         granules_in_db = db_session.query(Granule).all()
         assert_that(granules_in_db).is_length(1)
@@ -326,7 +326,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
     )
     db_session.commit()
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         actual_available_links, actual_fetched_links = get_available_and_fetched_links(
             None, datetime(2020, 1, 1)
         )
@@ -342,7 +342,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
     expected_fetched_links = 0
     expected_last_fetched_time = datetime.now()
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         actual_available_links, actual_fetched_links = get_available_and_fetched_links(
             None, datetime(2020, 12, 31)
         )
@@ -373,7 +373,7 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     )
     db_session.commit()
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         update_total_results(None, datetime(2020, 1, 1), 500)
 
     actual_available_links = (
@@ -390,7 +390,7 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
 def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time_when_not_present(  # noqa
     db_session, db_session_context
 ):
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         update_last_fetched_link_time(None)
 
     last_linked_fetched_time = (
@@ -415,7 +415,7 @@ def test_that_link_fetcher_handler_correctly_updates_last_linked_fetched_time(
     )
     db_session.commit()
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         update_last_fetched_link_time(None)
 
     last_linked_fetched_time = (
@@ -448,7 +448,7 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
         .first()
     )
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
+    with patch("link_fetcher.handler.get_session", db_session_context):
         update_fetched_links(None, datetime.now().date(), 1000)
 
     granule_count = (
@@ -474,8 +474,8 @@ def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
     datetime_now = datetime.now()
     datetime_day_behind_now = datetime_now - timedelta(days=1)
 
-    with patch("lambdas.link_fetcher.handler.get_session", db_session_context):
-        with patch("lambdas.link_fetcher.handler.get_dates_to_query") as mock_get_dates:
+    with patch("link_fetcher.handler.get_session", db_session_context):
+        with patch("link_fetcher.handler.get_dates_to_query") as mock_get_dates:
             # Only run for 2 days as generating test data for 21 is cumbersome
             mock_get_dates.return_value = [
                 datetime_now,
