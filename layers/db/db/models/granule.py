@@ -8,7 +8,7 @@ class Granule(Base):
     filename = Column(String(length=256), nullable=False)
     tileid = Column(String(length=5), nullable=False)
     size = Column(BigInteger, nullable=False)
-    checksum = Column(String(256), nullable=False)
+    checksum = Column(String(256), nullable=False, default="")
     beginposition = Column(DateTime, nullable=False)
     endposition = Column(DateTime, nullable=False)
     ingestiondate = Column(DateTime, nullable=False)
