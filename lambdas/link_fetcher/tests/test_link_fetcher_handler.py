@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
@@ -10,10 +10,12 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from freezegun import freeze_time
+
 from handler import (
     add_scihub_results_to_db,
     add_scihub_results_to_sqs,
     create_scihub_result_from_feed_entry,
+    ensure_three_decimal_points_for_milliseconds_and_replace_z,
     filter_scihub_results,
     get_accepted_tile_ids,
     get_available_and_fetched_links,
@@ -48,14 +50,14 @@ def test_that_link_fetcher_handler_correctly_loads_scihub_credentials(
 @freeze_time("2020-12-31")
 def test_that_link_fetcher_handler_gets_correct_dates_to_query():
     expected_dates = [
-        datetime(2020, 12, 31),
-        datetime(2020, 12, 30),
-        datetime(2020, 12, 29),
-        datetime(2020, 12, 28),
+        date(2020, 12, 31),
+        date(2020, 12, 30),
+        date(2020, 12, 29),
+        date(2020, 12, 28),
     ]
 
     actual_dates = get_dates_to_query(
-        last_date=datetime(2020, 12, 31), number_of_dates_to_query=4
+        last_date=date(2020, 12, 31), number_of_dates_to_query=4
     )
 
     assert_that(actual_dates).is_equal_to(expected_dates)
@@ -73,7 +75,7 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         "start": 0,
     }
 
-    actual_query_parameters = get_query_parameters(start=0, day=datetime(2020, 1, 1))
+    actual_query_parameters = get_query_parameters(start=0, day=date(2020, 1, 1))
 
     assert_that(actual_query_parameters).is_equal_to(expected_query_parameters)
 
@@ -143,6 +145,24 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
     assert_that(actual_scihub_result).is_equal_to(expected_scihub_result)
 
 
+def test_that_create_scihub_result_datetime_formatting_creates_iso_formats():
+    datetime.fromisoformat(
+        ensure_three_decimal_points_for_milliseconds_and_replace_z(
+            "2021-02-09T17:47:22.412Z"
+        )
+    )
+    datetime.fromisoformat(
+        ensure_three_decimal_points_for_milliseconds_and_replace_z(
+            "2021-02-09T17:52:37.25Z"
+        )
+    )
+    datetime.fromisoformat(
+        ensure_three_decimal_points_for_milliseconds_and_replace_z(
+            "2021-02-09T17:47:19.8Z"
+        )
+    )
+
+
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results(
     mock_scihub_response, mock_scihub_checksum_response, mock_scihub_credentials
@@ -166,7 +186,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
     )
 
     scihub_results, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
+        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
         auth=(
             mock_scihub_credentials["username"],
             mock_scihub_credentials["password"],
@@ -203,7 +223,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
     )
 
     scihub_results, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=datetime(2020, 1, 1)),
+        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
         auth=(
             mock_scihub_credentials["username"],
             mock_scihub_credentials["password"],
@@ -477,8 +497,8 @@ def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
         with patch("handler.get_dates_to_query") as mock_get_dates:
             # Only run for 2 days as generating test data for 21 is cumbersome
             mock_get_dates.return_value = [
-                datetime_now,
-                datetime_day_behind_now,
+                datetime_now.date(),
+                datetime_day_behind_now.date(),
             ]
             handler(None, None)
 

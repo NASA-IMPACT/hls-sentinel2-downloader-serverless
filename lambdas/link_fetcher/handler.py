@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple
 
 import boto3
@@ -10,6 +10,7 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session, get_session_maker
+
 from scihub_result import ScihubResult
 
 SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
@@ -20,17 +21,17 @@ def handler(event, context):
     session_maker = get_session_maker()
     accepted_tile_ids = get_accepted_tile_ids()
     scihub_auth = get_scihub_auth()
-    for day in get_dates_to_query(last_date=datetime.now()):
+    for day in get_dates_to_query(datetime.now().date()):
         keep_querying_for_imagery = True
         updated_total_results = False
         available_links, fetched_links = get_available_and_fetched_links(
             session_maker, day
         )
-        params = get_query_parameters(start=fetched_links, day=day)
+        params = get_query_parameters(fetched_links, day)
 
         while keep_querying_for_imagery:
             scihub_results, total_results = get_page_for_query_and_total_results(
-                query_params=params, auth=scihub_auth
+                params, scihub_auth
             )
 
             if not updated_total_results:
@@ -100,7 +101,7 @@ def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
         )
 
 
-def get_available_and_fetched_links(session_maker, day: datetime) -> Tuple[int, int]:
+def get_available_and_fetched_links(session_maker, day: date) -> Tuple[int, int]:
     """
     For a given day, return the values for total `available_links` and total
     `fetched_links`, where `available_links` is the total number of results for the day
@@ -108,7 +109,7 @@ def get_available_and_fetched_links(session_maker, day: datetime) -> Tuple[int, 
     processed (but not necessarily added to the database because of filtering)
 
     If no entry is found, one is created
-    :param day: datetime representing the day to return results for
+    :param day: date representing the day to return results for
     :returns: Tuple[int, int] representing a tuple of
         (`available_links`, `fetched_links)
     """
@@ -128,10 +129,10 @@ def get_available_and_fetched_links(session_maker, day: datetime) -> Tuple[int, 
             return (granule_count.available_links, granule_count.fetched_links)
 
 
-def update_total_results(session_maker, day: datetime, total_results: int):
+def update_total_results(session_maker, day: date, total_results: int):
     """
     For a given day and number of results, update the `available_links` value
-    :param day: datetime representing the day to update `available_links` for
+    :param day: date representing the day to update `available_links` for
     :param total_results: int representing the total results available for the day,
         this value will be applied to `available_links`
     """
@@ -161,11 +162,11 @@ def update_last_fetched_link_time(session_maker):
             db.commit()
 
 
-def update_fetched_links(session_maker, day: datetime, fetched_links: int):
+def update_fetched_links(session_maker, day: date, fetched_links: int):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
-    :param day: datetime representing the day to update in `granule_count`
+    :param day: date representing the day to update in `granule_count`
     :param fetched_links: int representing the total number of links fetched in this run
         it is not the total number of Granules created
     """
@@ -224,12 +225,12 @@ def filter_scihub_results(
     ]
 
 
-def get_query_parameters(start: int, day: datetime) -> Dict:
+def get_query_parameters(start: int, day: date) -> Dict:
     """
     Returns the query parameters that are needed for getting new imagery from
     SciHub/IntHub
     :param start: An int representing the offset to get results from a query
-    :param day: A datetime object representing the date to query for imagery
+    :param day: A date object representing the date to query for imagery
     :returns: Dict representing the query parameters
     """
     date_string = day.strftime("%Y-%m-%d")
@@ -246,15 +247,15 @@ def get_query_parameters(start: int, day: datetime) -> Dict:
 
 
 def get_dates_to_query(
-    last_date: datetime, number_of_dates_to_query: int = 21
-) -> List[datetime]:
+    last_date: date, number_of_dates_to_query: int = 1
+) -> List[date]:
     """
     Retrieves `number_of_dates_to_query` dates up to and including `last_date`
     Eg. if 2020-01-10 is provided with 3 days to query, datetimes of (2020-01-10,
     2020-01-09, and 2020-01-08) will be returned
-    :param last_date: A datetime object representing the last date to query for
+    :param last_date: A date object representing the last date to query for
     :param number_of_days_to_query: An int representing how many dates to query
-    :returns: List[datetime] A list of datetimes representing the queries temporal
+    :returns: List[date] A list of dates representing the queries temporal
         window
     """
     return [
@@ -280,15 +281,18 @@ def ensure_three_decimal_points_for_milliseconds_and_replace_z(
 ) -> str:
     """
     To convert SciHub Datetimes to Python Datetimes, we need them in ISO format
-    SciHub Datetimes can have milliseconds of only two digits, we need three, therefore
-    we pad them with a zero to the right
+    SciHub Datetimes can have milliseconds of less than 3 digits therefore
+    we pad them with zeros to the right to make 3 digits, as required by `datetime`
     We also need to replace Z at the end with +00:00
     :param datetimestring: Str representing a SciHub Datetime
     :returns: Str representing a correctly padded SciHub Datetime
     """
     datetimestring_stripped = datetimestring.replace("Z", "")
-    if len(datetimestring_stripped.split(".")[1]) < 3:
-        datetimestring_stripped = f"{datetimestring_stripped}0"
+    number_of_decimal_points = len(datetimestring_stripped.split(".")[1])
+    if number_of_decimal_points < 3:
+        datetimestring_stripped = (
+            f"{datetimestring_stripped}{(3 - number_of_decimal_points) * '0'}"
+        )
     return f"{datetimestring_stripped}+00:00"
 
 
@@ -314,23 +318,23 @@ def create_scihub_result_from_feed_entry(
 
     checksum = get_image_checksum(product_url, auth)
 
-    for date in feed_entry["date"]:
-        if date["name"] == "beginposition":
+    for date_entry in feed_entry["date"]:
+        if date_entry["name"] == "beginposition":
             beginposition = datetime.fromisoformat(
                 ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date["content"]
+                    date_entry["content"]
                 )
             )
-        elif date["name"] == "endposition":
+        elif date_entry["name"] == "endposition":
             endposition = datetime.fromisoformat(
                 ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date["content"]
+                    date_entry["content"]
                 )
             )
-        elif date["name"] == "ingestiondate":
+        elif date_entry["name"] == "ingestiondate":
             ingestiondate = datetime.fromisoformat(
                 ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date["content"]
+                    date_entry["content"]
                 )
             )
 
