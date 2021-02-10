@@ -13,12 +13,11 @@ import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
 from moto import mock_secretsmanager, mock_sqs
+from scihub_result import ScihubResult
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-
-from scihub_result import ScihubResult
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
