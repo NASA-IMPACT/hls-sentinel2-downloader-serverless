@@ -158,7 +158,7 @@ class DownloaderStack(core.Stack):
             handler="handler",
             memory_size=128,
             timeout=core.Duration.seconds(15),
-            runtime=aws_lambda.Runtime.PYTHON_3_8
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
         )
 
         link_fetcher = aws_lambda_python.PythonFunction(
