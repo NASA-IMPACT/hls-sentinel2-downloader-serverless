@@ -36,7 +36,6 @@ A file named `.env` is expected in the root of the repository, the expected valu
 ```bash
 OWNER="<your name>"
 IDENTIFIER="<a unique value to tie to your cdk deployment>"
-STAGE="<a value for the stage you're deploying to, e.g. $IDENTIFIER, DEV, PRODUCTION>"
 AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
 ```
 
