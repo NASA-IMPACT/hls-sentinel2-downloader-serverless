@@ -62,24 +62,6 @@ class DownloaderStack(core.Stack):
             description="Allow all traffic for Postgres",
         )
 
-        # # Doesn't work, should be publicly available as in public subnets etc
-        # downloader_rds = aws_rds.ServerlessCluster(
-        #     self,
-        #     id=f"{stage}-downloader-rds",
-        #     engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
-        #         version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
-        #     ),
-        #     vpc=vpc,
-        #     subnet_group=rds_subnet_group,
-        #     security_groups=[rds_security_group],
-        #     default_database_name="hlss2downloader",
-        #     enable_data_api=True,
-        #     removal_policy=core.RemovalPolicy.RETAIN
-        #     if prod
-        #     else core.RemovalPolicy.DESTROY,
-        # )
-
-        # Works - Publicly available but not serverless
         downloader_rds = aws_rds.DatabaseCluster(
             self,
             id=f"{identifier}-downloader-rds",
