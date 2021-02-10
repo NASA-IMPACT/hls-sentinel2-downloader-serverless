@@ -7,18 +7,16 @@ from downloader_stack import DownloaderStack
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"]
-stage = os.environ["STAGE"]
 
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
-    stage=stage,
 )
 
 for k, v in {
     "Project": "hls-s2-downloader-serverless",
-    "Stack": os.environ["STAGE"],
+    "Stack": identifier,
     "Client": "nasa-impact",
     "Owner": os.environ["OWNER"],
 }.items():
