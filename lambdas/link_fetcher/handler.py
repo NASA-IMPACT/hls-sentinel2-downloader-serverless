@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple
 
@@ -21,39 +22,52 @@ def handler(event, context):
     session_maker = get_session_maker()
     accepted_tile_ids = get_accepted_tile_ids()
     scihub_auth = get_scihub_auth()
-    for day in get_dates_to_query(datetime.now().date()):
-        keep_querying_for_imagery = True
-        updated_total_results = False
-        available_links, fetched_links = get_available_and_fetched_links(
-            session_maker, day
+    keep_querying_for_imagery = True
+    updated_total_results = False
+    day = datetime.strptime(event["query_date"], "%Y-%m-%d").date()
+
+    available_links, fetched_links = get_available_and_fetched_links(
+        session_maker, day
+    )
+    params = get_query_parameters(fetched_links, day)
+
+    while keep_querying_for_imagery:
+        # ts = time.time()
+        scihub_results, total_results = get_page_for_query_and_total_results(
+            params, scihub_auth
         )
-        params = get_query_parameters(fetched_links, day)
+        # te = time.time()
+        # print(f"{te - ts}s for getting page")
 
-        while keep_querying_for_imagery:
-            scihub_results, total_results = get_page_for_query_and_total_results(
-                params, scihub_auth
-            )
+        if not updated_total_results:
+            update_total_results(session_maker, day, total_results)
+            updated_total_results = True
 
-            if not updated_total_results:
-                update_total_results(session_maker, day, total_results)
-                updated_total_results = True
+        if not scihub_results:
+            keep_querying_for_imagery = False
+            break
 
-            if not scihub_results:
-                keep_querying_for_imagery = False
-                break
+        number_of_fetched_links = len(scihub_results)
+        params["start"] += number_of_fetched_links
 
-            number_of_fetched_links = len(scihub_results)
-            params["start"] += number_of_fetched_links
+        # ts = time.time()
+        filtered_scihub_results = filter_scihub_results(
+            scihub_results, accepted_tile_ids
+        )
+        # te = time.time()
+        # print(f"{te - ts}s for filtering results")
 
-            filtered_scihub_results = filter_scihub_results(
-                scihub_results, accepted_tile_ids
-            )
+        # ts = time.time()
+        add_scihub_results_to_db(session_maker, filtered_scihub_results)
+        # te = time.time()
+        # print(f"{te - ts}s for adding results to db")
+        # ts = time.time()
+        add_scihub_results_to_sqs(filtered_scihub_results)
+        # te = time.time()
+        # print(f"{te - ts}s for adding results to sqs")
 
-            add_scihub_results_to_db(session_maker, filtered_scihub_results)
-            add_scihub_results_to_sqs(filtered_scihub_results)
-
-            update_last_fetched_link_time(session_maker)
-            update_fetched_links(session_maker, day, number_of_fetched_links)
+        update_last_fetched_link_time(session_maker)
+        update_fetched_links(session_maker, day, number_of_fetched_links)
 
 
 def add_scihub_results_to_db(session_maker, scihub_results: List[ScihubResult]):
@@ -73,7 +87,6 @@ def add_scihub_results_to_db(session_maker, scihub_results: List[ScihubResult]):
                         filename=result["filename"],
                         tileid=result["tileid"],
                         size=result["size"],
-                        checksum=result["checksum"],
                         beginposition=result["beginposition"],
                         endposition=result["endposition"],
                         ingestiondate=result["ingestiondate"],
@@ -246,34 +259,34 @@ def get_query_parameters(start: int, day: date) -> Dict:
     }
 
 
-def get_dates_to_query(
-    last_date: date, number_of_dates_to_query: int = 1
-) -> List[date]:
-    """
-    Retrieves `number_of_dates_to_query` dates up to and including `last_date`
-    Eg. if 2020-01-10 is provided with 3 days to query, datetimes of (2020-01-10,
-    2020-01-09, and 2020-01-08) will be returned
-    :param last_date: A date object representing the last date to query for
-    :param number_of_days_to_query: An int representing how many dates to query
-    :returns: List[date] A list of dates representing the queries temporal
-        window
-    """
-    return [
-        last_date - timedelta(days=day) for day in range(0, number_of_dates_to_query)
-    ]
+# def get_dates_to_query(
+#     last_date: date, number_of_dates_to_query: int = 21
+# ) -> List[date]:
+#     """
+#     Retrieves `number_of_dates_to_query` dates up to and including `last_date`
+#     Eg. if 2020-01-10 is provided with 3 days to query, datetimes of (2020-01-10,
+#     2020-01-09, and 2020-01-08) will be returned
+#     :param last_date: A date object representing the last date to query for
+#     :param number_of_days_to_query: An int representing how many dates to query
+#     :returns: List[date] A list of dates representing the queries temporal
+#         window
+#     """
+#     return [
+#         last_date - timedelta(days=day) for day in range(0, number_of_dates_to_query)
+#     ]
 
 
-def get_image_checksum(product_url: str, auth: Tuple[str, str]) -> str:
-    """
-    Returns the string value of a products checksum
-    :param product_url: Str representing the Scihub url for the product
-    :param auth: Tuple[str, str] representing the username and password for SciHub
-    :returns: Str representing the MD5 Checksum of the product
-    """
-    resp = requests.get(url=f"{product_url}?$format=json&$select=Checksum", auth=auth)
-    resp.raise_for_status()
+# def get_image_checksum(product_url: str, auth: Tuple[str, str]) -> str:
+#     """
+#     Returns the string value of a products checksum
+#     :param product_url: Str representing the Scihub url for the product
+#     :param auth: Tuple[str, str] representing the username and password for SciHub
+#     :returns: Str representing the MD5 Checksum of the product
+#     """
+#     resp = requests.get(url=f"{product_url}?$format=json&$select=Checksum", auth=auth)
+#     resp.raise_for_status()
 
-    return resp.json()["d"]["Checksum"]["Value"]
+#     return resp.json()["d"]["Checksum"]["Value"]
 
 
 def ensure_three_decimal_points_for_milliseconds_and_replace_z(
@@ -288,11 +301,14 @@ def ensure_three_decimal_points_for_milliseconds_and_replace_z(
     :returns: Str representing a correctly padded SciHub Datetime
     """
     datetimestring_stripped = datetimestring.replace("Z", "")
-    number_of_decimal_points = len(datetimestring_stripped.split(".")[1])
-    if number_of_decimal_points < 3:
-        datetimestring_stripped = (
-            f"{datetimestring_stripped}{(3 - number_of_decimal_points) * '0'}"
-        )
+    try:
+        number_of_decimal_points = len(datetimestring_stripped.split(".")[1])
+        if number_of_decimal_points < 3:
+            datetimestring_stripped = (
+                f"{datetimestring_stripped}{(3 - number_of_decimal_points) * '0'}"
+            )
+    except IndexError:
+        datetimestring_stripped = f"{datetimestring_stripped}.000"
     return f"{datetimestring_stripped}+00:00"
 
 
@@ -308,6 +324,7 @@ def create_scihub_result_from_feed_entry(
     image_id = feed_entry["id"]
     product_url = SCIHUB_PRODUCT_URL_FMT.format(image_id)
 
+    # ts = time.time()
     for string in feed_entry["str"]:
         if string["name"] == "filename":
             filename = string["content"]
@@ -315,9 +332,15 @@ def create_scihub_result_from_feed_entry(
             tileid = string["content"]
         elif string["name"] == "size":
             size = humanfriendly.parse_size(string["content"], binary=True)
+    # te = time.time()
+    # print(f"{te - ts}s to get string entries")
 
-    checksum = get_image_checksum(product_url, auth)
+    # ts = time.time()
+    # checksum = get_image_checksum(product_url, auth)
+    # te = time.time()
+    # print(f"{te - ts}s to get checksum")
 
+    # ts = time.time()
     for date_entry in feed_entry["date"]:
         if date_entry["name"] == "beginposition":
             beginposition = datetime.fromisoformat(
@@ -337,6 +360,8 @@ def create_scihub_result_from_feed_entry(
                     date_entry["content"]
                 )
             )
+    # te = time.time()
+    # print(f"{te - ts}s to get date entries")
 
     download_url = f"{product_url}$value"
 
@@ -345,7 +370,6 @@ def create_scihub_result_from_feed_entry(
         filename=filename,
         tileid=tileid,
         size=size,
-        checksum=checksum,
         beginposition=beginposition,
         endposition=endposition,
         ingestiondate=ingestiondate,
@@ -368,19 +392,25 @@ def get_page_for_query_and_total_results(
         from the query and an int value representing the total number of results that
         match the query
     """
+    # ts = time.time()
     resp = requests.get(
         url="https://scihub.copernicus.eu/dhus/search", params=query_params, auth=auth
     )
     resp.raise_for_status()
     query_feed = resp.json()["feed"]
     total_results = int(query_feed["opensearch:totalResults"])
+    # te = time.time()
+    # print(f"{te - ts}s to get query")
 
     if "entry" not in query_feed:
         return [], total_results
 
+    # ts = time.time()
     scihub_results = [
         create_scihub_result_from_feed_entry(entry, auth)
         for entry in query_feed["entry"]
     ]
+    # te = time.time()
+    # print(f"{te - ts}s to create scihub results")
 
     return scihub_results, total_results

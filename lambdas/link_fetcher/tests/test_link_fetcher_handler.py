@@ -19,8 +19,6 @@ from handler import (
     filter_scihub_results,
     get_accepted_tile_ids,
     get_available_and_fetched_links,
-    get_dates_to_query,
-    get_image_checksum,
     get_page_for_query_and_total_results,
     get_query_parameters,
     get_scihub_auth,
@@ -47,22 +45,6 @@ def test_that_link_fetcher_handler_correctly_loads_scihub_credentials(
     assert_that(auth[1]).is_equal_to(mock_scihub_credentials["password"])
 
 
-@freeze_time("2020-12-31")
-def test_that_link_fetcher_handler_gets_correct_dates_to_query():
-    expected_dates = [
-        date(2020, 12, 31),
-        date(2020, 12, 30),
-        date(2020, 12, 29),
-        date(2020, 12, 28),
-    ]
-
-    actual_dates = get_dates_to_query(
-        last_date=date(2020, 12, 31), number_of_dates_to_query=4
-    )
-
-    assert_that(actual_dates).is_equal_to(expected_dates)
-
-
 def test_that_link_fetcher_handler_generates_correct_query_parameters():
     expected_query_parameters = {
         "q": (
@@ -81,54 +63,14 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
 
 
 @responses.activate
-def test_that_link_fetcher_handler_gets_product_checksum_correctly(
-    mock_scihub_checksum_response,
-):
-    responses.add(
-        responses.GET,
-        (
-            "https://scihub.copernicus.eu/dhus/odata/v1/"
-            "Products('422fd86d-7019-47c6-be4f-036fbf5ce874')/"
-            "?$format=json&$select=Checksum"
-        ),
-        json=mock_scihub_checksum_response,
-        status=200,
-    )
-
-    expected_checksum = mock_scihub_checksum_response["d"]["Checksum"]["Value"]
-
-    actual_checksum = get_image_checksum(
-        product_url=(
-            "https://scihub.copernicus.eu/dhus/odata/v1/"
-            "Products('422fd86d-7019-47c6-be4f-036fbf5ce874')/"
-        ),
-        auth=("blah", "blah"),
-    )
-
-    assert_that(actual_checksum).is_equal_to(expected_checksum)
-
-
-@responses.activate
 def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
-    mock_scihub_response, mock_scihub_checksum_response, scihub_result_maker
+    mock_scihub_response, scihub_result_maker
 ):
-    responses.add(
-        responses.GET,
-        (
-            "https://scihub.copernicus.eu/dhus/odata/v1/"
-            "Products('422fd86d-7019-47c6-be4f-036fbf5ce874')/"
-            "?$format=json&$select=Checksum"
-        ),
-        json=mock_scihub_checksum_response,
-        status=200,
-    )
-
     expected_scihub_result = ScihubResult(
         image_id="422fd86d-7019-47c6-be4f-036fbf5ce874",
         filename="S2B_MSIL1C_20200101T222829_N0208_R129_T51CWM_20200101T230625.SAFE",
         tileid="51CWM",
         size=693056307,
-        checksum="66865C45E90E4F5051DE616DEF7B6182",
         beginposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
         endposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
         ingestiondate=datetime(2020, 1, 1, 23, 59, 32, 994000, tzinfo=timezone.utc),
@@ -146,26 +88,46 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
 
 
 def test_that_create_scihub_result_datetime_formatting_creates_iso_formats():
-    datetime.fromisoformat(
+    parsed_datetime = datetime.fromisoformat(
         ensure_three_decimal_points_for_milliseconds_and_replace_z(
             "2021-02-09T17:47:22.412Z"
         )
     )
-    datetime.fromisoformat(
+    assert_that(parsed_datetime).is_equal_to(
+        datetime(2021, 2, 9, 17, 47, 22, 412000, tzinfo=timezone.utc)
+    )
+
+    parsed_datetime = datetime.fromisoformat(
         ensure_three_decimal_points_for_milliseconds_and_replace_z(
             "2021-02-09T17:52:37.25Z"
         )
     )
-    datetime.fromisoformat(
+    assert_that(parsed_datetime).is_equal_to(
+        datetime(2021, 2, 9, 17, 52, 37, 250000, tzinfo=timezone.utc)
+    )
+
+    parsed_datetime = datetime.fromisoformat(
         ensure_three_decimal_points_for_milliseconds_and_replace_z(
             "2021-02-09T17:47:19.8Z"
         )
+    )
+    assert_that(parsed_datetime).is_equal_to(
+        datetime(2021, 2, 9, 17, 47, 19, 800000, tzinfo=timezone.utc)
+    )
+
+    parsed_datetime = datetime.fromisoformat(
+        ensure_three_decimal_points_for_milliseconds_and_replace_z(
+            "2021-02-09T17:47:19Z"
+        )
+    )
+    assert_that(parsed_datetime).is_equal_to(
+        datetime(2021, 2, 9, 17, 47, 19, 000000, tzinfo=timezone.utc)
     )
 
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results(
-    mock_scihub_response, mock_scihub_checksum_response, mock_scihub_credentials
+    mock_scihub_response, mock_scihub_credentials
 ):
     responses.add(
         responses.GET,
@@ -176,12 +138,6 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
             "&rows=100&format=json&orderby=ingestiondate desc&start=0"
         ),
         json=mock_scihub_response,
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        re.compile(r"https://scihub.copernicus.eu/dhus/odata/v1/Products\('*."),
-        json=mock_scihub_checksum_response,
         status=200,
     )
 
@@ -199,7 +155,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
-    mock_scihub_response, mock_scihub_checksum_response, mock_scihub_credentials
+    mock_scihub_response, mock_scihub_credentials
 ):
     resp = mock_scihub_response.copy()
     resp["feed"].pop("entry")
@@ -213,12 +169,6 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
             "&rows=100&format=json&orderby=ingestiondate desc&start=0"
         ),
         json=resp,
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        re.compile(r"https://scihub.copernicus.eu/dhus/odata/v1/Products\('*."),
-        json=mock_scihub_checksum_response,
         status=200,
     )
 
@@ -290,7 +240,6 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
             filename=scihub_result["filename"],
             tileid=scihub_result["tileid"],
             size=scihub_result["size"],
-            checksum=scihub_result["checksum"],
             beginposition=scihub_result["beginposition"],
             endposition=scihub_result["endposition"],
             ingestiondate=scihub_result["ingestiondate"],
@@ -482,49 +431,31 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(
 
 @responses.activate
 @freeze_time("2020-01-01")
-@pytest.mark.usefixtures("generate_mock_responses_for_multiple_days")
-def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
+@pytest.mark.usefixtures("generate_mock_responses_for_one_day")
+def test_that_link_fetcher_handler_correctly_functions(
     db_session,
     db_session_context,
     mock_scihub_credentials,
     db_connection_secret,
     mock_sqs_queue,
 ):
-    datetime_now = datetime.now()
-    datetime_day_behind_now = datetime_now - timedelta(days=1)
-
     with patch("handler.get_session", db_session_context):
-        with patch("handler.get_dates_to_query") as mock_get_dates:
-            # Only run for 2 days as generating test data for 21 is cumbersome
-            mock_get_dates.return_value = [
-                datetime_now.date(),
-                datetime_day_behind_now.date(),
-            ]
-            handler(None, None)
+        handler({"query_date": "2020-01-01"}, None)
 
     # Assert all granules present
     granules = db_session.query(Granule).all()
-    assert_that(granules).is_length(20)
+    assert_that(granules).is_length(10)
 
+    query_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
     # Assert 2020-01-01 has correct granule count
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime_now.date())
+        .filter(GranuleCount.date == query_date)
         .first()
     )
     assert_that(granule_count.available_links).is_equal_to(6800)
     assert_that(granule_count.fetched_links).is_equal_to(40)
-    assert_that(granule_count.last_fetched_time).is_equal_to(datetime_now)
-
-    # Assert 2019-12-31 has correct granule count
-    granule_count = (
-        db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime_day_behind_now.date())
-        .first()
-    )
-    assert_that(granule_count.available_links).is_equal_to(6800)
-    assert_that(granule_count.fetched_links).is_equal_to(40)
-    assert_that(granule_count.last_fetched_time).is_equal_to(datetime_now)
+    assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
 
     # Assert status is correct
     status = (
@@ -532,11 +463,11 @@ def test_that_link_fetcher_handler_correctly_functions_for_multiple_days(
         .filter(Status.key_name == "last_linked_fetched_time")
         .first()
     )
-    assert_that(status.value).is_equal_to(str(datetime_now))
+    assert_that(status.value).is_equal_to(str(datetime.now()))
 
     # Assert queue is populated
     mock_sqs_queue.load()
     number_of_messages_in_queue = mock_sqs_queue.attributes[
         "ApproximateNumberOfMessages"
     ]
-    assert_that(int(number_of_messages_in_queue)).is_equal_to(20)
+    assert_that(int(number_of_messages_in_queue)).is_equal_to(10)

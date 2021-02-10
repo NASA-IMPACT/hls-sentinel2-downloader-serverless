@@ -32,14 +32,6 @@ def mock_scihub_response():
 
 
 @pytest.fixture
-def mock_scihub_checksum_response():
-    with open(
-        os.path.join(UNIT_TEST_DIR, "example_scihub_checksum_response.json"), "rb"
-    ) as json_in:
-        return json.load(json_in)
-
-
-@pytest.fixture
 def accepted_tile_ids():
     link_fetcher_dir = UNIT_TEST_DIR.replace("tests", "")
     with open(os.path.join(link_fetcher_dir, "allowed_tiles.txt"), "r") as text_in:
@@ -105,7 +97,6 @@ def make_scihub_result(idx: int) -> ScihubResult:
         filename="S2B_MSIL1C20200101T222829_N0208_R129_T51CWM_20200101T230625.SAFE",
         tileid="51CWM",
         size=693056307,
-        checksum="66865C45E90E4F5051DE616DEF7B6182",
         beginposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
         endposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
         ingestiondate=datetime(2020, 1, 1, 23, 59, 32, 994000, tzinfo=timezone.utc),
@@ -181,8 +172,7 @@ def mock_scihub_credentials(secrets_manager_client, monkeysession):
 
 
 @pytest.fixture
-def generate_mock_responses_for_multiple_days(
-    mock_scihub_checksum_response,
+def generate_mock_responses_for_one_day(
     mock_scihub_response,
 ):
     scihub_query_base_fmt = (
@@ -192,15 +182,13 @@ def generate_mock_responses_for_multiple_days(
         "&rows=100&format=json&orderby=ingestiondate desc&start={1}"
     )
 
-    # Generate bases for responses
+    # Generate base for response
     scihub_response_2020 = deepcopy(mock_scihub_response)
-    scihub_response_2019 = deepcopy(mock_scihub_response)
     total_entries = len(scihub_response_2020["feed"]["entry"])
 
     # Give each entry a unique ID for tests
     for idx in range(0, total_entries):
         scihub_response_2020["feed"]["entry"][idx]["id"] = str(idx + 1)
-        scihub_response_2019["feed"]["entry"][idx]["id"] = str(idx + 1 + total_entries)
 
     # Generate 3 responses per year, 2x 20 entry results and 1 empty result
     scihub_response_2020_first_20 = deepcopy(scihub_response_2020)
@@ -214,28 +202,11 @@ def generate_mock_responses_for_multiple_days(
     scihub_response_2020_empty = deepcopy(scihub_response_2020)
     scihub_response_2020_empty["feed"].pop("entry")
 
-    scihub_response_2019_first_20 = deepcopy(scihub_response_2019)
-    scihub_response_2019_first_20["feed"]["entry"] = scihub_response_2019["feed"][
-        "entry"
-    ][:20]
-    scihub_response_2019_next_20 = deepcopy(scihub_response_2019)
-    scihub_response_2019_next_20["feed"]["entry"] = scihub_response_2019["feed"][
-        "entry"
-    ][20:]
-    scihub_response_2019_empty = deepcopy(scihub_response_2019)
-    scihub_response_2019_empty["feed"].pop("entry")
-
     # Create responses for sentinel query based on year and start point
     responses.add(
         responses.GET,
         scihub_query_base_fmt.format("2020-01-01", 0),
         json=scihub_response_2020_first_20,
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        scihub_query_base_fmt.format("2019-12-31", 0),
-        json=scihub_response_2019_first_20,
         status=200,
     )
     responses.add(
@@ -246,28 +217,8 @@ def generate_mock_responses_for_multiple_days(
     )
     responses.add(
         responses.GET,
-        scihub_query_base_fmt.format("2019-12-31", 20),
-        json=scihub_response_2019_next_20,
-        status=200,
-    )
-    responses.add(
-        responses.GET,
         scihub_query_base_fmt.format("2020-01-01", 40),
         json=scihub_response_2020_empty,
-        status=200,
-    )
-    responses.add(
-        responses.GET,
-        scihub_query_base_fmt.format("2019-12-31", 40),
-        json=scihub_response_2019_empty,
-        status=200,
-    )
-
-    # Create generic response to MD5 query
-    responses.add(
-        responses.GET,
-        re.compile(r"https://scihub.copernicus.eu/dhus/odata/v1/Products\('*."),
-        json=mock_scihub_checksum_response,
         status=200,
     )
 

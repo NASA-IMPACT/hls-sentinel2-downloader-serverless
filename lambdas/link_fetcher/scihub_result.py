@@ -7,7 +7,6 @@ class ScihubResult(TypedDict):
     filename: str
     tileid: str
     size: int
-    checksum: str
     beginposition: datetime
     endposition: datetime
     ingestiondate: datetime
