@@ -2,11 +2,15 @@ import os
 
 from aws_cdk import (
     aws_ec2,
+    aws_events,
+    aws_events_targets,
     aws_lambda,
     aws_lambda_python,
     aws_rds,
     aws_secretsmanager,
     aws_sqs,
+    aws_stepfunctions,
+    aws_stepfunctions_tasks,
     core,
 )
 
@@ -170,3 +174,39 @@ class DownloaderStack(core.Stack):
         scihub_credentials.grant_read(link_fetcher)
 
         to_download_queue.grant_send_messages(link_fetcher)
+
+        date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
+            self,
+            id=f"{identifier}-date-generator-invoke",
+            lambda_function=date_generator,
+        )
+
+        link_fetcher_task = aws_stepfunctions_tasks.LambdaInvoke(
+            self,
+            id=f"{identifier}-link-fetcher-invoke",
+            lambda_function=link_fetcher,
+        )
+
+        link_fetcher_map_task = aws_stepfunctions.Map(
+            self,
+            id=f"{identifier}-link-fetcher-map",
+            input_path="$.Payload.query_dates",
+            parameters={"query_date.$": "$$.Map.Item.Value"},
+            # max_concurrency=1,
+        ).iterator(link_fetcher_task)
+
+        link_fetcher_step_function_definition = date_generator_task.next(
+            link_fetcher_map_task
+        )
+
+        link_fetcher_step_function = aws_stepfunctions.StateMachine(
+            self,
+            id=f"{identifier}-link-fetcher-step-function",
+            definition=link_fetcher_step_function_definition,
+        )
+
+        nightly_link_fetch = aws_events.Rule(
+            self,
+            id=f"{identifier}-link-fetch-rule",
+            schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),
+        ).add_target(aws_events_targets.SfnStateMachine(link_fetcher_step_function))
