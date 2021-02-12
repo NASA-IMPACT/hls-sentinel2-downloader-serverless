@@ -1,4 +1,4 @@
-.PHONEY: lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests
+.PHONEY: lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
 
 lint:
 	pipenv run flake8 cdk/ integration_tests/
@@ -43,3 +43,6 @@ unit-tests:
 	$(MAKE) -C lambdas/mock_scihub_api test
 	$(MAKE) -C layers/db test
 	$(MAKE) -C alembic_migration test
+
+integration-tests:
+	pipenv run pytest -s integration_tests
