@@ -9,6 +9,7 @@ from aws_cdk import (
     aws_rds,
     aws_secretsmanager,
     aws_sqs,
+    aws_ssm,
     aws_stepfunctions,
     aws_stepfunctions_tasks,
     core,
@@ -23,6 +24,7 @@ class DownloaderStack(core.Stack):
         scope: core.Construct,
         construct_id: str,
         identifier: str,
+        scihub_url: str = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -84,6 +86,13 @@ class DownloaderStack(core.Stack):
             else core.RemovalPolicy.DESTROY,
         )
 
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-downloader-rds-secret-arn",
+            string_value=downloader_rds.secret.secret_arn,
+            parameter_name=f"/integration_tests/{identifier}/downloader_rds_secret_arn",
+        )
+
         core.CfnOutput(
             self,
             id=f"{identifier}-downloader-ip",
@@ -136,6 +145,13 @@ class DownloaderStack(core.Stack):
             retention_period=core.Duration.days(14),
         )
 
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-to-download-queue-url",
+            string_value=to_download_queue.queue_url,
+            parameter_name=f"/integration_tests/{identifier}/to_download_queue_url",
+        )
+
         date_generator = aws_lambda_python.PythonFunction(
             self,
             id=f"{identifier}-date-generator",
@@ -147,6 +163,15 @@ class DownloaderStack(core.Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_8,
         )
 
+        link_fetcher_environment_vars = {
+            "STAGE": identifier,
+            "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
+            "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+        }
+
+        if scihub_url:
+            link_fetcher_environment_vars["SCIHUB_URL"] = scihub_url
+
         link_fetcher = aws_lambda_python.PythonFunction(
             self,
             id=f"{identifier}-link-fetcher",
@@ -157,11 +182,7 @@ class DownloaderStack(core.Stack):
             memory_size=1024,
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
-            environment={
-                "STAGE": identifier,
-                "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
-                "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
-            },
+            environment=link_fetcher_environment_vars,
         )
 
         downloader_rds.secret.grant_read(link_fetcher)
@@ -192,7 +213,6 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-link-fetcher-map",
             input_path="$.Payload.query_dates",
             parameters={"query_date.$": "$$.Map.Item.Value"},
-            # max_concurrency=1,
         ).iterator(link_fetcher_task)
 
         link_fetcher_step_function_definition = date_generator_task.next(
@@ -205,8 +225,18 @@ class DownloaderStack(core.Stack):
             definition=link_fetcher_step_function_definition,
         )
 
-        nightly_link_fetch = aws_events.Rule(
+        aws_ssm.StringParameter(
             self,
-            id=f"{identifier}-link-fetch-rule",
-            schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),
-        ).add_target(aws_events_targets.SfnStateMachine(link_fetcher_step_function))
+            id=f"{identifier}-link-fetcher-step-function-arn",
+            string_value=link_fetcher_step_function.state_machine_arn,
+            parameter_name=(
+                f"/integration_tests/{identifier}/link_fetcher_step_function_arn"
+            ),
+        )
+
+        if prod:
+            _ = aws_events.Rule(
+                self,
+                id=f"{identifier}-link-fetch-rule",
+                schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),
+            ).add_target(aws_events_targets.SfnStateMachine(link_fetcher_step_function))

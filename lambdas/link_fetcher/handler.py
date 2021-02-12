@@ -1,7 +1,6 @@
 import json
 import os
-import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Dict, List, Tuple
 
 import boto3
@@ -11,9 +10,11 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session, get_session_maker
+
 from scihub_result import ScihubResult
 
-SCIHUB_PRODUCT_URL_FMT = "https://scihub.copernicus.eu/dhus/odata/v1/Products('{}')/"
+SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
+SCIHUB_PRODUCT_URL_FMT = f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/"
 ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
 
 
@@ -338,9 +339,7 @@ def get_page_for_query_and_total_results(
         match the query
     """
 
-    resp = requests.get(
-        url="https://scihub.copernicus.eu/dhus/search", params=query_params, auth=auth
-    )
+    resp = requests.get(url=f"{SCIHUB_URL}/dhus/search", params=query_params, auth=auth)
     resp.raise_for_status()
     query_feed = resp.json()["feed"]
     total_results = int(query_feed["opensearch:totalResults"])

@@ -1,0 +1,48 @@
+{
+    "feed": {
+        "xmlns:opensearch": "http://a9.com/-/spec/opensearch/1.1/",
+        "xmlns": "http://www.w3.org/2005/Atom",
+        "title": "Sentinels Scientific Data Hub search results for: (platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])",
+        "subtitle": "Blah",
+        "updated": "2021-02-12T11:26:46.433Z",
+        "author": {
+            "name": "Sentinels Scientific Data Hub"
+        },
+        "id": "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])",
+        "opensearch:totalResults": "1000",
+        "opensearch:startIndex": "0",
+        "opensearch:itemsPerPage": "100",
+        "opensearch:Query": {
+            "role": "request",
+            "searchTerms": "(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])",
+            "startPage": "1"
+        },
+        "link": [
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])&start=9000&rows=100&format=json"
+            },
+            {
+                "rel": "first",
+                "type": "application/json",
+                "href": "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])&start=0&rows=100&format=json"
+            },
+            {
+                "rel": "previous",
+                "type": "application/json",
+                "href": "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])&start=8900&rows=100&format=json"
+            },
+            {
+                "rel": "last",
+                "type": "application/json",
+                "href": "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) AND (processinglevel:Level-1C) AND (ingestiondate:[2020-01-01T00:00:00Z TO 2020-01-01T23:59:59Z])&start=6799&rows=100&format=json"
+            },
+            {
+                "rel": "search",
+                "type": "application/opensearchdescription+xml",
+                "href": "opensearch_description.xml"
+            }
+        ]
+    }
+}

@@ -1,6 +1,5 @@
 import json
-import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -10,6 +9,7 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from freezegun import freeze_time
+
 from handler import (
     add_scihub_results_to_db,
     add_scihub_results_to_sqs,
