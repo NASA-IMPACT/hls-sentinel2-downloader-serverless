@@ -9,7 +9,7 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 * [Development - Requirements](#requirements)
 * [Development - Getting started 🏃‍♀️](#getting-started-🏃‍♀️)
 * [Development - Repository TL;DR:](#repository-tldr)
-* [Development - Lambda and Layer development TL;DR](#lambda-and-layer-development-tldr)
+* [Development - Lambda and Layer development TL;DR:](#lambda-and-layer-development-tldr)
 * [Development - Makefile goodness](#makefile-goodness)
 
 # Development
