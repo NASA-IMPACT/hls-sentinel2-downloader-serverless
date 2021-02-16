@@ -72,7 +72,7 @@ jobs:
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
       - name: Install root dependencies
-        # if: steps.root-cache.outputs.cache-hit != 'true'
+        if: steps.root-cache.outputs.cache-hit != 'true'
         run: |
           pipenv install --dev
 
@@ -171,7 +171,7 @@ jobs:
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
       - name: Install root dependencies
-        # if: steps.root-cache.outputs.cache-hit != 'true'
+        if: steps.root-cache.outputs.cache-hit != 'true'
         run: |
           pipenv install --dev
 
@@ -270,7 +270,7 @@ jobs:
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
 
       - name: Install root dependencies
-        # if: steps.root-cache.outputs.cache-hit != 'true'
+        if: steps.root-cache.outputs.cache-hit != 'true'
         run: |
           pipenv install --dev
 

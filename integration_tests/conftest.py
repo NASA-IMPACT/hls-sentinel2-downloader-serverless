@@ -5,7 +5,7 @@ import polling2
 import pytest
 from db.session import get_session, get_session_maker
 
-IDENTIFIER = os.environ["IDENTIFIER"]
+IDENTIFIER = os.environ["IDENTIFIER"].replace("/", "")
 EMPTY_TABLES_QUERY = (
     "DELETE FROM GRANULE; DELETE FROM GRANULE_COUNT; DELETE FROM STATUS;"
 )
