@@ -117,8 +117,8 @@ jobs:
         uses: actions/cache@v2
         id: root-cache
         with:
-          path: /home/runner/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
-          key: ${{ hashFiles('/home/runner/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
+          path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
 
   #     - name: Setup alembic_migration cache
   #       uses: actions/cache@v2
