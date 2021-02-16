@@ -44,6 +44,25 @@ jobs:
         run: |
           make install
 
+      - name: Create .env files for tests
+        run: |
+          cat <<EOF >> lambdas/link_fetcher/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
+          cat <<EOF >> layers/db/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
+          cat <<EOF >> alembic_mgration/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
+
+
       - name: Run unit tests
         run: |
           make unit-tests
