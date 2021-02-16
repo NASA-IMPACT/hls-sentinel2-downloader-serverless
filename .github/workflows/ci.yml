@@ -112,6 +112,11 @@ jobs:
         id: hashes
         run: |
           echo "##[set-output name=root;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)"
+          echo "##[set-output name=alembic;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/alembic_migration/Pipfile)"
+          echo "##[set-output name=dategenerator;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/date_generator/Pipfile)"
+          echo "##[set-output name=linkfetcher;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/link_fetcher/Pipfile)"
+          echo "##[set-output name=mockscihubapi;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_api/Pipfile)"
+          echo "##[set-output name=db;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/layers/db/Pipfile)"
 
       - name: Setup root cache
         uses: actions/cache@v2
@@ -120,92 +125,92 @@ jobs:
           path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
 
-  #     - name: Setup alembic_migration cache
-  #       uses: actions/cache@v2
-  #       id: alembic-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/alembic_migration*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/alembic_migration/Pipfile.lock') }}
+      - name: Setup alembic_migration cache
+        uses: actions/cache@v2
+        id: alembic-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/alembic_migration-${{ steps.hashes.outputs.alembic }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/alembic_migration/Pipfile.lock') }}
 
-  #     - name: Setup date_generator cache
-  #       uses: actions/cache@v2
-  #       id: date-generator-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/date_generator*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/date_generator/Pipfile.lock') }}
+      - name: Setup date_generator cache
+        uses: actions/cache@v2
+        id: date-generator-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/date_generator-${{ steps.hashes.outputs.dategenerator }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/date_generator/Pipfile.lock') }}
 
-  #     - name: Setup link_fetcher cache
-  #       uses: actions/cache@v2
-  #       id: link-fetcher-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/link_fetcher*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/link_fetcher/Pipfile.lock') }}
+      - name: Setup link_fetcher cache
+        uses: actions/cache@v2
+        id: link-fetcher-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/link_fetcher-${{ steps.hashes.outputs.linkfetcher }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/link_fetcher/Pipfile.lock') }}
 
-  #     - name: Setup mock_scihub_api cache
-  #       uses: actions/cache@v2
-  #       id: mock-scihub-api-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/mock_scihub_api*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_api/Pipfile.lock') }}
+      - name: Setup mock_scihub_api cache
+        uses: actions/cache@v2
+        id: mock-scihub-api-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/mock_scihub_api-${{ steps.hashes.outputs.mockscihubapi }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_api/Pipfile.lock') }}
 
-  #     - name: Setup db cache
-  #       uses: actions/cache@v2
-  #       id: db-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/db*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
+      - name: Setup db cache
+        uses: actions/cache@v2
+        id: db-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
-  #     - name: Install root dependencies
-  #       if: steps.root-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         pipenv install --dev
+      - name: Install root dependencies
+        if: steps.root-cache.outputs.cache-hit != 'true'
+        run: |
+          pipenv install --dev
 
-  #     - name: Install alembic dependencies
-  #       if: steps.alembic-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C alembic_migration install
+      - name: Install alembic dependencies
+        if: steps.alembic-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C alembic_migration install
 
-  #     - name: Install date_generator dependencies
-  #       if: steps.date-generator-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/date_generator install
+      - name: Install date_generator dependencies
+        if: steps.date-generator-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/date_generator install
 
-  #     - name: Install link_fetcher dependencies
-  #       if: steps.link-fetcher-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/link_fetcher install
+      - name: Install link_fetcher dependencies
+        if: steps.link-fetcher-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/link_fetcher install
 
-  #     - name: Install mock_scihub_api dependencies
-  #       if: steps.mock-scihub-api-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/mock_scihub_api install
+      - name: Install mock_scihub_api dependencies
+        if: steps.mock-scihub-api-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/mock_scihub_api install
 
-  #     - name: Install db dependencies
-  #       if: steps.db-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C layers/db install
+      - name: Install db dependencies
+        if: steps.db-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C layers/db install
 
-  #     - name: Create .env files for tests
-  #       run: |
-  #         cat <<EOF >> lambdas/link_fetcher/.env
-  #         PG_PASSWORD="test-pass"
-  #         PG_USER="test-user"
-  #         PG_DB="test-db"
-  #         EOF
-  #         cat <<EOF >> layers/db/.env
-  #         PG_PASSWORD="test-pass"
-  #         PG_USER="test-user"
-  #         PG_DB="test-db"
-  #         EOF
-  #         cat <<EOF >> alembic_migration/.env
-  #         PG_PASSWORD="test-pass"
-  #         PG_USER="test-user"
-  #         PG_DB="test-db"
-  #         EOF
+      - name: Create .env files for tests
+        run: |
+          cat <<EOF >> lambdas/link_fetcher/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
+          cat <<EOF >> layers/db/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
+          cat <<EOF >> alembic_migration/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
 
-  #     - name: Run unit tests
-  #       run: |
-  #         make unit-tests
+      - name: Run unit tests
+        run: |
+          make unit-tests
 
   # integration-tests:
   #   runs-on: ubuntu-latest
