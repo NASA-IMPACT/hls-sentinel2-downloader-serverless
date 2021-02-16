@@ -7,7 +7,7 @@ from integration_stack import IntegrationStack
 
 app = core.App()
 
-identifier = os.environ["IDENTIFIER"]
+identifier = os.environ["IDENTIFIER"].replace("/", "")
 
 integration_stack = IntegrationStack(
     app, f"hls-s2-downloader-serverless-integration-{identifier}", identifier=identifier

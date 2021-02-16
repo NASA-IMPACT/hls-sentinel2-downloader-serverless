@@ -6,7 +6,7 @@ from downloader_stack import DownloaderStack
 
 app = core.App()
 
-identifier = os.environ["IDENTIFIER"]
+identifier = os.environ["IDENTIFIER"].replace("/", "")
 
 DownloaderStack(
     app,
