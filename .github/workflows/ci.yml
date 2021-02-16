@@ -46,20 +46,17 @@ jobs:
 
       - name: Create .env files for tests
         run: |
-          touch lambdas/link_fetcher/.env
           cat <<EOF >> lambdas/link_fetcher/.env
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
           PG_DB="test-db"
           EOF
-          touch layers/db/.env
           cat <<EOF >> layers/db/.env
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
           PG_DB="test-db"
           EOF
-          touch alembic_mgration/.env
-          cat <<EOF >> alembic_mgration/.env
+          cat <<EOF >> alembic_migration/.env
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
           PG_DB="test-db"
