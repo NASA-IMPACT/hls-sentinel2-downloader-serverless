@@ -1,20 +1,20 @@
 .PHONEY: install lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
 
 install:
-	# pipenv install --dev
-	# $(MAKE) -C lambdas/link_fetcher install
-	# $(MAKE) -C lambdas/date_generator install
-	# $(MAKE) -C lambdas/mock_scihub_api install
+	pipenv install --dev
+	$(MAKE) -C lambdas/link_fetcher install
+	$(MAKE) -C lambdas/date_generator install
+	$(MAKE) -C lambdas/mock_scihub_api install
 	$(MAKE) -C layers/db install
 	$(MAKE) -C alembic_migration install
 
 lint:
-	# pipenv run flake8 cdk/ integration_tests/
-	# pipenv run isort --check-only --profile black cdk/ integration_tests/
-	# pipenv run black --check --diff cdk/ integration_tests/
-	# $(MAKE) -C lambdas/link_fetcher lint
-	# $(MAKE) -C lambdas/date_generator lint
-	# $(MAKE) -C lambdas/mock_scihub_api lint
+	pipenv run flake8 cdk/ integration_tests/
+	pipenv run isort --check-only --profile black cdk/ integration_tests/
+	pipenv run black --check --diff cdk/ integration_tests/
+	$(MAKE) -C lambdas/link_fetcher lint
+	$(MAKE) -C lambdas/date_generator lint
+	$(MAKE) -C lambdas/mock_scihub_api lint
 	$(MAKE) -C layers/db lint
 	$(MAKE) -C alembic_migration lint
 
@@ -46,9 +46,9 @@ destroy-integration:
 	pipenv run npx cdk destroy '*' --app cdk/app_integration.py --force
 
 unit-tests:
-	# $(MAKE) -C lambdas/link_fetcher test
-	# $(MAKE) -C lambdas/date_generator test
-	# $(MAKE) -C lambdas/mock_scihub_api test
+	$(MAKE) -C lambdas/link_fetcher test
+	$(MAKE) -C lambdas/date_generator test
+	$(MAKE) -C lambdas/mock_scihub_api test
 	$(MAKE) -C layers/db test
 	$(MAKE) -C alembic_migration test
 
