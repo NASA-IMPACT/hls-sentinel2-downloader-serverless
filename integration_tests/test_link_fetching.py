@@ -44,7 +44,5 @@ def test_that_link_fetching_invocation_executes_correctly(
     assert_that(statuses).is_length(1)
 
     polling2.poll(
-        lambda: check_sqs_message_count(sqs_client, queue_url),
-        step=5,
-        timeout=120
+        lambda: check_sqs_message_count(sqs_client, queue_url), step=5, timeout=120
     )
