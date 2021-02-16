@@ -14,6 +14,13 @@ def check_execution_succeeded(step_function_client, execution_arn):
     return True if execution_status == "SUCCEEDED" else False
 
 
+def check_sqs_message_count(sqs_client, queue_url):
+    queue_attributes = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
+    )
+    return int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"]) == 68
+
+
 def test_that_link_fetching_invocation_executes_correctly(
     db_connection, step_function_arn, step_function_client, sqs_client, queue_url
 ):
@@ -36,9 +43,8 @@ def test_that_link_fetching_invocation_executes_correctly(
     statuses = db_connection.query(Status).all()
     assert_that(statuses).is_length(1)
 
-    queue_attributes = sqs_client.get_queue_attributes(
-        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
+    polling2.poll(
+        lambda: check_sqs_message_count(sqs_client, queue_url),
+        step=5,
+        timeout=120
     )
-    assert_that(
-        int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"])
-    ).is_equal_to(68)
