@@ -37,7 +37,7 @@ To get setup for overall development, ensure you've installed all the above [req
 ```bash
 $ nvm install # This sets up your node environment
 $ npm install # This installs any node packages that are within package.json (CDK etc.)
-$ pipenv install --dev # This installs any python packages that are within Pipfile
+$ make install # This calls `pipenv install --dev` on the repo root and any of the directories that contain a Makefile with `install`
 ```
 
 _**Note** you might have an issue installing `psycopg2` - I found [this](https://github.com/pypa/pipenv/issues/3991#issuecomment-564645309) helpful_
@@ -72,12 +72,12 @@ Most directories will contain a README to explain what the purpose is of the com
 
 ## Lambda and Layer development TL;DR:
 
-Every Lambda and Layer directory has a `Makefile` inside, this contains a subset of the commands found in the [root repository Makefile](#makefile-goodness). Each `Makefile` should come with `lint`, `format`, and `test` as standard, these are then added as calls in the root Makefile so that we can lint/format/unit test all our code at a project level.
+Every Lambda and Layer directory has a `Makefile` inside, this contains a subset of the commands found in the [root repository Makefile](#makefile-goodness). Each `Makefile` should come with `install`, `lint`, `format`, and `test` as standard, these are then added as calls in the root Makefile so that we can install/lint/format/unit test all our code at a project level.
 
 Per-Lambda/Layer development is recommended to be done by opening the specific components directory in a new IDE window (this just makes life easier for IDE prompts etc as the directory has its own `Pipenv` virtual environment). To get started, go into the directory of the Lambda/Layer and run:
 
 ```
-$ pipenv install --dev # Creates a Pipenv env for the directory and installs the dependencies
+$ make install # Creates a Pipenv env for the directory and installs the dependencies
 ```
 
 For further guides on how to make new Lambdas/Layers, follow the examples in [the example monorepo repo](https://github.com/alukach/cdk-python-lambda-monorepo).
@@ -85,6 +85,10 @@ For further guides on how to make new Lambdas/Layers, follow the examples in [th
 ## Makefile goodness
 
 A `Makefile` is available in the root of the repository to abstract away commonly used commands for development:
+
+**`make install`**
+
+> This will run `pipenv install --dev` on the repo root and the directories that contain `pipenv` projects
 
 **`make lint`**
 

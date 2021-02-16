@@ -1,4 +1,7 @@
-.PHONEY: lint format test
+.PHONEY: install lint format test
+
+install:
+	pipenv install --dev
 
 lint:
 	pipenv run flake8 .

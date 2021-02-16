@@ -1,4 +1,12 @@
-.PHONEY: lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
+.PHONEY: install lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
+
+install:
+	pipenv install --dev
+	$(MAKE) -C lambdas/link_fetcher install
+	$(MAKE) -C lambdas/date_generator install
+	$(MAKE) -C lambdas/mock_scihub_api install
+	$(MAKE) -C layers/db install
+	$(MAKE) -C alembic_migration install
 
 lint:
 	pipenv run flake8 cdk/ integration_tests/
