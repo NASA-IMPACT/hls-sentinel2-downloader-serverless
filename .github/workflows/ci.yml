@@ -21,7 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pipenv install -d
+          make install
 
       - name: Run linting
         run: |
@@ -42,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pipenv install -d
+          make install
 
       - name: Run unit tests
         run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pipenv install -d
+          make install
 
       - name: Configure awscli
         uses: aws-actions/configure-aws-credentials@v1
