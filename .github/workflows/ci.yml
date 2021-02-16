@@ -34,7 +34,7 @@ jobs:
         id: root-cache
         with:
           path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
-          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}-1
 
       - name: Setup alembic_migration cache
         uses: actions/cache@v2
