@@ -43,7 +43,7 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
 
 
 @pytest.fixture(autouse=True)
-def aws_credentials(monkeysession):
+def aws_credentials():
     monkeysession.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeysession.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeysession.setenv("AWS_SECURITY_TOKEN", "testing")
@@ -54,7 +54,7 @@ def aws_credentials(monkeysession):
 @pytest.fixture(scope="session")
 def secrets_manager_client(monkeysession):
     with mock_secretsmanager():
-        yield boto3.client("secretsmanager")
+        yield boto3.client("secretsmanager", region_name="us-east-1")
 
 
 @pytest.fixture(scope="session")
