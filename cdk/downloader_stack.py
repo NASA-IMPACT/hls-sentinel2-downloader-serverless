@@ -141,7 +141,7 @@ class DownloaderStack(core.Stack):
         to_download_queue = aws_sqs.Queue(
             self,
             id=f"{identifier}-to-download-queue",
-            queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download",
+            queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
             retention_period=core.Duration.days(14),
         )
 
