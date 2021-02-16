@@ -147,6 +147,3 @@ node_modules
 
 # Idea
 .idea
-
-# Handmade CDK builds
-.build
