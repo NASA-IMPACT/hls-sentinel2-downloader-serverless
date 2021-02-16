@@ -60,7 +60,7 @@ def aws_credentials(monkeysession):
 
 
 @pytest.fixture(scope="session")
-def secrets_manager_client(aws_credentials):
+def secrets_manager_client(monkeysession):
     with mock_secretsmanager():
         yield boto3.client("secretsmanager")
 
