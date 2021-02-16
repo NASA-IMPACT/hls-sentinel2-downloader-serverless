@@ -6,94 +6,104 @@ on:
     branches: [main]
 
 jobs:
-  # linting:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-  #     - name: Set up Python 3.8.6
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: 3.8.6
+      - name: Set up Python 3.8.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8.6
 
-  #     - name: Install Pipenv
-  #       uses: dschep/install-pipenv-action@v1
+      - name: Install Pipenv
+        uses: dschep/install-pipenv-action@v1
 
-  #     - name: Setup root cache
-  #       uses: actions/cache@v2
-  #       id: root-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/hls-sentinel2-downloader-serverless*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
+      - name: Get pipenv venv hashes
+        id: hashes
+        run: |
+          echo "##[set-output name=root;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)"
+          echo "##[set-output name=alembic;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/alembic_migration/Pipfile)"
+          echo "##[set-output name=dategenerator;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/date_generator/Pipfile)"
+          echo "##[set-output name=linkfetcher;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/link_fetcher/Pipfile)"
+          echo "##[set-output name=mockscihubapi;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_api/Pipfile)"
+          echo "##[set-output name=db;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/layers/db/Pipfile)"
 
-  #     - name: Setup alembic_migration cache
-  #       uses: actions/cache@v2
-  #       id: alembic-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/alembic_migration*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/alembic_migration/Pipfile.lock') }}
+      - name: Setup root cache
+        uses: actions/cache@v2
+        id: root-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
 
-  #     - name: Setup date_generator cache
-  #       uses: actions/cache@v2
-  #       id: date-generator-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/date_generator*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/date_generator/Pipfile.lock') }}
+      - name: Setup alembic_migration cache
+        uses: actions/cache@v2
+        id: alembic-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/alembic_migration-${{ steps.hashes.outputs.alembic }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/alembic_migration/Pipfile.lock') }}
 
-  #     - name: Setup link_fetcher cache
-  #       uses: actions/cache@v2
-  #       id: link-fetcher-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/link_fetcher*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/link_fetcher/Pipfile.lock') }}
+      - name: Setup date_generator cache
+        uses: actions/cache@v2
+        id: date-generator-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/date_generator-${{ steps.hashes.outputs.dategenerator }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/date_generator/Pipfile.lock') }}
 
-  #     - name: Setup mock_scihub_api cache
-  #       uses: actions/cache@v2
-  #       id: mock-scihub-api-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/mock_scihub_api*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_api/Pipfile.lock') }}
+      - name: Setup link_fetcher cache
+        uses: actions/cache@v2
+        id: link-fetcher-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/link_fetcher-${{ steps.hashes.outputs.linkfetcher }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/link_fetcher/Pipfile.lock') }}
 
-  #     - name: Setup db cache
-  #       uses: actions/cache@v2
-  #       id: db-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/db*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
+      - name: Setup mock_scihub_api cache
+        uses: actions/cache@v2
+        id: mock-scihub-api-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/mock_scihub_api-${{ steps.hashes.outputs.mockscihubapi }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_api/Pipfile.lock') }}
 
-  #     - name: Install root dependencies
-  #       if: steps.root-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         pipenv install --dev
+      - name: Setup db cache
+        uses: actions/cache@v2
+        id: db-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
-  #     - name: Install alembic dependencies
-  #       if: steps.alembic-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C alembic_migration install
+      - name: Install root dependencies
+        if: steps.root-cache.outputs.cache-hit != 'true'
+        run: |
+          pipenv install --dev
 
-  #     - name: Install date_generator dependencies
-  #       if: steps.date-generator-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/date_generator install
+      - name: Install alembic dependencies
+        if: steps.alembic-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C alembic_migration install
 
-  #     - name: Install link_fetcher dependencies
-  #       if: steps.link-fetcher-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/link_fetcher install
+      - name: Install date_generator dependencies
+        if: steps.date-generator-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/date_generator install
 
-  #     - name: Install mock_scihub_api dependencies
-  #       if: steps.mock-scihub-api-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C lambdas/mock_scihub_api install
+      - name: Install link_fetcher dependencies
+        if: steps.link-fetcher-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/link_fetcher install
 
-  #     - name: Install db dependencies
-  #       if: steps.db-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         make -C layers/db install
+      - name: Install mock_scihub_api dependencies
+        if: steps.mock-scihub-api-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/mock_scihub_api install
 
-  #     - name: Run linting
-  #       run: |
-  #         make lint
+      - name: Install db dependencies
+        if: steps.db-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C layers/db install
+
+      - name: Run linting
+        run: |
+          make lint
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -212,69 +222,74 @@ jobs:
         run: |
           make unit-tests
 
-  # integration-tests:
-  #   runs-on: ubuntu-latest
-  #   needs: unit-tests
-  #   steps:
-  #     - uses: actions/checkout@v2
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v2
 
-  #     - name: Setup git vars
-  #       id: vars
-  #       run: |
-  #         echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-  #         echo "##[set-output name=commit;]$(git rev-parse --short "$GITHUB_SHA")"
+      - name: Setup git vars
+        id: vars
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+          echo "##[set-output name=commit;]$(git rev-parse --short "$GITHUB_SHA")"
 
-  #     - name: Create .env file
-  #       run: |
-  #         touch .env
-  #         echo OWNER="ci-developmentseed" >> .env
-  #         echo IDENTIFIER=${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.commit }} >> .env
+      - name: Create .env file
+        run: |
+          touch .env
+          echo OWNER="ci-developmentseed" >> .env
+          echo IDENTIFIER=${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.commit }} >> .env
 
-  #     - name: Set up Python 3.8.6
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: 3.8.6
+      - name: Set up Python 3.8.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8.6
 
-  #     - name: Setup up Node
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: 12
+      - name: Setup up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
 
-  #     - name: Install AWS CDK
-  #       run: |
-  #         npm install -g aws-cdk
+      - name: Install AWS CDK
+        run: |
+          npm install -g aws-cdk
 
-  #     - name: Install Pipenv
-  #       uses: dschep/install-pipenv-action@v1
+      - name: Install Pipenv
+        uses: dschep/install-pipenv-action@v1
 
-  #     - name: Setup root cache
-  #       uses: actions/cache@v2
-  #       id: root-cache
-  #       with:
-  #         path: ~/.local/share/virtualenvs/hls-sentinel2-downloader-serverless*
-  #         key: ${{ hashFiles('~/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
+      - name: Get pipenv venv hashes
+        id: hashes
+        run: |
+          echo "##[set-output name=root;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)"
 
-  #     - name: Install root dependencies
-  #       if: steps.root-cache.outputs.cache-hit != 'true'
-  #       run: |
-  #         pipenv install --dev
+      - name: Setup root cache
+        uses: actions/cache@v2
+        id: root-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}
 
-  #     - name: Configure awscli
-  #       uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: us-west-2
+      - name: Install root dependencies
+        if: steps.root-cache.outputs.cache-hit != 'true'
+        run: |
+          pipenv install --dev
 
-  #     - name: Deploy hls-s2-downloader-serverless integration
-  #       run: |
-  #         make deploy-integration
+      - name: Configure awscli
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
 
-  #     - name: Run integration tests
-  #       run: |
-  #         make integration-tests
+      - name: Deploy hls-s2-downloader-serverless integration
+        run: |
+          make deploy-integration
 
-  #     - name: Destroy hls-s2-downloader-serverless integration
-  #       if: always()
-  #       run: |
-  #         make destroy-integration
+      - name: Run integration tests
+        run: |
+          make integration-tests
+
+      - name: Destroy hls-s2-downloader-serverless integration
+        if: always()
+        run: |
+          make destroy-integration
