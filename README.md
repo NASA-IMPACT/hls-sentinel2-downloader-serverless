@@ -6,11 +6,14 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 
 # Contents
 
-* [Development - Requirements](#requirements)
-* [Development - Getting started 🏃‍♀️](#getting-started-🏃‍♀️)
-* [Development - Repository TL;DR:](#repository-tldr)
-* [Development - Lambda and Layer development TL;DR:](#lambda-and-layer-development-tldr)
-* [Development - Makefile goodness](#makefile-goodness)
+* [🧑‍💻 Development - Requirements](#requirements)
+* [🧑‍💻 Development - Getting started 🏃‍♀️](#getting-started-🏃‍♀️)
+* [🧑‍💻 Development - Repository TL;DR:](#repository-tldr)
+* [🧑‍💻 Development - Lambda and Layer development TL;DR:](#lambda-and-layer-development-tldr)
+* [🧑‍💻 Development - Makefile goodness](#makefile-goodness)
+* [🚀 Deployment - Prerequisites](#prerequisites)
+* [🚀 Deployment - Standard Deployments](#standard-deployments)
+* [🚀 Deployment - Testing Deployments](#testing-deployments)
 
 # Development
 
@@ -122,3 +125,66 @@ A `Makefile` is available in the root of the repository to abstract away commonl
 **`make integration-tests`**
 
 > This will run the integration tests within the project with `pytest` **You need to have run `make deploy-integration` first, otherwise these will fail straight away**
+
+# Deployment
+
+## Prerequisites
+
+Firstly, ensure you've installed all the project requirements as described [here](#requirements) and [here](#getting-started-🏃‍♀️).
+
+### SciHub Credentials
+
+The deployment relies on the SciHub Credentials having been added to the AWS account previously within Secrets Manager. For your given `IDENTIFIER` value, the Secret should be stored under `hls-s2-downloader-serverless/<IDENTIFIER>/scihub-credentials`.
+
+The Secret should look like:
+
+```json
+{
+  "username": "<username>",
+  "password": "<password>"
+}
+```
+
+This is required in integration deployments and standard ones, though the integration deployment Secret can just contain junk values.
+
+## Standard Deployments
+
+For standard deploys, you can check _what_ you'll be deploying by running:
+
+```bash
+$ make diff # Outputs the CDK Diff
+```
+
+To deploy the infrastructure, you can run:
+
+```bash
+$ make deploy # Deploys DownloaderStack
+```
+
+To destroy the infrastructure, you can run:
+
+```bash
+$ make destroy # Destroys DownloaderStack
+```
+
+## Testing Deployments
+
+Because in a real world deployment we rely on 3rd party APIs, we've provided a `IntegrationStack` to deploy infrastructure that mimics these 3rd party APIs, reducing our reliance on them being available for testing.
+
+For a testing deployment, you can check _what_ you'll be deploying by running:
+
+```bash
+$ make diff-integration # Outputs the CDK Diff
+```
+
+To deploy the infrastructure, you can run:
+
+```bash
+$ make deploy-integration # Deploys DownloaderStack and IntegrationStack
+```
+
+To destroy the infrastructure, you can run:
+
+```bash
+$ make destroy-integration # Destroys DownloaderStack and IntegrationStack
+```
