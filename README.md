@@ -140,6 +140,8 @@ Firstly, ensure you've installed all the project requirements as described [here
 
 The deployment relies on the SciHub Credentials having been added to the AWS account previously within Secrets Manager. For your given `IDENTIFIER` value, the Secret should be stored under `hls-s2-downloader-serverless/<IDENTIFIER>/scihub-credentials`.
 
+This is **required** in standard deployments, for integration deployments, a secret (containing junk) is created for you.
+
 The Secret should look like:
 
 ```json
@@ -149,7 +151,6 @@ The Secret should look like:
 }
 ```
 
-This is required in integration deployments and standard ones, though the integration deployment Secret can just contain junk values.
 
 ## Standard Deployments
 

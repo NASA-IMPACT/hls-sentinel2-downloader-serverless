@@ -285,11 +285,11 @@ jobs:
         run: |
           make deploy-integration
 
-      # - name: Run integration tests
-      #   run: |
-      #     make integration-tests
+      - name: Run integration tests
+        run: |
+          make integration-tests
 
-      # - name: Destroy hls-s2-downloader-serverless integration
-      #   if: always()
-      #   run: |
-      #     make destroy-integration
+      - name: Destroy hls-s2-downloader-serverless integration
+        if: always()
+        run: |
+          make destroy-integration

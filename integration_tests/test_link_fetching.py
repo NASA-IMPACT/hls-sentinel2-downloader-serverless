@@ -30,8 +30,8 @@ def test_that_link_fetching_invocation_executes_correctly(
 
     polling2.poll(
         lambda: check_execution_succeeded(step_function_client, execution_arn),
-        step=10,
-        timeout=180,
+        step=5,
+        timeout=120,
     )
 
     granules = db_connection.query(Granule).all()
@@ -44,5 +44,5 @@ def test_that_link_fetching_invocation_executes_correctly(
     assert_that(statuses).is_length(1)
 
     polling2.poll(
-        lambda: check_sqs_message_count(sqs_client, queue_url), step=10, timeout=180
+        lambda: check_sqs_message_count(sqs_client, queue_url), step=5, timeout=120
     )

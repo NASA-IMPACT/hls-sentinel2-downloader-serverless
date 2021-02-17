@@ -1,4 +1,12 @@
-from aws_cdk import aws_apigateway, aws_lambda, aws_lambda_python, core
+import json
+
+from aws_cdk import (
+    aws_apigateway,
+    aws_lambda,
+    aws_lambda_python,
+    aws_secretsmanager,
+    core,
+)
 
 
 class IntegrationStack(core.Stack):
@@ -10,6 +18,17 @@ class IntegrationStack(core.Stack):
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        aws_secretsmanager.Secret(
+            self,
+            id=f"{identifier}-integration-scihub-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
+            description="Dummy values for the Mock SciHub API credentials",
+            generate_secret_string=aws_secretsmanager.SecretStringGenerator(
+                secret_string_template=json.dumps({"username": "test-user"}),
+                generate_string_key="password",
+            ),
+        )
 
         mock_scihub_api_lambda = aws_lambda_python.PythonFunction(
             self,
