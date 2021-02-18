@@ -10,6 +10,9 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session, get_session_maker
+from mypy_boto3_sqs.client import SQSClient
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from scihub_result import ScihubResult
 
@@ -50,55 +53,65 @@ def handler(event, context):
             scihub_results, accepted_tile_ids
         )
 
-        add_scihub_results_to_db(session_maker, filtered_scihub_results)
-        add_scihub_results_to_sqs(filtered_scihub_results)
+        with get_session(session_maker) as db:
+            add_scihub_results_to_db_and_sqs(db, filtered_scihub_results)
 
         update_last_fetched_link_time(session_maker)
         update_fetched_links(session_maker, day, number_of_fetched_links)
 
 
-def add_scihub_results_to_db(session_maker, scihub_results: List[ScihubResult]):
+def add_scihub_results_to_db_and_sqs(db: Session, scihub_results: List[ScihubResult]):
     """
-    Creates a record in the `granule` table for each of the provided ScihubResults
-    Firstly a check is performed to ensure that a granule isn't already present, if it
-    is we don't add it
+    Creates a record in the `granule` table for each of the provided ScihubResults and
+    a SQS Message in the `To Download` Queue.
+    If a record is already in the `granule` table, it will throw an exception which
+    when caught, will rollback the insertion and the SQS Message will not be added.
+    :param db: Session representing the SQLAlchemy Session for adding results
     :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
         `granule` table
-    """
-    with get_session(session_maker) as db:
-        for result in scihub_results:
-            if not db.query(Granule).filter(Granule.id == result["image_id"]).first():
-                db.add(
-                    Granule(
-                        id=result["image_id"],
-                        filename=result["filename"],
-                        tileid=result["tileid"],
-                        size=result["size"],
-                        beginposition=result["beginposition"],
-                        endposition=result["endposition"],
-                        ingestiondate=result["ingestiondate"],
-                        download_url=result["download_url"],
-                    )
-                )
-        db.commit()
-
-
-def add_scihub_results_to_sqs(scihub_results: List[ScihubResult]):
-    """
-    Creates messages in the `To Download` SQS queue for each of the provided
-    ScihubResults. The message is in the form {"id": <val>, "download_url": <val>}
-    :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
-        `To Download` SQS queue
     """
     sqs_client = boto3.client("sqs")
     to_download_queue_url = os.environ["TO_DOWNLOAD_SQS_QUEUE_URL"]
     for result in scihub_results:
-        sqs_client.send_message(
-            QueueUrl=to_download_queue_url,
-            MessageBody=json.dumps(
-                {"id": result["image_id"], "download_url": result["download_url"]}
-            ),
-        )
+        try:
+            db.add(
+                Granule(
+                    id=result["image_id"],
+                    filename=result["filename"],
+                    tileid=result["tileid"],
+                    size=result["size"],
+                    beginposition=result["beginposition"],
+                    endposition=result["endposition"],
+                    ingestiondate=result["ingestiondate"],
+                    download_url=result["download_url"],
+                )
+            )
+            db.commit()
+            add_scihub_result_to_sqs(result, sqs_client, to_download_queue_url)
+        except IntegrityError:
+            print(f"{result['image_id']} already in Database, not adding")
+            db.rollback()
+
+
+def add_scihub_result_to_sqs(
+    scihub_result: ScihubResult, sqs_client: SQSClient, queue_url: str
+):
+    """
+    Creates a message in the provided SQS queue for the provided
+    ScihubResult. The message is in the form {"id": <val>, "download_url": <val>}
+    :param scihub_result: ScihubResult the SciHub result to add to the SQS queue
+    :param sqs_client: SQSClient representing a boto3 SQS client
+    :param queue_url: str presenting the URL of the queue to send the message to
+    """
+    sqs_client.send_message(
+        QueueUrl=queue_url,
+        MessageBody=json.dumps(
+            {
+                "id": scihub_result["image_id"],
+                "download_url": scihub_result["download_url"],
+            }
+        ),
+    )
 
 
 def get_available_and_fetched_links(session_maker, day: date) -> Tuple[int, int]:
@@ -123,7 +136,7 @@ def get_available_and_fetched_links(session_maker, day: date) -> Tuple[int, int]
                 last_fetched_time=datetime.now(),
             )
             db.add(granule_count)
-            db.commit()
+
             return (0, 0)
         else:
             return (granule_count.available_links, granule_count.fetched_links)
@@ -139,7 +152,6 @@ def update_total_results(session_maker, day: date, total_results: int):
     with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.available_links = total_results
-        db.commit()
 
 
 def update_last_fetched_link_time(session_maker):
@@ -156,10 +168,9 @@ def update_last_fetched_link_time(session_maker):
         )
         if not last_linked_fetched_time:
             db.add(Status(key_name=last_fetched_key_name, value=datetime_now))
-            db.commit()
+
         else:
             last_linked_fetched_time.value = datetime_now
-            db.commit()
 
 
 def update_fetched_links(session_maker, day: date, fetched_links: int):
@@ -174,7 +185,6 @@ def update_fetched_links(session_maker, day: date, fetched_links: int):
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.fetched_links += fetched_links
         granule_count.last_fetched_time = datetime.now()
-        db.commit()
 
 
 def get_accepted_tile_ids() -> List[str]:

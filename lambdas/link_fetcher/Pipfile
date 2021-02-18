@@ -7,6 +7,7 @@ name = "pypi"
 boto3 = ">=1.16.60"
 humanfriendly = ">=9.1"
 requests = ">=2.25.1"
+boto3-stubs = {version = ">=1.17.10.0", extras = ["sqs"]}
 
 [dev-packages]
 flake8 = ">=3.8.4"

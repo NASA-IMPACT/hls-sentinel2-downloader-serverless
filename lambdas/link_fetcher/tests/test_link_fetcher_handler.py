@@ -11,8 +11,8 @@ from db.models.status import Status
 from freezegun import freeze_time
 
 from handler import (
-    add_scihub_results_to_db,
-    add_scihub_results_to_sqs,
+    add_scihub_result_to_sqs,
+    add_scihub_results_to_db_and_sqs,
     create_scihub_result_from_feed_entry,
     ensure_three_decimal_points_for_milliseconds_and_replace_z,
     filter_scihub_results,
@@ -208,29 +208,35 @@ def test_that_link_fetcher_handler_correctly_filters_scihub_results(accepted_til
 
 
 def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_db(
-    db_session, db_session_context, scihub_result_maker
+    db_session, scihub_result_maker, mock_sqs_queue, db_session_context
 ):
     scihub_results = scihub_result_maker(10)
     scihub_result_id_base = scihub_results[0]["image_id"][:-3]
     scihub_result_url_base = scihub_results[0]["download_url"][:-12]
 
-    with patch("handler.get_session", db_session_context):
-        add_scihub_results_to_db(None, scihub_results)
-        granules_in_db = db_session.query(Granule).all()
-        assert_that(granules_in_db).is_length(10)
+    with patch("handler.add_scihub_result_to_sqs") as mock_add_to_sqs:
+        with patch("handler.get_session", db_session_context):
+            mock_add_to_sqs.side_affect = None
 
-        for idx, granule in enumerate(granules_in_db):
-            id_filled = str(idx).zfill(3)
-            expected_id = f"{scihub_result_id_base}{id_filled}"
-            expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
-            granule_id = granule.id
-            granule_download_url = granule.download_url
-            assert_that(expected_id).is_equal_to(granule_id)
-            assert_that(expected_url).is_equal_to(granule_download_url)
+            add_scihub_results_to_db_and_sqs(db_session, scihub_results)
+
+            granules_in_db = db_session.query(Granule).all()
+            assert_that(granules_in_db).is_length(10)
+
+            for idx, granule in enumerate(granules_in_db):
+                id_filled = str(idx).zfill(3)
+                expected_id = f"{scihub_result_id_base}{id_filled}"
+                expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
+                granule_id = granule.id
+                granule_download_url = granule.download_url
+                assert_that(expected_id).is_equal_to(granule_id)
+                assert_that(expected_url).is_equal_to(granule_download_url)
+
+            mock_add_to_sqs.assert_called()
 
 
 def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
-    db_session, db_session_context, scihub_result_maker
+    db_session, scihub_result_maker, mock_sqs_queue, db_session_context
 ):
     scihub_result = scihub_result_maker(1)[0]
     db_session.add(
@@ -248,34 +254,37 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
     db_session.commit()
 
     with patch("handler.get_session", db_session_context):
-        add_scihub_results_to_db(None, [scihub_result])
-        granules_in_db = db_session.query(Granule).all()
-        assert_that(granules_in_db).is_length(1)
+        with patch.object(db_session, "rollback") as rollback:
+            add_scihub_results_to_db_and_sqs(db_session, [scihub_result])
+            rollback.assert_called_once()
+    """
+    Because of how the db sessions are handled in these unit tests, the rollback
+    call actually undoes the insert that the test setup does, so we're just asserting
+    that rollback is called, not that there is still one 1 entry.
+    That's the best we can do without a full e2e test.
+    """
 
 
-def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_queue(
-    mock_sqs_queue, scihub_result_maker
+def test_that_link_fetcher_handler_correctly_adds_scihub_result_to_queue(
+    mock_sqs_queue, scihub_result_maker, sqs_client
 ):
-    scihub_results = scihub_result_maker(10)
-    scihub_result_id_base = scihub_results[0]["image_id"][:-3]
-    scihub_result_url_base = scihub_results[0]["download_url"][:-12]
+    scihub_result = scihub_result_maker(1)[0]
+    scihub_result_id = scihub_result["image_id"]
+    scihub_result_url = scihub_result["download_url"]
 
-    add_scihub_results_to_sqs(scihub_results)
+    add_scihub_result_to_sqs(scihub_result, sqs_client, mock_sqs_queue.url)
 
     mock_sqs_queue.load()
+
     number_of_messages_in_queue = mock_sqs_queue.attributes[
         "ApproximateNumberOfMessages"
     ]
-    assert_that(int(number_of_messages_in_queue)).is_equal_to(10)
-    for idx, message in enumerate(
-        mock_sqs_queue.receive_messages(MaxNumberOfMessages=10)
-    ):
-        id_filled = str(idx).zfill(3)
-        expected_id = f"{scihub_result_id_base}{id_filled}"
-        expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
-        message_body = json.loads(message.body)
-        assert_that(expected_id).is_equal_to(message_body["id"])
-        assert_that(expected_url).is_equal_to(message_body["download_url"])
+    assert_that(int(number_of_messages_in_queue)).is_equal_to(1)
+
+    message = mock_sqs_queue.receive_messages(MaxNumberOfMessages=1)[0]
+    message_body = json.loads(message.body)
+    assert_that(scihub_result_id).is_equal_to(message_body["id"])
+    assert_that(scihub_result_url).is_equal_to(message_body["download_url"])
 
 
 def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_in_db(  # noqa
