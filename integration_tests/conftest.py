@@ -22,7 +22,7 @@ def step_function_client():
 
 
 @pytest.fixture
-def db_connection(monkeypatch, ssm_client):
+def db_setup(monkeypatch, ssm_client):
     db_connection_secret_arn = ssm_client.get_parameter(
         Name=f"/integration_tests/{IDENTIFIER}/downloader_rds_secret_arn"
     )["Parameter"]["Value"]
@@ -31,7 +31,7 @@ def db_connection(monkeypatch, ssm_client):
     with get_session(session_maker) as db:
         db.execute(EMPTY_TABLES_QUERY)
         db.commit()
-        yield db
+        yield
         db.execute(EMPTY_TABLES_QUERY)
         db.commit()
 
@@ -76,7 +76,7 @@ def sqs_client(queue_url):
     polling2.poll(
         lambda: approximate_messages_is_zero(sqs_client, queue_url),
         step=10,
-        timeout=120,
+        timeout=300,
     )
     print("SQS Queue empty")
     yield sqs_client
@@ -86,6 +86,6 @@ def sqs_client(queue_url):
     polling2.poll(
         lambda: approximate_messages_is_zero(sqs_client, queue_url),
         step=10,
-        timeout=120,
+        timeout=300,
     )
     print("SQS Queue empty")

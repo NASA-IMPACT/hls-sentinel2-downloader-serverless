@@ -218,21 +218,21 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_results_to_db(
         with patch("handler.get_session", db_session_context):
             mock_add_to_sqs.side_affect = None
 
-            add_scihub_results_to_db_and_sqs(db_session, scihub_results)
+            add_scihub_results_to_db_and_sqs(None, scihub_results)
 
-            granules_in_db = db_session.query(Granule).all()
-            assert_that(granules_in_db).is_length(10)
+    granules_in_db = db_session.query(Granule).all()
+    assert_that(granules_in_db).is_length(10)
 
-            for idx, granule in enumerate(granules_in_db):
-                id_filled = str(idx).zfill(3)
-                expected_id = f"{scihub_result_id_base}{id_filled}"
-                expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
-                granule_id = granule.id
-                granule_download_url = granule.download_url
-                assert_that(expected_id).is_equal_to(granule_id)
-                assert_that(expected_url).is_equal_to(granule_download_url)
+    for idx, granule in enumerate(granules_in_db):
+        id_filled = str(idx).zfill(3)
+        expected_id = f"{scihub_result_id_base}{id_filled}"
+        expected_url = f"{scihub_result_url_base}{id_filled}')/$value"
+        granule_id = granule.id
+        granule_download_url = granule.download_url
+        assert_that(expected_id).is_equal_to(granule_id)
+        assert_that(expected_url).is_equal_to(granule_download_url)
 
-            mock_add_to_sqs.assert_called()
+    mock_add_to_sqs.assert_called()
 
 
 def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
@@ -251,18 +251,17 @@ def test_that_link_fetcher_handler_correctly_handles_duplicate_db_entry(
             download_url=scihub_result["download_url"],
         )
     )
-    db_session.commit()
 
-    with patch("handler.get_session", db_session_context):
-        with patch.object(db_session, "rollback") as rollback:
-            add_scihub_results_to_db_and_sqs(db_session, [scihub_result])
-            rollback.assert_called_once()
     """
     Because of how the db sessions are handled in these unit tests, the rollback
     call actually undoes the insert that the test setup does, so we're just asserting
     that rollback is called, not that there is still one 1 entry.
     That's the best we can do without a full e2e test.
     """
+    with patch("handler.get_session", db_session_context):
+        with patch.object(db_session, "rollback") as rollback:
+            add_scihub_results_to_db_and_sqs(None, [scihub_result])
+            rollback.assert_called_once()
 
 
 def test_that_link_fetcher_handler_correctly_adds_scihub_result_to_queue(

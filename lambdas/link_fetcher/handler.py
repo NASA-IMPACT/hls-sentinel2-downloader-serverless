@@ -12,7 +12,7 @@ from db.models.status import Status
 from db.session import get_session, get_session_maker
 from mypy_boto3_sqs.client import SQSClient
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker
 
 from scihub_result import ScihubResult
 
@@ -53,14 +53,15 @@ def handler(event, context):
             scihub_results, accepted_tile_ids
         )
 
-        with get_session(session_maker) as db:
-            add_scihub_results_to_db_and_sqs(db, filtered_scihub_results)
+        add_scihub_results_to_db_and_sqs(session_maker, filtered_scihub_results)
 
         update_last_fetched_link_time(session_maker)
         update_fetched_links(session_maker, day, number_of_fetched_links)
 
 
-def add_scihub_results_to_db_and_sqs(db: Session, scihub_results: List[ScihubResult]):
+def add_scihub_results_to_db_and_sqs(
+    session_maker: sessionmaker, scihub_results: List[ScihubResult]
+):
     """
     Creates a record in the `granule` table for each of the provided ScihubResults and
     a SQS Message in the `To Download` Queue.
@@ -73,24 +74,25 @@ def add_scihub_results_to_db_and_sqs(db: Session, scihub_results: List[ScihubRes
     sqs_client = boto3.client("sqs")
     to_download_queue_url = os.environ["TO_DOWNLOAD_SQS_QUEUE_URL"]
     for result in scihub_results:
-        try:
-            db.add(
-                Granule(
-                    id=result["image_id"],
-                    filename=result["filename"],
-                    tileid=result["tileid"],
-                    size=result["size"],
-                    beginposition=result["beginposition"],
-                    endposition=result["endposition"],
-                    ingestiondate=result["ingestiondate"],
-                    download_url=result["download_url"],
+        with get_session(session_maker) as db:
+            try:
+                db.add(
+                    Granule(
+                        id=result["image_id"],
+                        filename=result["filename"],
+                        tileid=result["tileid"],
+                        size=result["size"],
+                        beginposition=result["beginposition"],
+                        endposition=result["endposition"],
+                        ingestiondate=result["ingestiondate"],
+                        download_url=result["download_url"],
+                    )
                 )
-            )
-            db.commit()
-            add_scihub_result_to_sqs(result, sqs_client, to_download_queue_url)
-        except IntegrityError:
-            print(f"{result['image_id']} already in Database, not adding")
-            db.rollback()
+                db.commit()
+                add_scihub_result_to_sqs(result, sqs_client, to_download_queue_url)
+            except IntegrityError:
+                print(f"{result['image_id']} already in Database, not adding")
+                db.rollback()
 
 
 def add_scihub_result_to_sqs(
@@ -114,7 +116,9 @@ def add_scihub_result_to_sqs(
     )
 
 
-def get_available_and_fetched_links(session_maker, day: date) -> Tuple[int, int]:
+def get_available_and_fetched_links(
+    session_maker: sessionmaker, day: date
+) -> Tuple[int, int]:
     """
     For a given day, return the values for total `available_links` and total
     `fetched_links`, where `available_links` is the total number of results for the day
@@ -136,13 +140,13 @@ def get_available_and_fetched_links(session_maker, day: date) -> Tuple[int, int]
                 last_fetched_time=datetime.now(),
             )
             db.add(granule_count)
-
+            db.commit()
             return (0, 0)
         else:
             return (granule_count.available_links, granule_count.fetched_links)
 
 
-def update_total_results(session_maker, day: date, total_results: int):
+def update_total_results(session_maker: sessionmaker, day: date, total_results: int):
     """
     For a given day and number of results, update the `available_links` value
     :param day: date representing the day to update `available_links` for
@@ -152,9 +156,10 @@ def update_total_results(session_maker, day: date, total_results: int):
     with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.available_links = total_results
+        db.commit()
 
 
-def update_last_fetched_link_time(session_maker):
+def update_last_fetched_link_time(session_maker: sessionmaker):
     """
     Update the `last_linked_fetched_time` value in the `status` table
     Will set the value to `datetime.now()`, if not already present, the value will be
@@ -168,12 +173,13 @@ def update_last_fetched_link_time(session_maker):
         )
         if not last_linked_fetched_time:
             db.add(Status(key_name=last_fetched_key_name, value=datetime_now))
-
+            db.commit()
         else:
             last_linked_fetched_time.value = datetime_now
+            db.commit()
 
 
-def update_fetched_links(session_maker, day: date, fetched_links: int):
+def update_fetched_links(session_maker: sessionmaker, day: date, fetched_links: int):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
@@ -185,6 +191,7 @@ def update_fetched_links(session_maker, day: date, fetched_links: int):
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
         granule_count.fetched_links += fetched_links
         granule_count.last_fetched_time = datetime.now()
+        db.commit()
 
 
 def get_accepted_tile_ids() -> List[str]:
