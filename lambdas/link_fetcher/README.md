@@ -29,8 +29,7 @@ while there_is_still_imagery_to_process:
 
     filtered_results = filter_results_for_only_tiles_we_want(results)
 
-    add_results_to_db(filtered_results)
-    add_results_to_download_queue(filtered_results)
+    add_results_to_db_and_sqs_queue(filtered_results)
 
     update_db_statuses()
 ```

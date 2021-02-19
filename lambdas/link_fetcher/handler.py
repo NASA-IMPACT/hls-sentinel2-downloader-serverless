@@ -67,7 +67,8 @@ def add_scihub_results_to_db_and_sqs(
     a SQS Message in the `To Download` Queue.
     If a record is already in the `granule` table, it will throw an exception which
     when caught, will rollback the insertion and the SQS Message will not be added.
-    :param db: Session representing the SQLAlchemy Session for adding results
+    :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
+        for adding results
     :param scihub_results: List[ScihubResult] the list of SciHub results to add to the
         `granule` table
     """
@@ -126,6 +127,8 @@ def get_available_and_fetched_links(
     processed (but not necessarily added to the database because of filtering)
 
     If no entry is found, one is created
+    :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
+        for database interactions
     :param day: date representing the day to return results for
     :returns: Tuple[int, int] representing a tuple of
         (`available_links`, `fetched_links)
@@ -149,6 +152,8 @@ def get_available_and_fetched_links(
 def update_total_results(session_maker: sessionmaker, day: date, total_results: int):
     """
     For a given day and number of results, update the `available_links` value
+    :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
+        for database interactions
     :param day: date representing the day to update `available_links` for
     :param total_results: int representing the total results available for the day,
         this value will be applied to `available_links`
@@ -164,6 +169,8 @@ def update_last_fetched_link_time(session_maker: sessionmaker):
     Update the `last_linked_fetched_time` value in the `status` table
     Will set the value to `datetime.now()`, if not already present, the value will be
     created
+    :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
+        for database interactions
     """
     last_fetched_key_name = "last_linked_fetched_time"
     datetime_now = str(datetime.now())
@@ -183,6 +190,8 @@ def update_fetched_links(session_maker: sessionmaker, day: date, fetched_links: 
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
+    :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
+        for database interactions
     :param day: date representing the day to update in `granule_count`
     :param fetched_links: int representing the total number of links fetched in this run
         it is not the total number of Granules created
@@ -286,13 +295,10 @@ def ensure_three_decimal_points_for_milliseconds_and_replace_z(
     return f"{datetimestring_stripped}+00:00"
 
 
-def create_scihub_result_from_feed_entry(
-    feed_entry: Dict, auth: Tuple[str, str]
-) -> ScihubResult:
+def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
     """
     Creates a SciHubResult object from a feed entry returned from a SciHub query
     :param feed_entry: A Dict representing the feed entry for one image
-    :param auth: Tuple[str, str] representing the username and password for SciHub
     :returns: SciHubResult A object with information useful for the Downloader
     """
     image_id = feed_entry["id"]
@@ -365,7 +371,7 @@ def get_page_for_query_and_total_results(
         return [], total_results
 
     scihub_results = [
-        create_scihub_result_from_feed_entry(entry, auth)
+        create_scihub_result_from_feed_entry(entry)
         for entry in query_feed["entry"]
     ]
 

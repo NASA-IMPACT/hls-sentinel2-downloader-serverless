@@ -80,7 +80,7 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
     )
 
     actual_scihub_result = create_scihub_result_from_feed_entry(
-        feed_entry=mock_scihub_response["feed"]["entry"][0], auth=("blah", "blah")
+        feed_entry=mock_scihub_response["feed"]["entry"][0]
     )
 
     assert_that(actual_scihub_result).is_equal_to(expected_scihub_result)
