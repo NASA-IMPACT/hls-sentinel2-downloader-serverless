@@ -371,8 +371,7 @@ def get_page_for_query_and_total_results(
         return [], total_results
 
     scihub_results = [
-        create_scihub_result_from_feed_entry(entry)
-        for entry in query_feed["entry"]
+        create_scihub_result_from_feed_entry(entry) for entry in query_feed["entry"]
     ]
 
     return scihub_results, total_results
