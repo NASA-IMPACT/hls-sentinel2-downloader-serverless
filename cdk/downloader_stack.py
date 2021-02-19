@@ -1,6 +1,7 @@
 import os
 
 from aws_cdk import (
+    aws_cloudwatch,
     aws_ec2,
     aws_events,
     aws_events_targets,
@@ -195,6 +196,14 @@ class DownloaderStack(core.Stack):
         scihub_credentials.grant_read(link_fetcher)
 
         to_download_queue.grant_send_messages(link_fetcher)
+
+        aws_cloudwatch.Alarm(
+            self,
+            id=f"{identifier}-link-fetcher-errors-alarm",
+            metric=link_fetcher.metric_errors(),
+            evaluation_periods=3,
+            threshold=1,
+        )
 
         date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
             self,
