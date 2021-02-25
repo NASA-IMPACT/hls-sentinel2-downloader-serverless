@@ -97,6 +97,7 @@ def get_granule_and_set_download_started(image_id: str) -> Granule:
             if granule:
                 granule.download_started = datetime.now()
                 db.commit()
+                db.refresh(granule)
         except Exception as ex:
             db.rollback()
             raise FailedToUpdateGranuleDownloadStartException(

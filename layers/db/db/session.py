@@ -26,7 +26,7 @@ def _get_url():
 def get_session_maker():
     url = _get_url()
     db_engine = create_engine(url)
-    return sessionmaker(autocommit=False, bind=db_engine, expire_on_commit=False)
+    return sessionmaker(autocommit=False, bind=db_engine)
 
 
 @contextmanager
