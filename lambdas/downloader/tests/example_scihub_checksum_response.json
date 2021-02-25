@@ -1,0 +1,19 @@
+{
+    "d": {
+        "__metadata": {
+            "id": "https://scihub.copernicus.eu/dhus/odata/v1/('test-id')",
+            "uri": "https://scihub.copernicus.eu/dhus/odata/v1/('test-id')",
+            "type": "DHuS.Product",
+            "content_type": "application/octet-stream",
+            "media_src": "https://scihub.copernicus.eu/dhus/odata/v1/('test-id')/$value",
+            "edit_media": "https://scihub.copernicus.eu/dhus/odata/v1/('test-id')/$value"
+        },
+        "Checksum": {
+            "__metadata": {
+                "type": "DHuS.Checksum"
+            },
+            "Algorithm": "MD5",
+            "Value": "A-TEST-CHECKSUM"
+        }
+    }
+}

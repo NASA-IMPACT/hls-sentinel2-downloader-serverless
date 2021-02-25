@@ -30,7 +30,7 @@ def upgrade():
         Column("downloaded", Boolean, nullable=False, server_default="false"),
         Column("in_progress", Boolean, nullable=False, server_default="false"),
         Column("uploaded", Boolean, nullable=False, server_default="false"),
-        Column("retry", SmallInteger, nullable=False, server_default="0"),
+        Column("download_retries", SmallInteger, nullable=False, server_default="0"),
         Column("download_failed", Boolean, nullable=False, server_default="false"),
         Column("expired", Boolean, nullable=False, server_default="false"),
         Column("download_started", DateTime, server_default=None),

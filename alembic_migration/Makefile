@@ -13,4 +13,4 @@ format:
 	pipenv run black .
 
 test:
-	pipenv run pytest -s
+	pipenv run pytest -s --cov=. --cov-report term-missing tests/

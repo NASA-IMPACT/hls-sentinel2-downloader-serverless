@@ -270,6 +270,7 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_result_to_queue(
     scihub_result = scihub_result_maker(1)[0]
     scihub_result_id = scihub_result["image_id"]
     scihub_result_url = scihub_result["download_url"]
+    scihub_result_filename = scihub_result["filename"]
 
     add_scihub_result_to_sqs(scihub_result, sqs_client, mock_sqs_queue.url)
 
@@ -284,6 +285,7 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_result_to_queue(
     message_body = json.loads(message.body)
     assert_that(scihub_result_id).is_equal_to(message_body["id"])
     assert_that(scihub_result_url).is_equal_to(message_body["download_url"])
+    assert_that(scihub_result_filename).is_equal_to(message_body["filename"])
 
 
 def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_in_db(  # noqa
