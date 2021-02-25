@@ -2,7 +2,7 @@
 
 ## High level overview
 
-![Downloader in S2 Downloader diagram](../images/hls-s2-downloader-downloader.png)
+![Downloader in S2 Downloader diagram](../../images/hls-s2-downloader-downloader.png)
 
 The Downloaders purpose is download Sentinel 2 Images from Sci/IntHub. It is invoked via SQS messages being available within the `TO_DOWNLOAD` SQS queue; this handler will be limited to a concurrency limit of 15, due to the nature of the dedicated connection we have to IntHub. Images downloaded are stored on the mounted EFS volume under the path of `efs_volume_mount/<image_id>/<image_filename>`. Interactions with the `granule` table include marking the download as having started, updating the checksum of the image, and marking that the download is complete.
 
