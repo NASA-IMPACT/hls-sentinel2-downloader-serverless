@@ -2,20 +2,21 @@
 import os
 
 from aws_cdk import core
-
-from app.downloader_stack import DownloaderStack
+from downloader_stack import DownloaderStack
 
 app = core.App()
 
-identifier = os.environ["IDENTIFIER"]
+identifier = os.environ["IDENTIFIER"].replace("/", "")
 
 DownloaderStack(
-    app, f"hls-s2-downloader-serverless-{identifier}", identifier=identifier
+    app,
+    f"hls-s2-downloader-serverless-{identifier}",
+    identifier=identifier,
 )
 
 for k, v in {
     "Project": "hls-s2-downloader-serverless",
-    "Stack": os.environ["STAGE"],
+    "Stack": identifier,
     "Client": "nasa-impact",
     "Owner": os.environ["OWNER"],
 }.items():
