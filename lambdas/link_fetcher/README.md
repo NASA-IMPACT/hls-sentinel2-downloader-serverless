@@ -70,6 +70,10 @@ This is used whilst running the tests to provide both the Postgres container and
 
 A `Makefile` is provided to abstract commonly used commands away:
 
+**`make install`**
+
+> This will run `pipenv install --dev` to install development dependencies
+
 **`make lint`**
 
 > This will perform a dry run of `flake8`, `isort`, and `black` and let you know what issues were found
