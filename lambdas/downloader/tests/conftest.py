@@ -7,10 +7,10 @@ import alembic.config
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from moto import mock_secretsmanager, mock_sqs
+from moto import mock_s3, mock_secretsmanager
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 DELETE_DATABASE_TABLE_CONTENTS = """
@@ -50,12 +50,6 @@ def aws_credentials(monkeysession):
     monkeysession.setenv("AWS_DEFAULT_REGION", "us-east-1")
 
 
-@pytest.fixture
-def fake_efs_mount(tmpdir, monkeysession):
-    monkeysession.setenv("EFS_MOUNT_DIR", str(tmpdir.realpath()))
-    yield tmpdir
-
-
 @pytest.fixture(scope="session")
 def secrets_manager_client():
     with mock_secretsmanager():
@@ -63,29 +57,17 @@ def secrets_manager_client():
 
 
 @pytest.fixture
-def sqs_resource():
-    with mock_sqs():
-        yield boto3.resource("sqs")
+def s3_resource():
+    with mock_s3():
+        yield boto3.resource("s3")
 
 
 @pytest.fixture
-def sqs_client():
-    with mock_sqs():
-        yield boto3.client("sqs")
-
-
-@pytest.fixture
-def mock_sqs_download_queue(sqs_resource, monkeysession, sqs_client):
-    queue = sqs_resource.create_queue(QueueName="mock-download-queue")
-    monkeysession.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
-    return queue
-
-
-@pytest.fixture
-def mock_sqs_upload_queue(sqs_resource, monkeysession, sqs_client):
-    queue = sqs_resource.create_queue(QueueName="mock-upload-queue")
-    monkeysession.setenv("TO_UPLOAD_SQS_QUEUE_URL", queue.url)
-    return queue
+def mock_s3_bucket(s3_resource, monkeysession):
+    bucket = s3_resource.Bucket("test-bucket")
+    bucket.create()
+    monkeysession.setenv("UPLOAD_BUCKET", bucket.name)
+    return bucket
 
 
 @pytest.fixture(scope="session")
@@ -175,7 +157,23 @@ def fake_db_session_that_fails():
             pass
 
         def query(self, something):
-            raise Exception("An exception")
+            raise SQLAlchemyError("An Exception")
+
+        def rollback(self):
+            pass
+
+    @contextmanager
+    def fake_session(session_maker):
+        yield DB()
+
+    yield fake_session
+
+
+@pytest.fixture
+def fake_db_session():
+    class DB:
+        def __init__(self):
+            pass
 
         def rollback(self):
             pass
