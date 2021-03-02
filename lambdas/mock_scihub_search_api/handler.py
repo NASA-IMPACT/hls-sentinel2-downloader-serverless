@@ -43,5 +43,4 @@ def handler(event, context):
                 os.path.join(RESPONSES_DIR, "scihub_response_no_results.json")
             ) as json_in:
                 body = json.load(json_in)
-
     return {"statusCode": "200", "body": json.dumps(body)}

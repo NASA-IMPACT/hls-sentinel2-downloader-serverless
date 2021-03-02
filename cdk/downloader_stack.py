@@ -25,6 +25,7 @@ class DownloaderStack(core.Stack):
         scope: core.Construct,
         construct_id: str,
         identifier: str,
+        upload_bucket: str,
         scihub_url: str = None,
         **kwargs,
     ) -> None:
@@ -186,17 +187,6 @@ class DownloaderStack(core.Stack):
             environment=link_fetcher_environment_vars,
         )
 
-        downloader_rds.secret.grant_read(link_fetcher)
-
-        scihub_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
-            self,
-            id=f"{identifier}-scihub-credentials",
-            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
-        )
-        scihub_credentials.grant_read(link_fetcher)
-
-        to_download_queue.grant_send_messages(link_fetcher)
-
         aws_cloudwatch.Alarm(
             self,
             id=f"{identifier}-link-fetcher-errors-alarm",
@@ -204,6 +194,50 @@ class DownloaderStack(core.Stack):
             evaluation_periods=3,
             threshold=1,
         )
+
+        downloader_environment_vars = {
+            "STAGE": identifier,
+            "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+            "UPLOAD_BUCKET": upload_bucket,
+        }
+
+        if scihub_url:
+            downloader_environment_vars["SCIHUB_URL"] = scihub_url
+
+        self.downloader = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{identifier}-downloader",
+            entry="lambdas/downloader",
+            index="handler.py",
+            handler="handler",
+            layers=[db_layer, psycopg2_layer],
+            memory_size=3072,
+            timeout=core.Duration.minutes(15),
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            environment=downloader_environment_vars,
+            reserved_concurrent_executions=15,
+        )
+
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-downloader-arn",
+            string_value=self.downloader.function_arn,
+            parameter_name=f"/integration_tests/{identifier}/downloader_arn",
+        )
+
+        downloader_rds.secret.grant_read(link_fetcher)
+        downloader_rds.secret.grant_read(self.downloader)
+
+        scihub_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
+            self,
+            id=f"{identifier}-scihub-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
+        )
+        scihub_credentials.grant_read(link_fetcher)
+        scihub_credentials.grant_read(self.downloader)
+
+        to_download_queue.grant_send_messages(link_fetcher)
+        to_download_queue.grant_consume_messages(self.downloader)
 
         date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
             self,

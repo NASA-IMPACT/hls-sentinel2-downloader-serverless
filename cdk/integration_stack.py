@@ -4,7 +4,9 @@ from aws_cdk import (
     aws_apigateway,
     aws_lambda,
     aws_lambda_python,
+    aws_s3,
     aws_secretsmanager,
+    aws_ssm,
     core,
 )
 
@@ -30,10 +32,21 @@ class IntegrationStack(core.Stack):
             ),
         )
 
-        mock_scihub_api_lambda = aws_lambda_python.PythonFunction(
+        mock_scihub_search_api_lambda = aws_lambda_python.PythonFunction(
             self,
             id=f"{identifier}-mock-scihub-api-lambda",
-            entry="lambdas/mock_scihub_api",
+            entry="lambdas/mock_scihub_search_api",
+            index="handler.py",
+            handler="handler",
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            timeout=core.Duration.minutes(1),
+            memory_size=128,
+        )
+
+        mock_scihub_product_api_lambda = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{identifier}-mock-scihub-product-lambda",
+            entry="lambdas/mock_scihub_product_api",
             index="handler.py",
             handler="handler",
             runtime=aws_lambda.Runtime.PYTHON_3_8,
@@ -42,18 +55,26 @@ class IntegrationStack(core.Stack):
         )
 
         mock_scihub_api = aws_apigateway.RestApi(
-            self,
-            id=f"{identifier}-mock-scihub-api",
+            self, id=f"{identifier}-mock-scihub-api", binary_media_types=["*/*"]
         )
 
         self.scihub_url = mock_scihub_api.url.rsplit("/", 1)[0]
 
-        aws_apigateway.Resource(
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-mock-scihub-url",
+            string_value=self.scihub_url,
+            parameter_name=f"/integration_tests/{identifier}/mock_scihub_url",
+        )
+
+        dhus_resource = aws_apigateway.Resource(
             self,
             id=f"{identifier}-mock-scihub-api-dhus-search",
             parent=mock_scihub_api.root,
             path_part="dhus",
-        ).add_resource("search").add_method(
+        )
+
+        dhus_resource.add_resource("search").add_method(
             http_method="GET",
             method_responses=[
                 aws_apigateway.MethodResponse(
@@ -64,9 +85,45 @@ class IntegrationStack(core.Stack):
                 )
             ],
             integration=aws_apigateway.LambdaIntegration(
-                handler=mock_scihub_api_lambda,
+                handler=mock_scihub_search_api_lambda,
                 integration_responses=[
                     aws_apigateway.IntegrationResponse(status_code="200")
                 ],
             ),
+        )
+
+        dhus_resource.add_resource("odata").add_resource("v1").add_resource(
+            "{product+}"
+        ).add_method(
+            http_method="GET",
+            method_responses=[
+                aws_apigateway.MethodResponse(
+                    status_code="200",
+                    response_models={
+                        "application/octect-stream": aws_apigateway.Model.EMPTY_MODEL,
+                        "application/json": aws_apigateway.Model.EMPTY_MODEL,
+                    },
+                )
+            ],
+            integration=aws_apigateway.LambdaIntegration(
+                handler=mock_scihub_product_api_lambda,
+                integration_responses=[
+                    aws_apigateway.IntegrationResponse(status_code="200")
+                ],
+                content_handling=aws_apigateway.ContentHandling.CONVERT_TO_BINARY,
+            ),
+        )
+
+        self.upload_bucket = aws_s3.Bucket(
+            self,
+            id=f"{identifier}-upload-bucket",
+            access_control=aws_s3.BucketAccessControl.PRIVATE,
+            removal_policy=core.RemovalPolicy.DESTROY,
+        )
+
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-upload-bucket-name",
+            string_value=self.upload_bucket.bucket_name,
+            parameter_name=f"/integration_tests/{identifier}/upload_bucket_name",
         )

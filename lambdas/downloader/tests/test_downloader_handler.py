@@ -171,7 +171,9 @@ def test_that_download_file_correctly_raises_exception_if_request_fails(
     )
 
     with pytest.raises(FailedToDownloadFileException) as ex:
-        download_file("ACHECKSUM", "test-id", "test-filename.SAFE", download_url)
+        download_file(
+            "ACHECKSUM", "test-id", "test-filename.SAFE", download_url, datetime.now()
+        )
     assert_that(str(ex.value)).is_equal_to(
         (
             "Requests exception thrown downloading granule with "
@@ -213,6 +215,7 @@ def test_that_download_file_correctly_raises_exception_if_s3_upload_fails(
                 "test-id",
                 "test-filename.SAFE",
                 download_url,
+                datetime.now(),
             )
         assert_that(str(ex.value)).is_equal_to(
             (
@@ -259,6 +262,7 @@ def test_that_download_file_correctly_raises_exception_if_db_update_fails(
                 "test-id",
                 "test-filename.SAFE",
                 download_url,
+                datetime.now(),
             )
     assert_that(str(ex.value)).is_equal_to(
         (
@@ -305,13 +309,15 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     )
     patched_generate_aws_checksum.return_value = "an-aws-checksum"
 
-    download_file("ACHECKSUM", "test-id", "test-filename.SAFE", download_url)
+    download_file(
+        "ACHECKSUM", "test-id", "test-filename.SAFE", download_url, datetime.now()
+    )
 
     patched_generate_aws_checksum.assert_called_once_with("ACHECKSUM")
 
     bucket_objects = list(mock_s3_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("test-filename.SAFE")
+    assert_that(bucket_objects[0].key).is_equal_to("2020-01-01/test-filename.SAFE")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
 
@@ -745,6 +751,6 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
 
     bucket_objects = list(mock_s3_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("test-filename")
+    assert_that(bucket_objects[0].key).is_equal_to("2020-02-02/test-filename")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")

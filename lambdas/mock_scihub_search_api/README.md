@@ -1,8 +1,8 @@
-# Mock SciHub API 🛰🤡
+# Mock SciHub Search API 🛰🤡
 
 ## High level overview
 
-The Mock SciHub APIs purpose is to act as a simple replica of the SciHub API for Integration tests. It has 4 results it returns depending on the requests it receives.
+The Mock SciHub Search APIs purpose is to act as a simple replica of the SciHub Search API for Integration tests. It has 4 results it returns depending on the requests it receives.
 
 ---
 

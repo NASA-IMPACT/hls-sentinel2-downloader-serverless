@@ -17,8 +17,18 @@ def ssm_client():
 
 
 @pytest.fixture
+def s3_resource():
+    yield boto3.resource("s3")
+
+
+@pytest.fixture
 def step_function_client():
     yield boto3.client("stepfunctions")
+
+
+@pytest.fixture
+def lambda_client():
+    yield boto3.client("lambda")
 
 
 @pytest.fixture
@@ -50,6 +60,40 @@ def queue_url(ssm_client):
         Name=f"/integration_tests/{IDENTIFIER}/to_download_queue_url"
     )["Parameter"]["Value"]
     return to_download_queue_url
+
+
+@pytest.fixture
+def mock_scihub_api_url(ssm_client):
+    api_url = ssm_client.get_parameter(
+        Name=f"/integration_tests/{IDENTIFIER}/mock_scihub_url"
+    )["Parameter"]["Value"]
+    return api_url
+
+
+@pytest.fixture
+def downloader_arn(ssm_client):
+    function_arn = ssm_client.get_parameter(
+        Name=f"/integration_tests/{IDENTIFIER}/downloader_arn"
+    )["Parameter"]["Value"]
+    return function_arn
+
+
+@pytest.fixture
+def upload_bucket_name(ssm_client):
+    bucket_name = ssm_client.get_parameter(
+        Name=f"/integration_tests/{IDENTIFIER}/upload_bucket_name"
+    )["Parameter"]["Value"]
+    return bucket_name
+
+
+@pytest.fixture
+def upload_bucket(s3_resource, upload_bucket_name):
+    bucket = s3_resource.Bucket(upload_bucket_name)
+    for obj in list(bucket.objects.all()):
+        obj.delete()
+    yield bucket
+    for obj in list(bucket.objects.all()):
+        obj.delete()
 
 
 def purge(client, url):

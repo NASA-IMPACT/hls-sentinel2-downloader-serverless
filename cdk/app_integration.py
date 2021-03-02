@@ -13,12 +13,15 @@ integration_stack = IntegrationStack(
     app, f"hls-s2-downloader-serverless-integration-{identifier}", identifier=identifier
 )
 
-DownloaderStack(
+downloader_stack = DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
+    upload_bucket=integration_stack.upload_bucket.bucket_name,
     scihub_url=integration_stack.scihub_url,
 )
+
+integration_stack.upload_bucket.grant_read_write(downloader_stack.downloader)
 
 for k, v in {
     "Project": "hls-s2-downloader-serverless",
