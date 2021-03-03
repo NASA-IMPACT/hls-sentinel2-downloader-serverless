@@ -147,7 +147,7 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-to-download-queue",
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
             retention_period=core.Duration.days(14),
-            visibility_timeout=core.Duration.minutes(15)
+            visibility_timeout=core.Duration.minutes(15),
         )
 
         aws_ssm.StringParameter(
@@ -221,6 +221,14 @@ class DownloaderStack(core.Stack):
             reserved_concurrent_executions=15,
         )
 
+        aws_cloudwatch.Alarm(
+            self,
+            id=f"{identifier}-downloader-errors-alarm",
+            metric=self.downloader.metric_errors(),
+            evaluation_periods=3,
+            threshold=1,
+        )
+
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-downloader-arn",
@@ -244,9 +252,7 @@ class DownloaderStack(core.Stack):
         to_download_queue.grant_consume_messages(self.downloader)
         self.downloader.add_event_source(
             aws_lambda_event_sources.SqsEventSource(
-                queue=to_download_queue,
-                batch_size=1,
-                enabled=not disable_downloading
+                queue=to_download_queue, batch_size=1, enabled=not disable_downloading
             )
         )
 
