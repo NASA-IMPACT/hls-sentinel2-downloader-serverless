@@ -7,11 +7,13 @@ from downloader_stack import DownloaderStack
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
+upload_bucket = os.environ["UPLOAD_BUCKET"]
 
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
+    upload_bucket=upload_bucket,
 )
 
 for k, v in {
