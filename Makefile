@@ -52,13 +52,13 @@ destroy-integration:
 	pipenv run npx cdk destroy '*' --app cdk/app_integration.py --force
 
 unit-tests:
-	# $(MAKE) -C lambdas/link_fetcher test
-	# $(MAKE) -C lambdas/date_generator test
+	$(MAKE) -C lambdas/link_fetcher test
+	$(MAKE) -C lambdas/date_generator test
 	$(MAKE) -C lambdas/downloader test
-	# $(MAKE) -C lambdas/mock_scihub_search_api test
-	# $(MAKE) -C lambdas/mock_scihub_product_api test
-	# $(MAKE) -C layers/db test
-	# $(MAKE) -C alembic_migration test
+	$(MAKE) -C lambdas/mock_scihub_search_api test
+	$(MAKE) -C lambdas/mock_scihub_product_api test
+	$(MAKE) -C layers/db test
+	$(MAKE) -C alembic_migration test
 
 integration-tests:
 	pipenv run pytest -s integration_tests

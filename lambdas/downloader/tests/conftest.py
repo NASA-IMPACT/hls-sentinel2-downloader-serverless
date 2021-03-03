@@ -100,7 +100,7 @@ def mock_s3_bucket(s3_resource, monkeysession):
 @pytest.fixture(scope="session")
 def secrets_manager_client():
     with mock_secretsmanager():
-        yield boto3.client("secretsmanager", region_name="us-east-1")
+        yield boto3.client("secretsmanager")
 
 
 @pytest.fixture(scope="session")
