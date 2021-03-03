@@ -261,6 +261,11 @@ jobs:
           PG_USER="test-user"
           PG_DB="test-db"
           EOF
+          cat <<EOF >> lambdas/downloader/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          EOF
           cat <<EOF >> layers/db/.env
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
