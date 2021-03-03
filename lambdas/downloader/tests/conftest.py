@@ -51,9 +51,36 @@ def aws_credentials(monkeysession):
 
 
 @pytest.fixture(scope="session")
-def secrets_manager_client():
-    with mock_secretsmanager():
-        yield boto3.client("secretsmanager", region_name="us-east-1")
+def postgres_engine(docker_ip, docker_services, db_connection_secret):
+    db_url = url.URL(
+        "postgresql",
+        username=os.environ["PG_USER"],
+        password=os.environ["PG_PASSWORD"],
+        host="localhost",
+        database=os.environ["PG_DB"],
+    )
+    pg_engine = create_engine(db_url)
+    docker_services.wait_until_responsive(
+        timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
+    )
+
+    alembic_root = UNIT_TEST_DIR.replace(
+        "lambdas/downloader/tests", "alembic_migration"
+    )
+    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
+    alembic_config.set_main_option("script_location", alembic_root)
+    alembic.command.upgrade(alembic_config, "head")
+
+    return pg_engine
+
+
+@pytest.fixture
+def db_session(postgres_engine):
+    session = Session(bind=postgres_engine, autocommit=False)
+    yield session
+    session.execute(DELETE_DATABASE_TABLE_CONTENTS)
+    session.commit()
+    session.close()
 
 
 @pytest.fixture
@@ -68,6 +95,12 @@ def mock_s3_bucket(s3_resource, monkeysession):
     bucket.create()
     monkeysession.setenv("UPLOAD_BUCKET", bucket.name)
     return bucket
+
+
+@pytest.fixture(scope="session")
+def secrets_manager_client():
+    with mock_secretsmanager():
+        yield boto3.client("secretsmanager", region_name="us-east-1")
 
 
 @pytest.fixture(scope="session")
@@ -103,39 +136,6 @@ def check_pg_status(engine: Engine) -> bool:
         return True
     except OperationalError:
         return False
-
-
-@pytest.fixture(scope="session")
-def postgres_engine(docker_ip, docker_services, db_connection_secret):
-    db_url = url.URL(
-        "postgresql",
-        username=os.environ["PG_USER"],
-        password=os.environ["PG_PASSWORD"],
-        host="localhost",
-        database=os.environ["PG_DB"],
-    )
-    pg_engine = create_engine(db_url)
-    docker_services.wait_until_responsive(
-        timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
-    )
-
-    alembic_root = UNIT_TEST_DIR.replace(
-        "lambdas/downloader/tests", "alembic_migration"
-    )
-    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
-    alembic_config.set_main_option("script_location", alembic_root)
-    alembic.command.upgrade(alembic_config, "head")
-
-    return pg_engine
-
-
-@pytest.fixture
-def db_session(postgres_engine):
-    session = Session(bind=postgres_engine, autocommit=False)
-    yield session
-    session.execute(DELETE_DATABASE_TABLE_CONTENTS)
-    session.commit()
-    session.close()
 
 
 @pytest.fixture(scope="session")
