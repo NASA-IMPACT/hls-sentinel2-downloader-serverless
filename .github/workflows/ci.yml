@@ -265,6 +265,7 @@ jobs:
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
           PG_DB="test-db"
+          AWS_DEFAULT_REGION="us-east-1"
           EOF
           cat <<EOF >> layers/db/.env
           PG_PASSWORD="test-pass"
