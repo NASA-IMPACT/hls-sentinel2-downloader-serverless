@@ -4,10 +4,7 @@ import os
 
 
 def handler(event, context):
-    if (
-        "pathParameters" in event
-        and "product" in event["pathParameters"]
-    ):
+    if "pathParameters" in event and "product" in event["pathParameters"]:
         if event["pathParameters"]["product"] == "Products('integration-test-id')":
             with open(
                 os.path.join(
