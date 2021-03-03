@@ -6,6 +6,10 @@ class GranuleNotFoundException(Exception):
     pass
 
 
+class GranuleAlreadyDownloadedException(Exception):
+    pass
+
+
 class RetryLimitReachedException(Exception):
     pass
 

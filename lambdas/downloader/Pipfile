@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 boto3 = ">=1.16.60"
 requests = ">=2.25.1"
+boto3-stubs = {version = ">=1.17.10.0", extras = ["s3"]}
 
 [dev-packages]
 pytest = ">=6.2.2"

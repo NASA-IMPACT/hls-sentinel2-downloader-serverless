@@ -15,6 +15,7 @@ from exceptions import (
     FailedToUpdateGranuleDownloadFinishException,
     FailedToUpdateGranuleDownloadStartException,
     FailedToUploadFileException,
+    GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
     SciHubAuthenticationNotRetrievedException,
@@ -26,6 +27,7 @@ from handler import (
     get_image_checksum,
     get_scihub_auth,
     handler,
+    increase_retry_count,
 )
 
 
@@ -63,6 +65,60 @@ def test_that_get_granule_throws_exception_when_no_granule_found():
 
 
 @freeze_time("2020-01-01 01:00:00")
+def test_that_get_granule_doesnt_update_download_start_if_downloaded(
+    db_session,
+):
+    db_session.add(
+        Granule(
+            id="test-id",
+            filename="a-filename",
+            tileid="NM901",
+            size=100,
+            beginposition=datetime.now(),
+            endposition=datetime.now(),
+            ingestiondate=datetime.now(),
+            download_url="blah",
+            downloaded=True,
+            download_started=datetime(2020, 1, 1, 0, 0, 0),
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(GranuleAlreadyDownloadedException):
+        get_granule_and_set_download_started("test-id")
+
+    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
+    assert_that(granule.download_started).is_not_equal_to(datetime.now())
+
+
+@freeze_time("2020-01-01 01:00:00")
+def test_that_get_granule_doesnt_update_download_start_if_retry_limit_reached(
+    db_session,
+):
+    db_session.add(
+        Granule(
+            id="test-id",
+            filename="a-filename",
+            tileid="NM901",
+            size=100,
+            beginposition=datetime.now(),
+            endposition=datetime.now(),
+            ingestiondate=datetime.now(),
+            download_url="blah",
+            downloaded=False,
+            download_retries=11,
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(RetryLimitReachedException):
+        get_granule_and_set_download_started("test-id")
+
+    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
+    assert_that(granule.download_started).is_not_equal_to(datetime.now())
+
+
+@freeze_time("2020-01-01 01:00:00")
 def test_that_get_granule_rollsback_and_throws_error_if_error_updating_download_started(
     db_session, fake_db_session_that_fails
 ):
@@ -94,6 +150,29 @@ def test_that_get_granule_rollsback_and_throws_error_if_error_updating_download_
 
     granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
     assert_that(granule.download_started).is_equal_to(datetime(2020, 1, 1, 0, 0, 0))
+
+
+def test_that_increase_retry_correctly_updates_value(db_session):
+    db_session.add(
+        Granule(
+            id="test-id",
+            filename="a-filename",
+            tileid="NM901",
+            size=100,
+            beginposition=datetime.now(),
+            endposition=datetime.now(),
+            ingestiondate=datetime.now(),
+            download_url="blah",
+            downloaded=False,
+            download_retries=5,
+        )
+    )
+    db_session.commit()
+
+    increase_retry_count("test-id")
+
+    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
+    assert_that(granule.download_retries).is_equal_to(6)
 
 
 def test_that_scihub_credentials_loaded_correctly(
@@ -456,7 +535,10 @@ def test_that_handler_correctly_logs_and_errors_if_retry_limit_reached(
 
 
 @responses.activate
-def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(db_session):
+@mock.patch("handler.increase_retry_count")
+def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(
+    mock_increase_retry_count, db_session
+):
     sqs_message = {
         "Records": [
             {
@@ -496,12 +578,14 @@ def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(db_s
                     " test-id. An exception"
                 )
             )
+    mock_increase_retry_count.assert_called_once()
 
 
 @responses.activate
 @mock.patch("handler.get_image_checksum")
+@mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
-    mock_get_image_checksum, db_session
+    mock_increase_retry_count, mock_get_image_checksum, db_session
 ):
     download_url = (
         "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
@@ -555,12 +639,14 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
             handler(sqs_message, None)
         mock_logger.assert_called_once_with(expected_error_message)
     assert_that(str(ex.value)).is_equal_to(expected_error_message)
+    mock_increase_retry_count.assert_called_once()
 
 
 @responses.activate
 @mock.patch("handler.get_image_checksum")
+@mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
-    mock_get_image_checksum, db_session, mock_s3_bucket
+    mock_increase_retry_count, mock_get_image_checksum, db_session, mock_s3_bucket
 ):
     download_url = (
         "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
@@ -622,14 +708,18 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
                 handler(sqs_message, None)
             mock_logger.assert_called_once_with(expected_error_message)
         assert_that(str(ex.value)).is_equal_to(expected_error_message)
+    mock_increase_retry_count.assert_called_once()
 
 
 @responses.activate
 @mock.patch("handler.get_image_checksum")
-@mock.patch("handler.download_file")
+@mock.patch("handler.get_granule_and_set_download_started")
+@mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
-    mock_download_file,
+    mock_increase_retry_count,
+    mock_get_granule,
     mock_get_image_checksum,
+    mock_scihub_credentials,
     db_session,
     mock_s3_bucket,
     fake_db_session_that_fails,
@@ -674,16 +764,27 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
     )
     db_session.commit()
 
-    mock_download_file.side_effect = FailedToUpdateGranuleDownloadFinishException(
-        "An Exception"
+    class MockGranule:
+        def __init__(self):
+            self.downloaded = False
+            self.download_retries = 0
+            self.beginposition = datetime.now()
+
+    mock_get_granule.return_value = MockGranule()
+    mock_get_image_checksum.return_value = "36F3AB53F6D2D9592CF50CE4682FF7EA"
+
+    expected_error_message = (
+        "SQLAlchemy Exception raised when updating download finish for"
+        " granule with id: test-id, exception was: An Exception"
     )
 
-    mock_get_image_checksum.return_value = "36F3AB53F6D2D9592CF50CE4682FF7EA"
     with mock.patch("handler.LOGGER.error") as mock_logger:
-        with pytest.raises(FailedToUpdateGranuleDownloadFinishException) as ex:
-            handler(sqs_message, None)
-        mock_logger.assert_called_once_with("An Exception")
-    assert_that(str(ex.value)).is_equal_to("An Exception")
+        with mock.patch("handler.get_session", fake_db_session_that_fails):
+            with pytest.raises(FailedToUpdateGranuleDownloadFinishException) as ex:
+                handler(sqs_message, None)
+            mock_logger.assert_called_once_with(expected_error_message)
+    assert_that(str(ex.value)).is_equal_to(expected_error_message)
+    mock_increase_retry_count.assert_called_once()
 
 
 @responses.activate

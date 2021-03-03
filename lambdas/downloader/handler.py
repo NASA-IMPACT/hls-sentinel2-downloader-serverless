@@ -10,6 +10,7 @@ import requests
 from botocore import client
 from db.models.granule import Granule
 from db.session import get_session, get_session_maker
+from mypy_boto3_s3.client import S3Client
 from sqlalchemy.exc import SQLAlchemyError
 
 from exceptions import (
@@ -18,6 +19,7 @@ from exceptions import (
     FailedToUpdateGranuleDownloadFinishException,
     FailedToUpdateGranuleDownloadStartException,
     FailedToUploadFileException,
+    GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
     SciHubAuthenticationNotRetrievedException,
@@ -40,29 +42,14 @@ def handler(event, context):
 
     try:
         granule = get_granule_and_set_download_started(image_id)
-    except GranuleNotFoundException as ex:
-        LOGGER.error(str(ex))
+    except GranuleNotFoundException:
         return
-    except FailedToUpdateGranuleDownloadStartException as ex:
-        LOGGER.error(str(ex))
-        raise ex
-
-    if granule.downloaded:
-        LOGGER.info(f"Granule with id: {image_id} has already been downloaded")
+    except GranuleAlreadyDownloadedException:
         return
-
-    if granule.download_retries > 10:
-        error_message = f"Granule with id: {image_id} has reached its retry limit"
-        LOGGER.error(error_message)
-        raise RetryLimitReachedException(error_message)
 
     try:
         image_checksum = get_image_checksum(image_id)
-    except ChecksumRetrievalException as ex:
-        LOGGER.error(str(ex))
-        raise ex
 
-    try:
         download_file(
             image_checksum,
             image_id,
@@ -70,14 +57,8 @@ def handler(event, context):
             download_url,
             granule.beginposition,
         )
-    except FailedToDownloadFileException as ex:
-        LOGGER.error(str(ex))
-        raise ex
-    except FailedToUploadFileException as ex:
-        LOGGER.error(str(ex))
-        raise ex
-    except FailedToUpdateGranuleDownloadFinishException as ex:
-        LOGGER.error(str(ex))
+    except Exception as ex:
+        increase_retry_count(image_id)
         raise ex
 
 
@@ -85,28 +66,47 @@ def get_granule_and_set_download_started(image_id: str) -> Granule:
     """
     Takes an `image_id` and returns the corresponding Granule from the `granule`
     database, the `download_started` value is populated to `datetime.now()` before it
-    is returned
+    is returned.
+
+    Checks are performed also to determine whether the granules retry limit is reached
+    and whether it's already downloaded before we set download started
+    :param image_id: str representing the id of the image in the `granule` table
+    :returns: Granule representing the row in the `granule` table
     """
     session_maker = get_session_maker()
     with get_session(session_maker) as db:
         try:
             granule = db.query(Granule).filter(Granule.id == image_id).first()
+
             if granule:
-                granule.download_started = datetime.now()
-                db.commit()
-                db.refresh(granule)
+                if granule.downloaded:
+                    LOGGER.info(
+                        f"Granule with id: {image_id} has already been downloaded"
+                    )
+                    raise GranuleAlreadyDownloadedException()
+                elif granule.download_retries > 10:
+                    error_message = (
+                        f"Granule with id: {image_id} has reached its retry limit"
+                    )
+                    LOGGER.error(error_message)
+                    raise RetryLimitReachedException(error_message)
+                else:
+                    granule.download_started = datetime.now()
+                    db.commit()
+                    db.refresh(granule)
+                    return granule
+            else:
+                error_message = f"Granule with id: {image_id} not found"
+                LOGGER.error(error_message)
+                raise GranuleNotFoundException(error_message)
         except SQLAlchemyError as ex:
             db.rollback()
-            raise FailedToUpdateGranuleDownloadStartException(
-                (
-                    "Failed to update download_start value for granule with id: "
-                    f"{image_id}, exception was: {ex}"
-                )
+            error_message = (
+                "Failed to update download_start value for granule with id: "
+                f"{image_id}, exception was: {ex}"
             )
-    if granule:
-        return granule
-    else:
-        raise GranuleNotFoundException(f"Granule with id: {image_id} not found")
+            LOGGER.error(error_message)
+            raise FailedToUpdateGranuleDownloadStartException(error_message)
 
 
 def get_scihub_auth() -> Tuple[str, str]:
@@ -143,12 +143,12 @@ def get_image_checksum(image_id: str) -> str:
 
         return response.json()["d"]["Checksum"]["Value"]
     except Exception as ex:
-        raise ChecksumRetrievalException(
-            (
-                "There was an error retrieving the Checksum"
-                f" for Granule with id: {image_id}. {str(ex)}"
-            )
+        error_message = (
+            "There was an error retrieving the Checksum for Granule with id:"
+            f" {image_id}. {str(ex)}"
         )
+        LOGGER.error(error_message)
+        raise ChecksumRetrievalException(error_message)
 
 
 def download_file(
@@ -199,30 +199,33 @@ def download_file(
             granule.download_finished = datetime.now()
             db.commit()
         except requests.RequestException as ex:
-            raise FailedToDownloadFileException(
-                (
-                    "Requests exception thrown downloading granule with download_url:"
-                    f" {download_url}, exception was: {ex}"
-                )
+            error_message = (
+                "Requests exception thrown downloading granule with download_url:"
+                f" {download_url}, exception was: {ex}"
             )
+            LOGGER.error(error_message)
+            raise FailedToDownloadFileException(error_message)
         except client.ClientError as ex:
-            raise FailedToUploadFileException(
-                (
-                    f"Boto3 Client Error raised when uploading file: {image_filename}"
-                    f" for granule with id: {image_id}, error was: {ex}"
-                )
+            error_message = (
+                f"Boto3 Client Error raised when uploading file: {image_filename}"
+                f" for granule with id: {image_id}, error was: {ex}"
             )
+            LOGGER.error(error_message)
+            raise FailedToUploadFileException(error_message)
         except SQLAlchemyError as ex:
             db.rollback()
-            raise FailedToUpdateGranuleDownloadFinishException(
-                (
-                    "SQLAlchemy Exception raised when updating download finish for"
-                    f" granule with id: {image_id}, exception was: {ex}"
-                )
+            error_message = (
+                "SQLAlchemy Exception raised when updating download finish for"
+                f" granule with id: {image_id}, exception was: {ex}"
             )
+            LOGGER.error(error_message)
+            raise FailedToUpdateGranuleDownloadFinishException(error_message)
 
 
-def get_s3_client():
+def get_s3_client() -> S3Client:
+    """
+    Creates and returns a Boto3 Client for S3
+    """
     return boto3.client("s3")
 
 
@@ -236,3 +239,15 @@ def generate_aws_checksum(image_checksum: str) -> str:
     :returns: str representing the base64-encoded checksum
     """
     return base64.b64encode(bytearray.fromhex(image_checksum)).decode("utf-8")
+
+
+def increase_retry_count(image_id: str):
+    """
+    Takes a given granules id and increases its `download_retries` count by 1
+    :param image_id: str representing the id of the image in the `granule` table
+    """
+    session_maker = get_session_maker()
+    with get_session(session_maker) as db:
+        granule = db.query(Granule).filter(Granule.id == image_id).first()
+        granule.download_retries += 1
+        db.commit()
