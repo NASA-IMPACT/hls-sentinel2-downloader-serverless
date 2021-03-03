@@ -2,7 +2,7 @@
 
 ## High level overview
 
-The Mock SciHub Product APIs purpose is to act as a simple replica of the SciHub Product API for Integration tests.
+The Mock SciHub Product APIs purpose is to act as a simple replica of the SciHub Product API for Integration tests. It has 3 results it returns depending on the requests it receives.
 
 ---
 
@@ -11,7 +11,12 @@ The Mock SciHub Product APIs purpose is to act as a simple replica of the SciHub
 Provided below is some pseudo-code to explain the process happening each time the lambda is invoked:
 
 ```python
-
+if download_value_in_query():
+    return encoded_SAFE_file()
+elif checksum_in_query():
+    return checksum_of_encoded_SAFE_file()
+else:
+    return {"statusCode": 404}
 ```
 
 ---
