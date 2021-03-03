@@ -3,6 +3,7 @@ from datetime import datetime
 
 from assertpy import assert_that
 from db.models.granule import Granule
+from db.models.status import Status
 
 from db.session import get_session, get_session_maker
 
@@ -62,6 +63,11 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
             before_invocation, after_invocation
         )
         assert_that(granule.download_finished).is_between(
+            before_invocation, after_invocation
+        )
+
+        status = db.query(Status).filter(Status.key_name == "last_file_downloaded_time").first()
+        assert_that(datetime.strptime(status.value, "%Y-%m-%d %H:%M:%S.%f")).is_between(
             before_invocation, after_invocation
         )
 
