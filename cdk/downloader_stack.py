@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_events,
     aws_events_targets,
     aws_lambda,
+    aws_lambda_event_sources,
     aws_lambda_python,
     aws_rds,
     aws_secretsmanager,
@@ -27,6 +28,7 @@ class DownloaderStack(core.Stack):
         identifier: str,
         upload_bucket: str,
         scihub_url: str = None,
+        disable_downloading: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -145,6 +147,7 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-to-download-queue",
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
             retention_period=core.Duration.days(14),
+            visibility_timeout=core.Duration.minutes(15)
         )
 
         aws_ssm.StringParameter(
@@ -237,7 +240,15 @@ class DownloaderStack(core.Stack):
         scihub_credentials.grant_read(self.downloader)
 
         to_download_queue.grant_send_messages(link_fetcher)
+
         to_download_queue.grant_consume_messages(self.downloader)
+        self.downloader.add_event_source(
+            aws_lambda_event_sources.SqsEventSource(
+                queue=to_download_queue,
+                batch_size=1,
+                enabled=not disable_downloading
+            )
+        )
 
         date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
             self,

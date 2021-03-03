@@ -19,6 +19,7 @@ downloader_stack = DownloaderStack(
     identifier=identifier,
     upload_bucket=integration_stack.upload_bucket.bucket_name,
     scihub_url=integration_stack.scihub_url,
+    disable_downloading=True
 )
 
 integration_stack.upload_bucket.grant_read_write(downloader_stack.downloader)
