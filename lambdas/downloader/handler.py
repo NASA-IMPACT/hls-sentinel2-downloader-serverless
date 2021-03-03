@@ -9,6 +9,7 @@ import boto3
 import requests
 from botocore import client
 from db.models.granule import Granule
+from db.models.status import Status
 from db.session import get_session, get_session_maker
 from mypy_boto3_s3.client import S3Client
 from sqlalchemy.exc import SQLAlchemyError
@@ -60,6 +61,8 @@ def handler(event, context):
     except Exception as ex:
         increase_retry_count(image_id)
         raise ex
+
+    update_last_file_downloaded_time()
 
 
 def get_granule_and_set_download_started(image_id: str) -> Granule:
@@ -251,3 +254,33 @@ def increase_retry_count(image_id: str):
         granule = db.query(Granule).filter(Granule.id == image_id).first()
         granule.download_retries += 1
         db.commit()
+
+
+def update_last_file_downloaded_time():
+    """
+    Updates the key with name `last_file_downloaded_time` in the `status` table
+    to the current datetime
+    """
+    try:
+        session_maker = get_session_maker()
+        with get_session(session_maker) as db:
+            status = (
+                db.query(Status)
+                .filter(Status.key_name == "last_file_downloaded_time")
+                .first()
+            )
+            if status:
+                status.value = datetime.now()
+                db.commit()
+            else:
+                db.add(
+                    Status(key_name="last_file_downloaded_time", value=datetime.now())
+                )
+                db.commit()
+    except Exception as ex:
+        LOGGER.error(
+            (
+                "Failed to update Status with key_name: last_file_downloaded_time, "
+                f"exception was: {ex}"
+            )
+        )

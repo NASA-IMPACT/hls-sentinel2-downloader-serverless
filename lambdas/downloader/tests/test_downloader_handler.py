@@ -7,6 +7,7 @@ import responses
 from assertpy import assert_that
 from botocore.client import ClientError
 from db.models.granule import Granule
+from db.models.status import Status
 from freezegun import freeze_time
 
 from exceptions import (
@@ -28,6 +29,7 @@ from handler import (
     get_scihub_auth,
     handler,
     increase_retry_count,
+    update_last_file_downloaded_time,
 )
 
 
@@ -404,6 +406,52 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     assert_that(granule.downloaded).is_true()
     assert_that(granule.checksum).is_equal_to("ACHECKSUM")
     assert_that(granule.download_finished).is_equal_to(datetime.now())
+
+
+@freeze_time("2020-01-01 10:10:10")
+def test_that_update_last_file_downloaded_time_correctly_updates_the_db_if_not_there(
+    db_session,
+):
+    update_last_file_downloaded_time()
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime.now()))
+
+
+@freeze_time("2020-01-01 10:10:10")
+def test_that_update_last_file_downloaded_time_correctly_updates_the_db_if_already_there(  # Noqa
+    db_session,
+):
+    db_session.add(
+        Status(
+            key_name="last_file_downloaded_time", value=datetime(2020, 1, 1, 0, 0, 0)
+        )
+    )
+    db_session.commit()
+    update_last_file_downloaded_time()
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime.now()))
+
+
+def test_that_update_last_file_downloaded_time_fails_gracefully(
+    db_session, fake_db_session_that_fails
+):
+    with mock.patch("handler.LOGGER.error") as mock_logger:
+        with mock.patch("handler.get_session", fake_db_session_that_fails):
+            update_last_file_downloaded_time()
+    mock_logger.assert_called_once_with(
+        (
+            "Failed to update Status with key_name: last_file_downloaded_time, "
+            "exception was: An Exception"
+        )
+    )
 
 
 def test_that_handler_correctly_logs_and_returns_if_no_granule_found():
@@ -855,3 +903,10 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     assert_that(bucket_objects[0].key).is_equal_to("2020-02-02/test-filename")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
+
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime.now()))
