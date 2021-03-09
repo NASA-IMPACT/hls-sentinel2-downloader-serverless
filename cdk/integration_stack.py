@@ -4,6 +4,7 @@ from aws_cdk import (
     aws_apigateway,
     aws_lambda,
     aws_lambda_python,
+    aws_logs,
     aws_s3,
     aws_secretsmanager,
     aws_ssm,
@@ -43,6 +44,14 @@ class IntegrationStack(core.Stack):
             memory_size=128,
         )
 
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-mock-scihub-search-api-log-group",
+            log_group_name=f"/aws/lambda/{mock_scihub_search_api_lambda.function_name}",
+            removal_policy=core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.ONE_DAY,
+        )
+
         mock_scihub_product_api_lambda = aws_lambda_python.PythonFunction(
             self,
             id=f"{identifier}-mock-scihub-product-lambda",
@@ -52,6 +61,14 @@ class IntegrationStack(core.Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             timeout=core.Duration.minutes(1),
             memory_size=128,
+        )
+
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-mock-scihub-product-api-log-group",
+            log_group_name=f"/aws/lambda/{mock_scihub_product_api_lambda.function_name}",
+            removal_policy=core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.ONE_DAY,
         )
 
         mock_scihub_api = aws_apigateway.RestApi(

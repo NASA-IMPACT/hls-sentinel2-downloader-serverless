@@ -8,6 +8,7 @@ from aws_cdk import (
     aws_lambda,
     aws_lambda_event_sources,
     aws_lambda_python,
+    aws_logs,
     aws_rds,
     aws_secretsmanager,
     aws_sqs,
@@ -134,6 +135,18 @@ class DownloaderStack(core.Stack):
             environment={"DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn},
         )
 
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-migration-function-log-group",
+            log_group_name=f"/aws/lambda/{migration_function.function_name}",
+            removal_policy=core.RemovalPolicy.RETAIN
+            if prod
+            else core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.TWO_WEEKS
+            if prod
+            else aws_logs.RetentionDays.ONE_DAY,
+        )
+
         downloader_rds.secret.grant_read(migration_function)
 
         core.CustomResource(
@@ -168,6 +181,18 @@ class DownloaderStack(core.Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_8,
         )
 
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-date-generator-log-group",
+            log_group_name=f"/aws/lambda/{date_generator.function_name}",
+            removal_policy=core.RemovalPolicy.RETAIN
+            if prod
+            else core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.TWO_WEEKS
+            if prod
+            else aws_logs.RetentionDays.ONE_DAY,
+        )
+
         link_fetcher_environment_vars = {
             "STAGE": identifier,
             "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
@@ -188,6 +213,18 @@ class DownloaderStack(core.Stack):
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=link_fetcher_environment_vars,
+        )
+
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-link-fetcher-log-group",
+            log_group_name=f"/aws/lambda/{link_fetcher.function_name}",
+            removal_policy=core.RemovalPolicy.RETAIN
+            if prod
+            else core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.TWO_WEEKS
+            if prod
+            else aws_logs.RetentionDays.ONE_DAY,
         )
 
         aws_cloudwatch.Alarm(
@@ -219,6 +256,18 @@ class DownloaderStack(core.Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
             reserved_concurrent_executions=15,
+        )
+
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-downloader-log-group",
+            log_group_name=f"/aws/lambda/{self.downloader.function_name}",
+            removal_policy=core.RemovalPolicy.RETAIN
+            if prod
+            else core.RemovalPolicy.DESTROY,
+            retention=aws_logs.RetentionDays.TWO_WEEKS
+            if prod
+            else aws_logs.RetentionDays.ONE_DAY,
         )
 
         aws_cloudwatch.Alarm(
