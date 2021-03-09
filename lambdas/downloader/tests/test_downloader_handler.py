@@ -13,8 +13,8 @@ from freezegun import freeze_time
 from exceptions import (
     ChecksumRetrievalException,
     FailedToDownloadFileException,
+    FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
-    FailedToUpdateGranuleDownloadStartException,
     FailedToUploadFileException,
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
@@ -24,7 +24,7 @@ from exceptions import (
 from handler import (
     download_file,
     generate_aws_checksum,
-    get_granule_and_set_download_started,
+    get_granule,
     get_image_checksum,
     get_scihub_auth,
     handler,
@@ -37,7 +37,6 @@ from handler import (
 def test_that_get_granule_returns_correct_granule(
     db_session,
 ):
-    time_now = datetime.now()
     db_session.add(
         Granule(
             id="test-id",
@@ -53,23 +52,19 @@ def test_that_get_granule_returns_correct_granule(
     )
     db_session.commit()
 
-    granule = get_granule_and_set_download_started("test-id")
+    granule = get_granule("test-id")
     assert_that(granule.tileid).is_equal_to("NM901")
     assert_that(granule.size).is_equal_to(100)
     assert_that(granule.downloaded).is_false()
-    assert_that(granule.download_started).is_equal_to(time_now)
 
 
 def test_that_get_granule_throws_exception_when_no_granule_found():
     with pytest.raises(GranuleNotFoundException) as ex:
-        get_granule_and_set_download_started("test-id")
+        get_granule("test-id")
     assert_that(str(ex.value)).is_equal_to("Granule with id: test-id not found")
 
 
-@freeze_time("2020-01-01 01:00:00")
-def test_that_get_granule_doesnt_update_download_start_if_downloaded(
-    db_session,
-):
+def test_that_get_granule_throws_exception_when_already_downloaded(db_session):
     db_session.add(
         Granule(
             id="test-id",
@@ -81,77 +76,12 @@ def test_that_get_granule_doesnt_update_download_start_if_downloaded(
             ingestiondate=datetime.now(),
             download_url="blah",
             downloaded=True,
-            download_started=datetime(2020, 1, 1, 0, 0, 0),
         )
     )
     db_session.commit()
 
     with pytest.raises(GranuleAlreadyDownloadedException):
-        get_granule_and_set_download_started("test-id")
-
-    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
-    assert_that(granule.download_started).is_not_equal_to(datetime.now())
-
-
-@freeze_time("2020-01-01 01:00:00")
-def test_that_get_granule_doesnt_update_download_start_if_retry_limit_reached(
-    db_session,
-):
-    db_session.add(
-        Granule(
-            id="test-id",
-            filename="a-filename",
-            tileid="NM901",
-            size=100,
-            beginposition=datetime.now(),
-            endposition=datetime.now(),
-            ingestiondate=datetime.now(),
-            download_url="blah",
-            downloaded=False,
-            download_retries=11,
-        )
-    )
-    db_session.commit()
-
-    with pytest.raises(RetryLimitReachedException):
-        get_granule_and_set_download_started("test-id")
-
-    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
-    assert_that(granule.download_started).is_not_equal_to(datetime.now())
-
-
-@freeze_time("2020-01-01 01:00:00")
-def test_that_get_granule_rollsback_and_throws_error_if_error_updating_download_started(
-    db_session, fake_db_session_that_fails
-):
-    db_session.add(
-        Granule(
-            id="test-id",
-            filename="a-filename",
-            tileid="NM901",
-            size=100,
-            beginposition=datetime.now(),
-            endposition=datetime.now(),
-            ingestiondate=datetime.now(),
-            download_url="blah",
-            downloaded=False,
-            download_started=datetime(2020, 1, 1, 0, 0, 0),
-        )
-    )
-    db_session.commit()
-
-    with mock.patch("handler.get_session", fake_db_session_that_fails):
-        with pytest.raises(FailedToUpdateGranuleDownloadStartException) as ex:
-            get_granule_and_set_download_started("test-id")
-        assert_that(str(ex.value)).is_equal_to(
-            (
-                "Failed to update download_start value for granule with id: test-id,"
-                " exception was: An Exception"
-            )
-        )
-
-    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
-    assert_that(granule.download_started).is_equal_to(datetime(2020, 1, 1, 0, 0, 0))
+        get_granule("test-id")
 
 
 def test_that_increase_retry_correctly_updates_value(db_session):
@@ -405,7 +335,6 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
     assert_that(granule.downloaded).is_true()
     assert_that(granule.checksum).is_equal_to("ACHECKSUM")
-    assert_that(granule.download_finished).is_equal_to(datetime.now())
 
 
 @freeze_time("2020-01-01 10:10:10")
@@ -474,7 +403,7 @@ def test_that_handler_correctly_logs_and_returns_if_no_granule_found():
         patched_logger.assert_called_once_with("Granule with id: test-id not found")
 
 
-def test_that_handler_correctly_logs_and_returns_if_error_updating_granule_download_start(  # Noqa
+def test_that_handler_correctly_logs_and_returns_if_error_getting_granule(
     fake_db_session_that_fails,
 ):
     sqs_message = {
@@ -492,13 +421,12 @@ def test_that_handler_correctly_logs_and_returns_if_error_updating_granule_downl
     }
 
     expected_error_message = (
-        "Failed to update download_start value for granule with id: test-id, exception"
-        " was: An Exception"
+        "Failed to retrieve granule with id: test-id, exception was: An Exception"
     )
 
     with mock.patch("handler.get_session", fake_db_session_that_fails):
         with mock.patch("handler.LOGGER.error") as patched_logger:
-            with pytest.raises(FailedToUpdateGranuleDownloadStartException) as ex:
+            with pytest.raises(FailedToRetrieveGranuleException) as ex:
                 handler(sqs_message, None)
             patched_logger.assert_called_once_with(expected_error_message)
             assert_that(str(ex.value)).is_equal_to(expected_error_message)
@@ -761,7 +689,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
 
 @responses.activate
 @mock.patch("handler.get_image_checksum")
-@mock.patch("handler.get_granule_and_set_download_started")
+@mock.patch("handler.get_granule")
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
     mock_increase_retry_count,
@@ -893,8 +821,6 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     handler(sqs_message, None)
 
     granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
-    assert_that(granule.download_started).is_equal_to(datetime.now())
-    assert_that(granule.download_finished).is_equal_to(datetime.now())
     assert_that(granule.downloaded).is_true()
     assert_that(granule.checksum).is_equal_to("36F3AB53F6D2D9592CF50CE4682FF7EA")
 

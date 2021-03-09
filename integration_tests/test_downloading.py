@@ -57,13 +57,6 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
         granule = db.query(Granule).filter(Granule.id == "integration-test-id").first()
         assert_that(granule.downloaded).is_true()
         assert_that(granule.checksum).is_equal_to("ACD23199F98D2333A87013C047E43F62")
-        assert_that(granule.download_started).is_before(granule.download_finished)
-        assert_that(granule.download_started).is_between(
-            before_invocation, after_invocation
-        )
-        assert_that(granule.download_finished).is_between(
-            before_invocation, after_invocation
-        )
 
         status = (
             db.query(Status)

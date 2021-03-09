@@ -17,8 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from exceptions import (
     ChecksumRetrievalException,
     FailedToDownloadFileException,
+    FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
-    FailedToUpdateGranuleDownloadStartException,
     FailedToUploadFileException,
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
@@ -42,7 +42,7 @@ def handler(event, context):
     download_url = image_message["download_url"]
 
     try:
-        granule = get_granule_and_set_download_started(image_id)
+        granule = get_granule(image_id)
     except GranuleNotFoundException:
         return
     except GranuleAlreadyDownloadedException:
@@ -65,14 +65,13 @@ def handler(event, context):
     update_last_file_downloaded_time()
 
 
-def get_granule_and_set_download_started(image_id: str) -> Granule:
+def get_granule(image_id: str) -> Granule:
     """
     Takes an `image_id` and returns the corresponding Granule from the `granule`
-    database, the `download_started` value is populated to `datetime.now()` before it
-    is returned.
+    database.
 
     Checks are performed also to determine whether the granules retry limit is reached
-    and whether it's already downloaded before we set download started
+    and whether it's already downloaded before return it
     :param image_id: str representing the id of the image in the `granule` table
     :returns: Granule representing the row in the `granule` table
     """
@@ -94,8 +93,6 @@ def get_granule_and_set_download_started(image_id: str) -> Granule:
                     LOGGER.error(error_message)
                     raise RetryLimitReachedException(error_message)
                 else:
-                    granule.download_started = datetime.now()
-                    db.commit()
                     db.refresh(granule)
                     return granule
             else:
@@ -105,11 +102,10 @@ def get_granule_and_set_download_started(image_id: str) -> Granule:
         except SQLAlchemyError as ex:
             db.rollback()
             error_message = (
-                "Failed to update download_start value for granule with id: "
-                f"{image_id}, exception was: {ex}"
+                f"Failed to retrieve granule with id: {image_id}, exception was: {ex}"
             )
             LOGGER.error(error_message)
-            raise FailedToUpdateGranuleDownloadStartException(error_message)
+            raise FailedToRetrieveGranuleException(error_message)
 
 
 def get_scihub_auth() -> Tuple[str, str]:
@@ -199,7 +195,6 @@ def download_file(
             granule = db.query(Granule).filter(Granule.id == image_id).first()
             granule.downloaded = True
             granule.checksum = image_checksum
-            granule.download_finished = datetime.now()
             db.commit()
         except requests.RequestException as ex:
             error_message = (

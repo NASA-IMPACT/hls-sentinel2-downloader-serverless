@@ -22,7 +22,7 @@ class FailedToDownloadFileException(Exception):
     pass
 
 
-class FailedToUpdateGranuleDownloadStartException(Exception):
+class FailedToRetrieveGranuleException(Exception):
     pass
 
 
