@@ -66,7 +66,9 @@ class IntegrationStack(core.Stack):
         aws_logs.LogGroup(
             self,
             id=f"{identifier}-mock-scihub-product-api-log-group",
-            log_group_name=f"/aws/lambda/{mock_scihub_product_api_lambda.function_name}",
+            log_group_name=(
+                f"/aws/lambda/{mock_scihub_product_api_lambda.function_name}"
+            ),
             removal_policy=core.RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.ONE_DAY,
         )
