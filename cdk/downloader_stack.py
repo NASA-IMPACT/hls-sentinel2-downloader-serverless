@@ -135,18 +135,6 @@ class DownloaderStack(core.Stack):
             environment={"DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn},
         )
 
-        aws_logs.LogGroup(
-            self,
-            id=f"{identifier}-migration-function-log-group",
-            log_group_name=f"/aws/lambda/{migration_function.function_name}",
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
-            retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
-            else aws_logs.RetentionDays.ONE_DAY,
-        )
-
         downloader_rds.secret.grant_read(migration_function)
 
         core.CustomResource(
