@@ -49,6 +49,7 @@ OWNER="<your name>"
 IDENTIFIER="<a unique value to tie to your cdk deployment>"
 AWS_DEFAULT_REGION="<the AWS region you're deploying to>"
 AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
+UPLOAD_BUCKET="<name-of-aws-s3-bucket-to-upload-images-to>"
 PIPENV_NO_INHERIT=TRUE # This is used to ensure our Lambdas/Layers get separate Pipenv environments
 ```
 
@@ -150,6 +151,15 @@ The Secret should look like:
   "password": "<password>"
 }
 ```
+
+### Upload Bucket
+
+The deployment relies on an S3 Bucket being available to upload images to. This should be available within your `.env` file under `UPLOAD_BUCKET`.
+
+This is **required** in standard deployments, for integration deployments, a bucket is created and setup for you.
+
+You must allow the `downloader` function `read` and `write` permissions to your bucket, you can find the ARN of the `downloader` function in
+SSM Parameter Store [here](https://us-west-2.console.aws.amazon.com/systems-manager/parameters/) under the name `integration_tests/<IDENTIFIER>/downloader_arn`
 
 
 ## Standard Deployments

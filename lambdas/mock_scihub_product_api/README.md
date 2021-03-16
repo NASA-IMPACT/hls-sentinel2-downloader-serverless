@@ -1,10 +1,8 @@
-# Date Generator 📆
+# Mock SciHub Product API 🛰🤡
 
 ## High level overview
 
-![Date Generator in S2 Downloader diagram](../../images/hls-s2-downloader-date-generator.png)
-
-The Date Generators purpose is to generate a list of strings in the form `YYYY-MM-DD` for 21 days from `today - 1` into the past. It is invoked within the `Link Fetching` Step Function.
+The Mock SciHub Product APIs purpose is to act as a simple replica of the SciHub Product API for Integration tests. It has 3 results it returns depending on the requests it receives.
 
 ---
 
@@ -13,8 +11,12 @@ The Date Generators purpose is to generate a list of strings in the form `YYYY-M
 Provided below is some pseudo-code to explain the process happening each time the lambda is invoked:
 
 ```python
-yesterdays_date = get_yesterdays_date()
-return generate_list_of_21_dates_into_the_past_from(yesterdays_date)
+if download_value_in_query():
+    return encoded_SAFE_file()
+elif checksum_in_query():
+    return checksum_of_encoded_SAFE_file()
+else:
+    return {"statusCode": 404}
 ```
 
 ---

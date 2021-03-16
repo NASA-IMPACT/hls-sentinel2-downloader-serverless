@@ -111,6 +111,7 @@ def add_scihub_result_to_sqs(
         MessageBody=json.dumps(
             {
                 "id": scihub_result["image_id"],
+                "filename": scihub_result["filename"],
                 "download_url": scihub_result["download_url"],
             }
         ),
