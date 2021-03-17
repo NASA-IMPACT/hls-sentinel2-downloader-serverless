@@ -5,7 +5,7 @@ from logging.config import fileConfig
 import boto3
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine import url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,7 +27,7 @@ target_metadata = None
 # ... etc.
 
 
-def get_url() -> URL:
+def get_url() -> url.URL:
     """
     Returns a SQLAlchemy `engine.url.URL`
     based on a AWS SecretsManager Secret, whos ARN is available as a environment
@@ -39,7 +39,7 @@ def get_url() -> URL:
     db_connection_params = json.loads(
         secrets_manager_client.get_secret_value(SecretId=secret_arn)["SecretString"]
     )
-    return URL(
+    return url.URL.create(
         "postgresql",
         username=db_connection_params["username"],
         password=db_connection_params["password"],

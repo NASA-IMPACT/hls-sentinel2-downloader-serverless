@@ -30,7 +30,7 @@ def check_pg_status(engine: Engine) -> bool:
 
 @pytest.fixture(scope="session")
 def postgres_engine(docker_ip, docker_services, db_connection_secret):
-    db_url = url.URL(
+    db_url = url.URL.create(
         "postgresql",
         username=os.environ["PG_USER"],
         password=os.environ["PG_PASSWORD"],

@@ -16,5 +16,5 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     python_requires=">=3.8",
-    install_requires=["sqlalchemy>=1.3.22"],
+    install_requires=["sqlalchemy==1.4.0"],
 )
