@@ -227,6 +227,7 @@ class DownloaderStack(core.Stack):
             "STAGE": identifier,
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
+            "USE_INTHUB2": "YES" if prod else "NO",
         }
 
         if scihub_url:
