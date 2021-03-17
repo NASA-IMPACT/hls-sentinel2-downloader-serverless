@@ -130,6 +130,17 @@ def mock_scihub_credentials(secrets_manager_client, monkeysession):
     return secret
 
 
+@pytest.fixture(scope="session")
+def mock_inthub2_credentials(secrets_manager_client, monkeysession):
+    secret = {"username": "test-inthub2-username", "password": "test-inthub2-password"}
+    secrets_manager_client.create_secret(
+        Name="hls-s2-downloader-serverless/test/inthub2-credentials",
+        SecretString=json.dumps(secret),
+    )
+    monkeysession.setenv("STAGE", "test")
+    return secret
+
+
 def check_pg_status(engine: Engine) -> bool:
     try:
         engine.execute("SELECT * FROM pg_catalog.pg_tables;")
