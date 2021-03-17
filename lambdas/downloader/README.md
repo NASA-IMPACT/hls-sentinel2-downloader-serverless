@@ -40,6 +40,10 @@ update_status()
 
 Due to the nature of how Lambda is invoked by SQS, a non-failed invocation of a Lambda will result in the SQS message being deleted. Because of this, if we need to gracefully handle an error, we tidy up (namely database rollbacks), then raise the error to the handler, this then results in the Lambda failing and the SQS message being re-added to the Queue.
 
+We use the flag `USE_INTHUB2` with possible values of `YES` and `NO` to determine whether we:
+* A - Replace `scihub` in the fetched links download urls with `inthub2`
+* B - Retrieve `inthub2` credentials when downloading files
+
 ---
 
 ## Development
