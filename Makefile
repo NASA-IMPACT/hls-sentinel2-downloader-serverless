@@ -1,13 +1,13 @@
 .PHONEY: install lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
 
 install:
+	$(MAKE) -C layers/db install
 	pipenv install --dev
 	$(MAKE) -C lambdas/link_fetcher install
 	$(MAKE) -C lambdas/date_generator install
 	$(MAKE) -C lambdas/downloader install
 	$(MAKE) -C lambdas/mock_scihub_search_api install
 	$(MAKE) -C lambdas/mock_scihub_product_api install
-	$(MAKE) -C layers/db install
 	$(MAKE) -C alembic_migration install
 
 lint:

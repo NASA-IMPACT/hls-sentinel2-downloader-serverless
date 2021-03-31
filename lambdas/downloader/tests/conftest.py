@@ -52,7 +52,7 @@ def aws_credentials(monkeysession):
 
 @pytest.fixture(scope="session")
 def postgres_engine(docker_ip, docker_services, db_connection_secret):
-    db_url = url.URL(
+    db_url = url.URL.create(
         "postgresql",
         username=os.environ["PG_USER"],
         password=os.environ["PG_PASSWORD"],
@@ -124,6 +124,17 @@ def mock_scihub_credentials(secrets_manager_client, monkeysession):
     secret = {"username": "test-username", "password": "test-password"}
     secrets_manager_client.create_secret(
         Name="hls-s2-downloader-serverless/test/scihub-credentials",
+        SecretString=json.dumps(secret),
+    )
+    monkeysession.setenv("STAGE", "test")
+    return secret
+
+
+@pytest.fixture(scope="session")
+def mock_inthub2_credentials(secrets_manager_client, monkeysession):
+    secret = {"username": "test-inthub2-username", "password": "test-inthub2-password"}
+    secrets_manager_client.create_secret(
+        Name="hls-s2-downloader-serverless/test/inthub2-credentials",
         SecretString=json.dumps(secret),
     )
     monkeysession.setenv("STAGE", "test")

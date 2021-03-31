@@ -39,7 +39,7 @@ def handler(event, context):
     image_message = json.loads(event["Records"][0]["body"])
     image_id = image_message["id"]
     image_filename = image_message["filename"]
-    download_url = image_message["download_url"]
+    download_url = get_download_url(image_message["download_url"])
 
     try:
         granule = get_granule(image_id)
@@ -63,6 +63,20 @@ def handler(event, context):
         raise ex
 
     update_last_file_downloaded_time()
+
+
+def get_download_url(image_message_download_url: str) -> str:
+    """
+    Takes the `download_url` value from `image_message` and returns a modified version
+    if the environment variable `USE_INTHUB2` is set to `YES`
+
+    By default, the `link_fetcher` handler will grab `scihub` urls, if we are using
+    `inthub2`, we just swap this into the url in the downloader.
+    """
+    if os.environ["USE_INTHUB2"] == "YES":
+        return image_message_download_url.replace("scihub", "inthub2", 1)
+    else:
+        return image_message_download_url
 
 
 def get_granule(image_id: str) -> Granule:
@@ -108,17 +122,22 @@ def get_granule(image_id: str) -> Granule:
             raise FailedToRetrieveGranuleException(error_message)
 
 
-def get_scihub_auth() -> Tuple[str, str]:
+def get_scihub_auth(use_inthub2: bool = False) -> Tuple[str, str]:
     """
-    Retrieves the username and password for SciHub which is stored in SecretsManager
-    :returns: Tuple[str, str] representing the SciHub username and password
+    Retrieves the username and password for SciHub or IntHub, which are stored in
+    SecretsManager
+    :param use_inthub2: bool whether to use Inthub or not
+    :returns: Tuple[str, str] representing the username and password
     """
     try:
         stage = os.environ["STAGE"]
+        destination = "inthub2" if use_inthub2 else "scihub"
         secrets_manager_client = boto3.client("secretsmanager")
         secret = json.loads(
             secrets_manager_client.get_secret_value(
-                SecretId=f"hls-s2-downloader-serverless/{stage}/scihub-credentials"
+                SecretId=(
+                    f"hls-s2-downloader-serverless/{stage}/{destination}-credentials"
+                )
             )["SecretString"]
         )
         return (secret["username"], secret["password"])
@@ -175,7 +194,7 @@ def download_file(
     session_maker = get_session_maker()
     with get_session(session_maker) as db:
         try:
-            auth = get_scihub_auth()
+            auth = get_scihub_auth(os.environ["USE_INTHUB2"] == "YES")
             response = requests.get(url=download_url, auth=auth, stream=True)
             response.raise_for_status()
 

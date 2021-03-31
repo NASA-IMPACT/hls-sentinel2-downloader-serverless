@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 import boto3
 from sqlalchemy import create_engine
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine import url
 from sqlalchemy.orm import Session, sessionmaker
 
 
@@ -14,7 +14,7 @@ def _get_url():
     db_connection_params = json.loads(
         secrets_manager_client.get_secret_value(SecretId=secret_arn)["SecretString"]
     )
-    return URL(
+    return url.URL.create(
         "postgresql",
         username=db_connection_params["username"],
         password=db_connection_params["password"],
