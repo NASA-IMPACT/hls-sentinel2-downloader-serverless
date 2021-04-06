@@ -8,12 +8,14 @@ app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
+is_production_deployment = os.environ["IS_PRODUCTION_DEPLOYMENT"]
 
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=upload_bucket,
+    is_production_deployment=is_production_deployment,
 )
 
 for k, v in {

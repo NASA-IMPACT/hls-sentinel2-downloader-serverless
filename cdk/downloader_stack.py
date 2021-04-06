@@ -30,11 +30,10 @@ class DownloaderStack(core.Stack):
         upload_bucket: str,
         scihub_url: str = None,
         disable_downloading: bool = False,
+        is_production_deployment: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
-        prod = True if identifier == "PROD" else False
 
         vpc = aws_ec2.Vpc(
             self,
@@ -87,7 +86,7 @@ class DownloaderStack(core.Stack):
             subnet_group=rds_subnet_group,
             default_database_name="hlss2downloader",
             removal_policy=core.RemovalPolicy.RETAIN
-            if prod
+            if is_production_deployment
             else core.RemovalPolicy.DESTROY,
         )
 
@@ -174,10 +173,10 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-date-generator-log-group",
             log_group_name=f"/aws/lambda/{date_generator.function_name}",
             removal_policy=core.RemovalPolicy.RETAIN
-            if prod
+            if is_production_deployment
             else core.RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
+            if is_production_deployment
             else aws_logs.RetentionDays.ONE_DAY,
         )
 
@@ -208,10 +207,10 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-link-fetcher-log-group",
             log_group_name=f"/aws/lambda/{link_fetcher.function_name}",
             removal_policy=core.RemovalPolicy.RETAIN
-            if prod
+            if is_production_deployment
             else core.RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
+            if is_production_deployment
             else aws_logs.RetentionDays.ONE_DAY,
         )
 
@@ -227,7 +226,7 @@ class DownloaderStack(core.Stack):
             "STAGE": identifier,
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
-            "USE_INTHUB2": "YES" if prod else "NO",
+            "USE_INTHUB2": "YES" if is_production_deployment else "NO",
         }
 
         if scihub_url:
@@ -252,10 +251,10 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-downloader-log-group",
             log_group_name=f"/aws/lambda/{self.downloader.function_name}",
             removal_policy=core.RemovalPolicy.RETAIN
-            if prod
+            if is_production_deployment
             else core.RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
+            if is_production_deployment
             else aws_logs.RetentionDays.ONE_DAY,
         )
 
@@ -332,7 +331,7 @@ class DownloaderStack(core.Stack):
             ),
         )
 
-        if prod:
+        if is_production_deployment:
             _ = aws_events.Rule(
                 self,
                 id=f"{identifier}-link-fetch-rule",
