@@ -8,14 +8,20 @@ app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
-is_production_deployment = os.environ["IS_PRODUCTION_DEPLOYMENT"]
+enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
+schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
+use_inthub2 = os.environ["USE_INTHUB2"] == "TRUE"
+removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
 
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=upload_bucket,
-    is_production_deployment=is_production_deployment,
+    enable_downloading=enable_downloading,
+    use_inthub2=use_inthub2,
+    schedule_link_fetching=schedule_link_fetching,
+    removal_policy_destroy=removal_policy_destroy,
 )
 
 for k, v in {
