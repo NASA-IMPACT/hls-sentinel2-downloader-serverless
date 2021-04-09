@@ -49,11 +49,19 @@ OWNER="<your name>"
 IDENTIFIER="<a unique value to tie to your cdk deployment>"
 AWS_DEFAULT_REGION="<the AWS region you're deploying to>"
 AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
-UPLOAD_BUCKET="<name-of-aws-s3-bucket-to-upload-images-to>"
 PIPENV_NO_INHERIT=TRUE # This is used to ensure our Lambdas/Layers get separate Pipenv environments
+ENABLE_DOWNLOADING="TRUE" # Or "FALSE" - If TRUE then the TO_UPLOAD queue is set as an enabled source to the Downloader
+SCHEDULE_LINK_FETCHING="TRUE" # Or "FALSE" - If TRUE then link fetching will happen every day at midday.
+USE_INTHUB2="TRUE" # Or "FALSE" - If TRUE then the Downloader will use IntHub2 credentials when downloading
+REMOVAL_POLICY_DESTROY="TRUE" # Or "FALSE" - See below for what is deleted if TRUE
+UPLOAD_BUCKET="<name-of-aws-s3-bucket-to-upload-images-to>"
 ```
 
 An example that you can modify and rename to `.env` is provided: `example.env`
+
+## Using `REMOVAL_POLICY_DESTROY`
+
+When `REMOVAL_POLICY_DESTROY` is set to `TRUE`, resources such as `LogGroup`s and the `RDS` cluster will `DESTROY` rather than `RETAIN` when the Stack is destroyed
 
 ## Repository TL;DR:
 
@@ -152,9 +160,24 @@ The Secret should look like:
 }
 ```
 
+### IntHub2 Credentials
+
+The deployment relies on the IntHub2 Credentials having been added to the AWS account previously within Secrets Manager. For your given `IDENTIFIER` value, the Secret should be stored under `hls-s2-downloader-serverless/<IDENTIFIER>/inthub2-credentials`.
+
+This is **required** in standard deployments where `USE_INTHUB2` is set to `TRUE`, it is not used within integration deployments.
+
+The Secret should look like:
+
+```json
+{
+  "username": "<username>",
+  "password": "<password>"
+}
+```
+
 ### Upload Bucket
 
-The deployment relies on an S3 Bucket being available to upload images to. This should be available within your `.env` file under `UPLOAD_BUCKET`.
+The deployment relies on an S3 Bucket being available to upload images to. The Bucket Name should be available within your `.env` file under `UPLOAD_BUCKET`.
 
 This is **required** in standard deployments, for integration deployments, a bucket is created and setup for you.
 

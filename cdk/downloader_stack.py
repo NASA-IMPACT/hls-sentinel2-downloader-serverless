@@ -29,12 +29,13 @@ class DownloaderStack(core.Stack):
         identifier: str,
         upload_bucket: str,
         scihub_url: str = None,
-        disable_downloading: bool = False,
+        enable_downloading: bool = False,
+        use_inthub2: bool = False,
+        schedule_link_fetching: bool = False,
+        removal_policy_destroy: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
-        prod = True if identifier == "PROD" else False
 
         vpc = aws_ec2.Vpc(
             self,
@@ -86,9 +87,9 @@ class DownloaderStack(core.Stack):
             ),
             subnet_group=rds_subnet_group,
             default_database_name="hlss2downloader",
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
+            removal_policy=core.RemovalPolicy.DESTROY
+            if removal_policy_destroy
+            else core.RemovalPolicy.RETAIN,
         )
 
         aws_ssm.StringParameter(
@@ -173,12 +174,12 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-date-generator-log-group",
             log_group_name=f"/aws/lambda/{date_generator.function_name}",
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
-            retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
-            else aws_logs.RetentionDays.ONE_DAY,
+            removal_policy=core.RemovalPolicy.DESTROY
+            if removal_policy_destroy
+            else core.RemovalPolicy.RETAIN,
+            retention=aws_logs.RetentionDays.ONE_DAY
+            if removal_policy_destroy
+            else aws_logs.RetentionDays.TWO_WEEKS,
         )
 
         link_fetcher_environment_vars = {
@@ -207,12 +208,12 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-link-fetcher-log-group",
             log_group_name=f"/aws/lambda/{link_fetcher.function_name}",
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
-            retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
-            else aws_logs.RetentionDays.ONE_DAY,
+            removal_policy=core.RemovalPolicy.DESTROY
+            if removal_policy_destroy
+            else core.RemovalPolicy.RETAIN,
+            retention=aws_logs.RetentionDays.ONE_DAY
+            if removal_policy_destroy
+            else aws_logs.RetentionDays.TWO_WEEKS,
         )
 
         aws_cloudwatch.Alarm(
@@ -227,7 +228,7 @@ class DownloaderStack(core.Stack):
             "STAGE": identifier,
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
-            "USE_INTHUB2": "YES" if prod else "NO",
+            "USE_INTHUB2": "YES" if use_inthub2 else "NO",
         }
 
         if scihub_url:
@@ -251,12 +252,12 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-downloader-log-group",
             log_group_name=f"/aws/lambda/{self.downloader.function_name}",
-            removal_policy=core.RemovalPolicy.RETAIN
-            if prod
-            else core.RemovalPolicy.DESTROY,
-            retention=aws_logs.RetentionDays.TWO_WEEKS
-            if prod
-            else aws_logs.RetentionDays.ONE_DAY,
+            removal_policy=core.RemovalPolicy.DESTROY
+            if removal_policy_destroy
+            else core.RemovalPolicy.RETAIN,
+            retention=aws_logs.RetentionDays.ONE_DAY
+            if removal_policy_destroy
+            else aws_logs.RetentionDays.TWO_WEEKS,
         )
 
         aws_cloudwatch.Alarm(
@@ -285,12 +286,22 @@ class DownloaderStack(core.Stack):
         scihub_credentials.grant_read(link_fetcher)
         scihub_credentials.grant_read(self.downloader)
 
+        if use_inthub2:
+            inthub2_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
+                self,
+                id=f"{identifier}-inthub2-credentials",
+                secret_name=(
+                    f"hls-s2-downloader-serverless/{identifier}/inthub2-credentials"
+                ),
+            )
+            inthub2_credentials.grant_read(self.downloader)
+
         to_download_queue.grant_send_messages(link_fetcher)
 
         to_download_queue.grant_consume_messages(self.downloader)
         self.downloader.add_event_source(
             aws_lambda_event_sources.SqsEventSource(
-                queue=to_download_queue, batch_size=1, enabled=not disable_downloading
+                queue=to_download_queue, batch_size=1, enabled=enable_downloading
             )
         )
 
@@ -332,7 +343,7 @@ class DownloaderStack(core.Stack):
             ),
         )
 
-        if prod:
+        if schedule_link_fetching:
             _ = aws_events.Rule(
                 self,
                 id=f"{identifier}-link-fetch-rule",
