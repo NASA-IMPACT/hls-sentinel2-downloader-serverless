@@ -14,7 +14,5 @@ class Granule(Base):
     ingestiondate = Column(DateTime, nullable=False)
     download_url = Column(String(256), nullable=False)
     downloaded = Column(Boolean, nullable=False, default=False)
-    download_started = Column(DateTime, default=None)
-    download_finished = Column(DateTime, default=None)
     download_retries = Column(SmallInteger, nullable=False, default=0)
     expired = Column(Boolean, nullable=False, default=False)
