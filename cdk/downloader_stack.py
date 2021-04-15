@@ -337,7 +337,7 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-link-fetcher-map",
             input_path="$.Payload.query_dates",
             parameters={"query_date.$": "$$.Map.Item.Value"},
-            max_concurrency=3
+            max_concurrency=3,
         ).iterator(link_fetcher_task)
 
         link_fetcher_step_function_definition = date_generator_task.next(
