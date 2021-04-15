@@ -1,5 +1,3 @@
-import os
-
 from aws_cdk import (
     aws_cloudwatch,
     aws_ec2,
@@ -18,8 +16,6 @@ from aws_cdk import (
     aws_stepfunctions_tasks,
     core,
 )
-
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__)).replace("cdk", "")
 
 
 class DownloaderStack(core.Stack):
