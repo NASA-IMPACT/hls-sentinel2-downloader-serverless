@@ -41,6 +41,8 @@ def handler(event, context):
     image_filename = image_message["filename"]
     download_url = get_download_url(image_message["download_url"])
 
+    LOGGER.info(f"Received event to download image: {image_filename}")
+
     try:
         granule = get_granule(image_id)
     except GranuleNotFoundException:
@@ -58,6 +60,8 @@ def handler(event, context):
             download_url,
             granule.beginposition,
         )
+
+        LOGGER.info(f"Successfully downloaded image: {image_filename}")
     except Exception as ex:
         increase_retry_count(image_id)
         raise ex

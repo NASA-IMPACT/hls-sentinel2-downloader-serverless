@@ -1,10 +1,9 @@
-import os
-
 from aws_cdk import (
     aws_cloudwatch,
     aws_ec2,
     aws_events,
     aws_events_targets,
+    aws_iam,
     aws_lambda,
     aws_lambda_event_sources,
     aws_lambda_python,
@@ -17,8 +16,6 @@ from aws_cdk import (
     aws_stepfunctions_tasks,
     core,
 )
-
-REPO_ROOT = os.path.dirname(os.path.abspath(__file__)).replace("cdk", "")
 
 
 class DownloaderStack(core.Stack):
@@ -191,6 +188,23 @@ class DownloaderStack(core.Stack):
         if scihub_url:
             link_fetcher_environment_vars["SCIHUB_URL"] = scihub_url
 
+        lambda_insights_policy = aws_iam.ManagedPolicy.from_managed_policy_arn(
+            self,
+            id=f"cloudwatch-lambda-insights-policy-{identifier}",
+            managed_policy_arn=(
+                "arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy"
+            ),
+        )
+
+        insights_layer = aws_lambda.LayerVersion.from_layer_version_arn(
+            self,
+            id=f"lambda-insights-extension-{identifier}",
+            layer_version_arn=(
+                "arn:aws:lambda:us-west-2:580247275435:"
+                "layer:LambdaInsightsExtension:14"
+            ),
+        )
+
         link_fetcher = aws_lambda_python.PythonFunction(
             self,
             id=f"{identifier}-link-fetcher",
@@ -198,7 +212,7 @@ class DownloaderStack(core.Stack):
             index="handler.py",
             handler="handler",
             layers=[db_layer, psycopg2_layer],
-            memory_size=1024,
+            memory_size=200,
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=link_fetcher_environment_vars,
@@ -240,8 +254,8 @@ class DownloaderStack(core.Stack):
             entry="lambdas/downloader",
             index="handler.py",
             handler="handler",
-            layers=[db_layer, psycopg2_layer],
-            memory_size=3072,
+            layers=[db_layer, psycopg2_layer, insights_layer],
+            memory_size=1200,
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
@@ -275,6 +289,8 @@ class DownloaderStack(core.Stack):
             parameter_name=f"/integration_tests/{identifier}/downloader_arn",
         )
 
+        self.downloader.role.add_managed_policy(lambda_insights_policy)
+
         downloader_rds.secret.grant_read(link_fetcher)
         downloader_rds.secret.grant_read(self.downloader)
 
@@ -297,7 +313,6 @@ class DownloaderStack(core.Stack):
             inthub2_credentials.grant_read(self.downloader)
 
         to_download_queue.grant_send_messages(link_fetcher)
-
         to_download_queue.grant_consume_messages(self.downloader)
         self.downloader.add_event_source(
             aws_lambda_event_sources.SqsEventSource(
@@ -322,6 +337,7 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-link-fetcher-map",
             input_path="$.Payload.query_dates",
             parameters={"query_date.$": "$$.Map.Item.Value"},
+            max_concurrency=3,
         ).iterator(link_fetcher_task)
 
         link_fetcher_step_function_definition = date_generator_task.next(

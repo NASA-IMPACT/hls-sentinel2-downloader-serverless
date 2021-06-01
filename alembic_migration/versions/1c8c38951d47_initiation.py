@@ -28,8 +28,6 @@ def upgrade():
         Column("download_url", String(256), nullable=False),
         Column("checksum", String(256), nullable=False, server_default=""),
         Column("downloaded", Boolean, nullable=False, server_default="false"),
-        Column("download_started", DateTime, server_default=None),
-        Column("download_finished", DateTime, server_default=None),
         Column("download_retries", SmallInteger, nullable=False, server_default="0"),
         Column("expired", Boolean, nullable=False, server_default="false"),
     )

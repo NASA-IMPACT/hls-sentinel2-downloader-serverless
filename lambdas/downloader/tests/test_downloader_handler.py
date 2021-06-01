@@ -504,7 +504,7 @@ def test_that_handler_correctly_logs_and_returns_if_already_downloaded(
 
     with mock.patch("handler.LOGGER.info") as patched_logger:
         handler(sqs_message, None)
-        patched_logger.assert_called_once_with(
+        patched_logger.assert_called_with(
             "Granule with id: test-id has already been downloaded"
         )
 
@@ -810,7 +810,9 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
 @responses.activate
 @freeze_time("2020-02-02 00:00:00")
 @mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
+@mock.patch("handler.LOGGER.info")
 def test_that_handler_correctly_downloads_file_and_updates_granule(
+    patched_logger,
     db_session,
     fake_safe_file_contents,
     mock_s3_bucket,
@@ -851,7 +853,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     db_session.add(
         Granule(
             id="test-id",
-            filename="a-filename",
+            filename="test-filename",
             tileid="NM901",
             size=100,
             beginposition=datetime.now(),
@@ -882,11 +884,20 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     )
     assert_that(status.value).is_equal_to(str(datetime.now()))
 
+    patched_logger.assert_has_calls(
+        [
+            mock.call("Received event to download image: test-filename"),
+            mock.call("Successfully downloaded image: test-filename"),
+        ]
+    )
+
 
 @responses.activate
 @freeze_time("2020-02-02 00:00:00")
 @mock.patch.dict(os.environ, {"USE_INTHUB2": "YES"})
+@mock.patch("handler.LOGGER.info")
 def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2(
+    patched_logger,
     db_session,
     fake_safe_file_contents,
     mock_s3_bucket,
@@ -927,7 +938,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
     db_session.add(
         Granule(
             id="test-id",
-            filename="a-filename",
+            filename="test-filename",
             tileid="NM901",
             size=100,
             beginposition=datetime.now(),
@@ -957,3 +968,10 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
         .first()
     )
     assert_that(status.value).is_equal_to(str(datetime.now()))
+
+    patched_logger.assert_has_calls(
+        [
+            mock.call("Received event to download image: test-filename"),
+            mock.call("Successfully downloaded image: test-filename"),
+        ]
+    )
