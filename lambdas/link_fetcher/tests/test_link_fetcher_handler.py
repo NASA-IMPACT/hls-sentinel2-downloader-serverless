@@ -31,9 +31,9 @@ from scihub_result import ScihubResult
 
 def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():
     tile_ids = get_accepted_tile_ids()
-    assert_that(tile_ids).is_length(18501)
+    assert_that(tile_ids).is_length(18952)
     assert_that(tile_ids[0]).is_equal_to("01FBE")
-    assert_that(tile_ids[18500]).is_equal_to("60WWV")
+    assert_that(tile_ids[18951]).is_equal_to("60WWV")
 
 
 def test_that_link_fetcher_handler_correctly_loads_scihub_credentials(
