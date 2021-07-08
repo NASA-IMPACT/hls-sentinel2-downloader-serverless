@@ -21,7 +21,7 @@ downloader_stack = DownloaderStack(
     scihub_url=integration_stack.scihub_url,
 )
 
-integration_stack.upload_bucket.grant_read_write(downloader_stack.downloader)
+integration_stack.upload_bucket.grant_put(downloader_stack.downloader)
 
 for k, v in {
     "Project": "hls-s2-downloader-serverless",
