@@ -196,8 +196,8 @@ Your Bucket Policy will look like:
                 "AWS": "<downloader-role-arn>"
             },
             "Action": [
-                "s3:PutObject",
-                "s3:Abort"
+                "s3:PutObject*",
+                "s3:Abort*"
             ],
             "Resource": [
                 "arn:aws:s3:::<bucket-name>/*",
