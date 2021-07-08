@@ -181,9 +181,31 @@ The deployment relies on an S3 Bucket being available to upload images to. The B
 
 This is **required** in standard deployments, for integration deployments, a bucket is created and setup for you.
 
-You must allow the `downloader` function `read` and `write` permissions to your bucket, you can find the ARN of the `downloader` function in
-SSM Parameter Store [here](https://us-west-2.console.aws.amazon.com/systems-manager/parameters/) under the name `integration_tests/<IDENTIFIER>/downloader_arn`. Navigate to the function and use its Execution Role ARN within the Buckets permissions to allow access.
+You must allow the `downloader` function `read` and `write` permissions to your bucket, you can find the ARN of the `downloader` functions execution role in
+SSM Parameter Store [here](https://us-west-2.console.aws.amazon.com/systems-manager/parameters/) under the name `integration_tests/<IDENTIFIER>/downloader_role_arn`. Use this within the Buckets permissions to allow access.
 
+Your Bucket Policy will look like:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "<downloader-role-arn>"
+            },
+            "Action": [
+                "s3:PutObject",
+                "s3:Abort"
+            ],
+            "Resource": [
+                "arn:aws:s3:::<bucket-name>/*",
+            ]
+        }
+    ]
+}
+```
 
 ## Standard Deployments
 

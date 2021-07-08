@@ -289,6 +289,13 @@ class DownloaderStack(core.Stack):
             parameter_name=f"/integration_tests/{identifier}/downloader_arn",
         )
 
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-downloader-role-arn",
+            string_value=self.downloader.role.role_arn,
+            parameter_name=(f"/integration_tests/{identifier}/downloader_role_arn"),
+        )
+
         self.downloader.role.add_managed_policy(lambda_insights_policy)
 
         downloader_rds.secret.grant_read(link_fetcher)

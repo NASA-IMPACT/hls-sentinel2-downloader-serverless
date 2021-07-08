@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from assertpy import assert_that
 from db.models.granule import Granule
@@ -13,6 +13,7 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
     image_download_url_part = "/dhus/odata/v1/Products('integration-test-id')/$value"
     image_download_url = f"{mock_scihub_api_url}{image_download_url_part}"
 
+    now = datetime.now(timezone.utc)
     session_maker = get_session_maker()
     with get_session(session_maker) as db:
         db.add(
@@ -21,9 +22,9 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
                 filename="integration-test-filename.SAFE",
                 tileid="TS101",
                 size=100,
-                beginposition=datetime.now(),
-                endposition=datetime.now(),
-                ingestiondate=datetime.now(),
+                beginposition=now,
+                endposition=now,
+                ingestiondate=now,
                 download_url=image_download_url,
             )
         )
@@ -45,13 +46,13 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
         }
     )
 
-    before_invocation = datetime.now()
+    before_invocation = datetime.now(timezone.utc)
     _ = lambda_client.invoke(
         FunctionName=downloader_arn,
         InvocationType="RequestResponse",
         Payload=invocation_body,
     )
-    after_invocation = datetime.now()
+    after_invocation = datetime.now(timezone.utc)
 
     with get_session(session_maker) as db:
         granule = db.query(Granule).filter(Granule.id == "integration-test-id").first()
@@ -63,11 +64,13 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
             .filter(Status.key_name == "last_file_downloaded_time")
             .first()
         )
-        assert_that(datetime.strptime(status.value, "%Y-%m-%d %H:%M:%S.%f")).is_between(
-            before_invocation, after_invocation
-        )
+        assert_that(
+            datetime.strptime(status.value, "%Y-%m-%d %H:%M:%S.%f").replace(
+                tzinfo=timezone.utc
+            )
+        ).is_between(before_invocation, after_invocation)
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = now.strftime("%Y-%m-%d")
     bucket_objects = list(upload_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
     assert_that(bucket_objects[0].key).is_equal_to(
