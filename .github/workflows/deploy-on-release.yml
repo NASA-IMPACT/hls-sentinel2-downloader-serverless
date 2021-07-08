@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [unit-tests]
     environment:
-      name: production
+      name: prod
     steps:
       - uses: actions/checkout@v2
 

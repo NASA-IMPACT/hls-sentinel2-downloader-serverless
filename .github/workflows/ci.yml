@@ -285,6 +285,8 @@ jobs:
   integration-tests:
     runs-on: ubuntu-20.04
     needs: [unit-tests, linting]
+    environment:
+      name: dev
     steps:
       - uses: actions/checkout@v2
 
