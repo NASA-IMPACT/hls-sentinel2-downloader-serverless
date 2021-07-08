@@ -81,6 +81,7 @@ class DownloaderStack(core.Stack):
                 vpc=vpc,
                 security_groups=[rds_security_group],
                 publicly_accessible=True,
+                auto_minor_version_upgrade=False,
             ),
             subnet_group=rds_subnet_group,
             default_database_name="hlss2downloader",
