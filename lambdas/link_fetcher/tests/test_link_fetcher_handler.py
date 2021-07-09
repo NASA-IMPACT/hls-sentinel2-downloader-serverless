@@ -331,7 +331,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_not_in_d
 def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     db_session, db_session_context
 ):
-    expected_available_links = 750
+    expected_available_links = 500
     db_session.add(
         GranuleCount(
             date=datetime(2020, 1, 1),

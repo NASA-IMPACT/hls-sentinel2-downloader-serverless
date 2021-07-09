@@ -157,7 +157,7 @@ def update_total_results(session_maker: sessionmaker, day: date, total_results: 
     """
     with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
-        granule_count.available_links += total_results
+        granule_count.available_links = total_results
         db.commit()
 
 
