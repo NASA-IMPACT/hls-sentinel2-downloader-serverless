@@ -362,7 +362,7 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
 
     bucket_objects = list(mock_s3_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("test-filename.SAFE")
+    assert_that(bucket_objects[0].key).is_equal_to("test-filename.zip")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
 
@@ -871,7 +871,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
 
     bucket_objects = list(mock_s3_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("test-filename")
+    assert_that(bucket_objects[0].key).is_equal_to("test-filename.zip")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
 
@@ -936,7 +936,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
     db_session.add(
         Granule(
             id="test-id",
-            filename="test-filename",
+            filename="test-filename.SAFE",
             tileid="NM901",
             size=100,
             beginposition=datetime.now(),
@@ -956,7 +956,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
 
     bucket_objects = list(mock_s3_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("test-filename")
+    assert_that(bucket_objects[0].key).is_equal_to("test-filename.zip")
     bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
     assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
 

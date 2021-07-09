@@ -202,10 +202,12 @@ def download_file(
 
             s3_client = get_s3_client()
             upload_bucket = os.environ["UPLOAD_BUCKET"]
+            root, ext = os.path.splitext(image_filename)
+            zip_key = f"{root}.zip"
             s3_client.put_object(
                 Body=response.raw.read(),
                 Bucket=upload_bucket,
-                Key=f"{image_filename}",
+                Key=f"{zip_key}",
                 ContentMD5=aws_checksum,
             )
 
