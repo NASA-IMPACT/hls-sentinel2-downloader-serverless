@@ -17,7 +17,7 @@ from handler import (
     ensure_three_decimal_points_for_milliseconds_and_replace_z,
     filter_scihub_results,
     get_accepted_tile_ids,
-    get_available_and_fetched_links,
+    get_fetched_links,
     get_page_for_query_and_total_results,
     get_query_parameters,
     get_scihub_auth,
@@ -288,15 +288,14 @@ def test_that_link_fetcher_handler_correctly_adds_scihub_result_to_queue(
     assert_that(scihub_result_filename).is_equal_to(message_body["filename"])
 
 
-def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_in_db(  # noqa
+def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_in_db(  # noqa
     db_session, db_session_context
 ):
-    expected_available_links = 1000
     expected_fetched_links = 400
     db_session.add(
         GranuleCount(
             date=datetime(2020, 1, 1),
-            available_links=expected_available_links,
+            available_links=0,
             fetched_links=expected_fetched_links,
             last_fetched_time=datetime(2020, 1, 1, 0, 0, 0),
         )
@@ -304,26 +303,19 @@ def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_lin
     db_session.commit()
 
     with patch("handler.get_session", db_session_context):
-        actual_available_links, actual_fetched_links = get_available_and_fetched_links(
-            None, datetime(2020, 1, 1)
-        )
-        assert_that(expected_available_links).is_equal_to(actual_available_links)
+        actual_fetched_links = get_fetched_links(None, datetime(2020, 1, 1))
         assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
 
 
 @freeze_time("2020-12-31 10:10:10")
-def test_that_link_fetcher_handler_correctly_retrieves_available_and_fetched_links_if_not_in_db(  # noqa
+def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_not_in_db(  # noqa
     db_session, db_session_context
 ):
-    expected_available_links = 0
     expected_fetched_links = 0
     expected_last_fetched_time = datetime.now()
 
     with patch("handler.get_session", db_session_context):
-        actual_available_links, actual_fetched_links = get_available_and_fetched_links(
-            None, datetime(2020, 12, 31)
-        )
-        assert_that(expected_available_links).is_equal_to(actual_available_links)
+        actual_fetched_links = get_fetched_links(None, datetime(2020, 12, 31))
         assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
 
     actual_last_fetched_time = (

@@ -29,7 +29,7 @@ def handler(event, context):
     updated_total_results = False
     day = datetime.strptime(event["query_date"], "%Y-%m-%d").date()
 
-    available_links, fetched_links = get_available_and_fetched_links(session_maker, day)
+    fetched_links = get_fetched_links(session_maker, day)
     params = get_query_parameters(fetched_links, day)
 
     while keep_querying_for_imagery:
@@ -118,21 +118,17 @@ def add_scihub_result_to_sqs(
     )
 
 
-def get_available_and_fetched_links(
-    session_maker: sessionmaker, day: date
-) -> Tuple[int, int]:
+def get_fetched_links(session_maker: sessionmaker, day: date) -> int:
     """
-    For a given day, return the values for total `available_links` and total
-    `fetched_links`, where `available_links` is the total number of results for the day
-    from SciHub and `fetched_links` is the total number of granules that have been
-    processed (but not necessarily added to the database because of filtering)
+    For a given day, return the total
+    `fetched_links`, where `fetched_links` is the total number of granules that have
+    been processed (but not necessarily added to the database because of filtering)
 
     If no entry is found, one is created
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
         for database interactions
     :param day: date representing the day to return results for
-    :returns: Tuple[int, int] representing a tuple of
-        (`available_links`, `fetched_links)
+    :returns: int representing `fetched_links`
     """
     with get_session(session_maker) as db:
         granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
@@ -145,9 +141,9 @@ def get_available_and_fetched_links(
             )
             db.add(granule_count)
             db.commit()
-            return (0, 0)
+            return 0
         else:
-            return (granule_count.available_links, granule_count.fetched_links)
+            return granule_count.fetched_links
 
 
 def update_total_results(session_maker: sessionmaker, day: date, total_results: int):
