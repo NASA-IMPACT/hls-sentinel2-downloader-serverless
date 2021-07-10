@@ -216,7 +216,10 @@ def test_that_download_file_correctly_raises_exception_if_request_fails(
 
     with pytest.raises(FailedToDownloadFileException) as ex:
         download_file(
-            "ACHECKSUM", "test-id", "test-filename.SAFE", download_url,
+            "ACHECKSUM",
+            "test-id",
+            "test-filename.SAFE",
+            download_url,
         )
     assert_that(str(ex.value)).is_equal_to(
         (
@@ -354,9 +357,7 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     )
     patched_generate_aws_checksum.return_value = "an-aws-checksum"
 
-    download_file(
-        "ACHECKSUM", "test-id", "test-filename.SAFE", download_url
-    )
+    download_file("ACHECKSUM", "test-id", "test-filename.SAFE", download_url)
 
     patched_generate_aws_checksum.assert_called_once_with("ACHECKSUM")
 

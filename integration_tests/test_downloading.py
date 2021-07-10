@@ -72,6 +72,4 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
 
     bucket_objects = list(upload_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to(
-        "integration-test-filename.zip"
-    )
+    assert_that(bucket_objects[0].key).is_equal_to("integration-test-filename.zip")
