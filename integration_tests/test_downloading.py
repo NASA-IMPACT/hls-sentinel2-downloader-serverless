@@ -70,9 +70,8 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
             )
         ).is_between(before_invocation, after_invocation)
 
-    today_str = now.strftime("%Y-%m-%d")
     bucket_objects = list(upload_bucket.objects.all())
     assert_that(bucket_objects).is_length(1)
     assert_that(bucket_objects[0].key).is_equal_to(
-        f"{today_str}/integration-test-filename.SAFE"
+        "integration-test-filename.zip"
     )
