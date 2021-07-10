@@ -44,7 +44,7 @@ def handler(event, context):
     LOGGER.info(f"Received event to download image: {image_filename}")
 
     try:
-        granule = get_granule(image_id)
+        get_granule(image_id)
     except GranuleNotFoundException:
         return
     except GranuleAlreadyDownloadedException:
@@ -58,7 +58,6 @@ def handler(event, context):
             image_id,
             image_filename,
             download_url,
-            granule.beginposition,
         )
 
         LOGGER.info(f"Successfully downloaded image: {image_filename}")
@@ -178,7 +177,6 @@ def download_file(
     image_id: str,
     image_filename: str,
     download_url: str,
-    begin_position: datetime,
 ):
     """
     For a given image of id `image_id` and download location of `download_url`, make
@@ -192,8 +190,6 @@ def download_file(
         `granule` table
     :param download_url: str representing the SciHub URL to request the images file
         from
-    :param begin_position: datetime representing the begin_position of the image in the
-        `granule` table
     """
     session_maker = get_session_maker()
     with get_session(session_maker) as db:
@@ -204,14 +200,14 @@ def download_file(
 
             aws_checksum = generate_aws_checksum(image_checksum)
 
-            begin_position_str = begin_position.strftime("%Y-%m-%d")
-
             s3_client = get_s3_client()
             upload_bucket = os.environ["UPLOAD_BUCKET"]
+            root, ext = os.path.splitext(image_filename)
+            zip_key = f"{root}.zip"
             s3_client.put_object(
                 Body=response.raw.read(),
                 Bucket=upload_bucket,
-                Key=f"{begin_position_str}/{image_filename}",
+                Key=f"{zip_key}",
                 ContentMD5=aws_checksum,
             )
 
