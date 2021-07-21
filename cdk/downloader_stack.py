@@ -256,7 +256,7 @@ class DownloaderStack(core.Stack):
             index="handler.py",
             handler="handler",
             layers=[db_layer, psycopg2_layer, insights_layer],
-            memory_size=1200,
+            memory_size=3600,
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
