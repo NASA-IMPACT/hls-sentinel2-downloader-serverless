@@ -260,7 +260,7 @@ class DownloaderStack(core.Stack):
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
-            reserved_concurrent_executions=15,
+            reserved_concurrent_executions=24,
         )
 
         aws_logs.LogGroup(

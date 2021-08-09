@@ -8,12 +8,12 @@ def handler(event, context):
 
 def get_dates() -> List[str]:
     """
-    Returns 21 date strings from `datetime.now() - 1 day` with the latest day first
+    Returns 5 date strings from `datetime.now() - 1 day` with the latest day first
     Strings are formatted as %Y-%m-%d
     :returns: List[str] representing 21 days from yesterday
     """
     yesterdays_date = datetime.now().date() - timedelta(days=1)
     return [
         (yesterdays_date - timedelta(days=day)).strftime("%Y-%m-%d")
-        for day in range(0, 21)
+        for day in range(0, 5)
     ]
