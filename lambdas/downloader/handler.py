@@ -195,26 +195,26 @@ def download_file(
     with get_session(session_maker) as db:
         try:
             auth = get_scihub_auth(os.environ["USE_INTHUB2"] == "YES")
-            response = requests.get(url=download_url, auth=auth, stream=True)
-            response.raise_for_status()
+            with requests.get(url=download_url, auth=auth, stream=True) as response:
+                response.raise_for_status()
 
-            aws_checksum = generate_aws_checksum(image_checksum)
+                aws_checksum = generate_aws_checksum(image_checksum)
 
-            s3_client = get_s3_client()
-            upload_bucket = os.environ["UPLOAD_BUCKET"]
-            root, ext = os.path.splitext(image_filename)
-            zip_key = f"{root}.zip"
-            s3_client.put_object(
-                Body=response.raw.read(),
-                Bucket=upload_bucket,
-                Key=f"{zip_key}",
-                ContentMD5=aws_checksum,
-            )
+                s3_client = get_s3_client()
+                upload_bucket = os.environ["UPLOAD_BUCKET"]
+                root, ext = os.path.splitext(image_filename)
+                zip_key = f"{root}.zip"
+                s3_client.put_object(
+                    Body=response.raw.read(),
+                    Bucket=upload_bucket,
+                    Key=f"{zip_key}",
+                    ContentMD5=aws_checksum,
+                )
 
-            granule = db.query(Granule).filter(Granule.id == image_id).first()
-            granule.downloaded = True
-            granule.checksum = image_checksum
-            db.commit()
+                granule = db.query(Granule).filter(Granule.id == image_id).first()
+                granule.downloaded = True
+                granule.checksum = image_checksum
+                db.commit()
         except requests.RequestException as ex:
             error_message = (
                 "Requests exception thrown downloading granule with download_url:"
