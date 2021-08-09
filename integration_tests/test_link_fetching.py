@@ -43,7 +43,7 @@ def test_that_link_fetching_invocation_executes_correctly(
         assert_that(granules).is_length(68)
 
         granule_counts = db.query(GranuleCount).all()
-        assert_that(granule_counts).is_length(21)
+        assert_that(granule_counts).is_length(5)
 
         statuses = db.query(Status).all()
         assert_that(statuses).is_length(1)
@@ -103,7 +103,7 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
         assert_that(granule_we_inserted.download_url).is_equal_to("A download url")
 
         granule_counts = db.query(GranuleCount).all()
-        assert_that(granule_counts).is_length(21)
+        assert_that(granule_counts).is_length(5)
 
         statuses = db.query(Status).all()
         assert_that(statuses).is_length(1)
