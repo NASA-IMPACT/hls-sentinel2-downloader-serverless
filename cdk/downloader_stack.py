@@ -14,6 +14,7 @@ from aws_cdk import (
     aws_ssm,
     aws_stepfunctions,
     aws_stepfunctions_tasks,
+    aws_s3,
     core,
 )
 
@@ -262,6 +263,9 @@ class DownloaderStack(core.Stack):
             environment=downloader_environment_vars,
             reserved_concurrent_executions=24,
         )
+
+        target_bucket = aws_s3.Bucket.from_bucket_name(self, upload_bucket)
+        target_bucket.grant_read_write(self.downloader)
 
         aws_logs.LogGroup(
             self,
