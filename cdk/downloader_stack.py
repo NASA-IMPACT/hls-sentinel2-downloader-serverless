@@ -264,7 +264,11 @@ class DownloaderStack(core.Stack):
             reserved_concurrent_executions=24,
         )
 
-        target_bucket = aws_s3.Bucket.from_bucket_name(self, upload_bucket)
+        target_bucket = aws_s3.Bucket.from_bucket_name(
+            self,
+            f"{identifier}-target_bucket",
+            upload_bucket
+        )
         target_bucket.grant_read_write(self.downloader)
 
         aws_logs.LogGroup(
