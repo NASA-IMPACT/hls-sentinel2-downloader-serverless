@@ -9,12 +9,12 @@ from aws_cdk import (
     aws_lambda_python,
     aws_logs,
     aws_rds,
+    aws_s3,
     aws_secretsmanager,
     aws_sqs,
     aws_ssm,
     aws_stepfunctions,
     aws_stepfunctions_tasks,
-    aws_s3,
     core,
 )
 
