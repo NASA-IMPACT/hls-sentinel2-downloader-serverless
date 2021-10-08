@@ -265,9 +265,7 @@ class DownloaderStack(core.Stack):
         )
 
         target_bucket = aws_s3.Bucket.from_bucket_name(
-            self,
-            f"{identifier}-target_bucket",
-            upload_bucket
+            self, f"{identifier}-target_bucket", upload_bucket
         )
         target_bucket.grant_read_write(self.downloader)
 
