@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, TypedDict
 
 import boto3
 import requests
@@ -23,6 +23,8 @@ from exceptions import (
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
+    CopernicusAuthenticationNotRetrievedException,
+    CopernicusTokenNotRetrievedException,
     SciHubAuthenticationNotRetrievedException,
 )
 
@@ -33,6 +35,16 @@ SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
 SCIHUB_CHECKSUM_URL_FMT = (
     f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/?$format=json&$select=Checksum"
 )
+COPERNICUS_IDENTITY_URL = os.environ.get(
+    "COPERNICUS_IDENTITY_URL",
+    "https://identity.dataspace.copernicus.eu/auth/realms/"
+    "CDSE/protocol/openid-connect/token"
+)
+
+
+class Auth(TypedDict):
+    username: str
+    password: str
 
 
 def handler(event, context):
@@ -125,6 +137,54 @@ def get_granule(image_id: str) -> Granule:
             raise FailedToRetrieveGranuleException(error_message)
 
 
+def get_username_password() -> Auth:
+    """
+    Retrieves the username and password for Copernicus which are stored in
+    SecretsManager
+    :returns: Tuple[str, str] representing the username and password
+    """
+    try:
+        stage = os.environ["STAGE"]
+        secrets_manager_client = boto3.client("secretsmanager")
+        secret = json.loads(
+            secrets_manager_client.get_secret_value(
+                SecretId=(
+                    f"hls-s2-downloader-serverless/{stage}/copernicus-credentials"
+                )
+            )["SecretString"]
+        )
+        return {"username": secret["username"], "password": secret["password"]}
+    except Exception as ex:
+        raise CopernicusAuthenticationNotRetrievedException(
+            f"There was an error retrieving SciHub Credentials: {str(ex)}"
+        )
+
+
+def get_copernicus_token() -> str:
+    """
+    Retrieves keycloak token from Copernicus endpoint
+    :returns: str of token
+    """
+    try:
+        auth = get_username_password()
+        data = {
+            "client_id": "cdse-public",
+            "username": auth["username"],
+            "password": auth["password"],
+            "grant_type": "password",
+        }
+        response = requests.post(COPERNICUS_IDENTITY_URL, data)
+        response.raise_for_status()
+        return response.json()["access_token"]
+    except Exception as ex:
+        error_message = (
+            "There was error retrieving the keycloak token"
+            f" {str(ex)}"
+        )
+        LOGGER.error(error_message)
+        raise CopernicusTokenNotRetrievedException(error_message)
+
+
 def get_scihub_auth(use_inthub2: bool = False) -> Tuple[str, str]:
     """
     Retrieves the username and password for SciHub or IntHub, which are stored in
@@ -194,8 +254,10 @@ def download_file(
     session_maker = get_session_maker()
     with get_session(session_maker) as db:
         try:
-            auth = get_scihub_auth(os.environ["USE_INTHUB2"] == "YES")
-            with requests.get(url=download_url, auth=auth, stream=True) as response:
+            token = get_copernicus_token()
+            session = requests.Session()
+            session.headers.update({'Authorization': f'Bearer {token}'})
+            with session.get(url=download_url, stream=True) as response:
                 response.raise_for_status()
 
                 aws_checksum = generate_aws_checksum(image_checksum)

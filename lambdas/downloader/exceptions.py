@@ -14,7 +14,11 @@ class RetryLimitReachedException(Exception):
     pass
 
 
-class SciHubAuthenticationNotRetrievedException(Exception):
+class CopernicusAuthenticationNotRetrievedException(Exception):
+    pass
+
+
+class CopernicusTokenNotRetrievedException(Exception):
     pass
 
 
@@ -31,4 +35,8 @@ class FailedToUploadFileException(Exception):
 
 
 class FailedToUpdateGranuleDownloadFinishException(Exception):
+    pass
+
+
+class SciHubAuthenticationNotRetrievedException(Exception):
     pass
