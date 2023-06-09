@@ -310,6 +310,14 @@ class DownloaderStack(core.Stack):
         scihub_credentials.grant_read(link_fetcher)
         scihub_credentials.grant_read(self.downloader)
 
+        copernicus_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
+            self,
+            id=f"{identifier}-copernicus-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/copernicus-credentials",
+        )
+        copernicus_credentials.grant_read(link_fetcher)
+        copernicus_credentials.grant_read(self.downloader)
+
         if use_inthub2:
             inthub2_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
                 self,

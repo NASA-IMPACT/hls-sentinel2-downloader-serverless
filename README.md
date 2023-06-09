@@ -160,11 +160,9 @@ The Secret should look like:
 }
 ```
 
-### IntHub2 Credentials
+### Copernicus Credentials
 
-The deployment relies on the IntHub2 Credentials having been added to the AWS account previously within Secrets Manager. For your given `IDENTIFIER` value, the Secret should be stored under `hls-s2-downloader-serverless/<IDENTIFIER>/inthub2-credentials`.
-
-This is **required** in standard deployments where `USE_INTHUB2` is set to `TRUE`, it is not used within integration deployments.
+The deployment relies on the Copernicus Credentials having been added to the AWS account previously within Secrets Manager. For your given `IDENTIFIER` value, the Secret should be stored under `hls-s2-downloader-serverless/<IDENTIFIER>/copernicus-credentials`.
 
 The Secret should look like:
 
