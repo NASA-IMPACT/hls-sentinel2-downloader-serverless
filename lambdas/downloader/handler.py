@@ -31,6 +31,9 @@ from exceptions import (
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
+COPERNICUS_ZIPPER_URL = (
+    "http://zipper.dataspace.copernicus.eu/odata/v1/Products({})/$value"
+)
 SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
 SCIHUB_CHECKSUM_URL_FMT = (
     f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/?$format=json&$select=Checksum"
@@ -42,7 +45,7 @@ COPERNICUS_IDENTITY_URL = os.environ.get(
 )
 
 
-class Auth(TypedDict):
+class CopernicusCredentials(TypedDict):
     username: str
     password: str
 
@@ -51,7 +54,7 @@ def handler(event, context):
     image_message = json.loads(event["Records"][0]["body"])
     image_id = image_message["id"]
     image_filename = image_message["filename"]
-    download_url = get_download_url(image_message["download_url"])
+    download_url = get_download_url(image_message["id"])
 
     LOGGER.info(f"Received event to download image: {image_filename}")
 
@@ -80,18 +83,13 @@ def handler(event, context):
     update_last_file_downloaded_time()
 
 
-def get_download_url(image_message_download_url: str) -> str:
+def get_download_url(image_id: str) -> str:
     """
-    Takes the `download_url` value from `image_message` and returns a modified version
-    if the environment variable `USE_INTHUB2` is set to `YES`
-
-    By default, the `link_fetcher` handler will grab `scihub` urls, if we are using
-    `inthub2`, we just swap this into the url in the downloader.
+    Takes the `image_id` value from `image_message` and returns a
+    the zipper download url.
     """
-    if os.environ["USE_INTHUB2"] == "YES":
-        return image_message_download_url.replace("scihub", "inthub2", 1)
-    else:
-        return image_message_download_url
+    url = COPERNICUS_ZIPPER_URL.format(image_id)
+    return url
 
 
 def get_granule(image_id: str) -> Granule:
@@ -137,7 +135,7 @@ def get_granule(image_id: str) -> Granule:
             raise FailedToRetrieveGranuleException(error_message)
 
 
-def get_username_password() -> Auth:
+def get_copernicus_credentials() -> CopernicusCredentials:
     """
     Retrieves the username and password for Copernicus which are stored in
     SecretsManager
@@ -156,7 +154,7 @@ def get_username_password() -> Auth:
         return {"username": secret["username"], "password": secret["password"]}
     except Exception as ex:
         raise CopernicusAuthenticationNotRetrievedException(
-            f"There was an error retrieving SciHub Credentials: {str(ex)}"
+            f"There was an error retrieving Copernicus Credentials: {str(ex)}"
         )
 
 
@@ -166,11 +164,11 @@ def get_copernicus_token() -> str:
     :returns: str of token
     """
     try:
-        auth = get_username_password()
+        credentials = get_copernicus_credentials()
         data = {
             "client_id": "cdse-public",
-            "username": auth["username"],
-            "password": auth["password"],
+            "username": credentials["username"],
+            "password": credentials["password"],
             "grant_type": "password",
         }
         response = requests.post(COPERNICUS_IDENTITY_URL, data)

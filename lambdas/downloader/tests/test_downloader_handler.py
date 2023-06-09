@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 import responses
+from responses import matchers
 from assertpy import assert_that
 from botocore.client import ClientError
 from db.models.granule import Granule
@@ -21,7 +22,10 @@ from exceptions import (
     GranuleNotFoundException,
     RetryLimitReachedException,
     SciHubAuthenticationNotRetrievedException,
+    CopernicusTokenNotRetrievedException,
 )
+
+
 from handler import (
     download_file,
     generate_aws_checksum,
@@ -32,27 +36,19 @@ from handler import (
     handler,
     increase_retry_count,
     update_last_file_downloaded_time,
+    get_copernicus_credentials,
+    get_copernicus_token,
+)
+
+download_url = (
+    "http://zipper.dataspace.copernicus.eu/odata/v1/Products(test-id)/$value"
 )
 
 
-def test_that_get_download_url_returns_correct_url_if_inthub2_set_to_yes():
-    url_in = "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-
-    with mock.patch.dict(os.environ, {"USE_INTHUB2": "YES"}):
-        url_out = get_download_url(url_in)
-
-    assert_that(url_out).is_equal_to(
-        "https://inthub2.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
-
-
-def test_that_get_download_url_returns_correct_url_if_inthub2_set_to_no():
-    url_in = "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-
-    with mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"}):
-        url_out = get_download_url(url_in)
-
-    assert_that(url_out).is_equal_to(url_in)
+def test_that_get_download_url_returns_correct_url():
+    expected = download_url
+    actual = get_download_url("test-id")
+    assert_that(actual).is_equal_to(expected)
 
 
 @freeze_time("2020-01-01 01:00:00")
@@ -146,6 +142,40 @@ def test_that_inthub2_credentials_loaded_correctly(
     assert_that(auth[1]).is_equal_to(mock_inthub2_credentials["password"])
 
 
+def test_copernicus_credentials_loaded_correctly(
+    mock_coperernicus_credentials
+):
+    credentials = get_copernicus_credentials()
+    assert_that(credentials["username"]).is_equal_to(
+        mock_coperernicus_credentials["username"]
+    )
+
+
+@responses.activate
+def test_that_get_copernicus_token_raises_exception_if_request_fails(
+    mock_coperernicus_credentials
+):
+    token_url = (
+        "https://identity.dataspace.copernicus.eu/auth/realms/"
+        "CDSE/protocol/openid-connect/token"
+    )
+    responses.add(
+        responses.POST,
+        token_url,
+        body=b"",
+        status=404,
+    )
+
+    with pytest.raises(CopernicusTokenNotRetrievedException) as ex:
+        get_copernicus_token()
+
+    assert_that(str(ex.value)).is_equal_to(
+        "There was error retrieving the keycloak token"
+        " 404 Client Error: Not Found for url:"
+        f" {token_url}"
+    )
+
+
 @mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_exception_thrown_if_error_in_retrieving_scihub_credentials():
     with mock.patch("handler.boto3.client") as patch_boto:
@@ -200,18 +230,22 @@ def test_that_generate_aws_checksum_correctly_creates_a_base64_version():
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_download_file_correctly_raises_exception_if_request_fails(
-    db_session, mock_scihub_credentials
+    db_session, mock_scihub_credentials, get_copernicus_token
 ):
     download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
+        "https://zipper.dataspace.copernicus.eu/odata/v1/Products('test-id')/$value"
     )
     responses.add(
         responses.GET,
         download_url,
         body=b"",
         status=404,
+        match=[
+            matchers.header_matcher(
+                {"Authorization": "Bearer token"}
+            )
+        ],
     )
 
     with pytest.raises(FailedToDownloadFileException) as ex:
@@ -226,7 +260,7 @@ def test_that_download_file_correctly_raises_exception_if_request_fails(
             "Requests exception thrown downloading granule with "
             f"download_url: {download_url}, exception was: 404 Client Error: "
             "Not Found"
-            " for url: https://scihub.copernicus.eu/dhus/odata/v1/"
+            " for url: https://zipper.dataspace.copernicus.eu/odata/v1/"
             "Products('test-id')"
             "/$value"
         )
@@ -234,18 +268,19 @@ def test_that_download_file_correctly_raises_exception_if_request_fails(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_download_file_correctly_raises_exception_if_s3_upload_fails(
-    db_session, mock_s3_bucket, mock_scihub_credentials
+    db_session, mock_s3_bucket, mock_scihub_credentials, get_copernicus_token
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     responses.add(
         responses.GET,
         download_url,
         body=b"",
         status=200,
+        match=[
+            matchers.header_matcher(
+                {"Authorization": "Bearer token"}
+            )
+        ],
     )
 
     class FakeClient:
@@ -274,9 +309,9 @@ def test_that_download_file_correctly_raises_exception_if_s3_upload_fails(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_download_file_correctly_raises_exception_if_db_update_fails(
-    db_session, mock_s3_bucket, mock_scihub_credentials, fake_db_session_that_fails
+    db_session, mock_s3_bucket, mock_scihub_credentials,
+    fake_db_session_that_fails, get_copernicus_token,
 ):
     db_session.add(
         Granule(
@@ -293,16 +328,13 @@ def test_that_download_file_correctly_raises_exception_if_db_update_fails(
         )
     )
     db_session.commit()
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
+
     responses.add(
         responses.GET,
         download_url,
         body=b"",
         status=200,
     )
-
     with pytest.raises(FailedToUpdateGranuleDownloadFinishException) as ex:
         with mock.patch("handler.get_session", fake_db_session_that_fails):
             download_file(
@@ -321,7 +353,6 @@ def test_that_download_file_correctly_raises_exception_if_db_update_fails(
 
 @responses.activate
 @freeze_time("2020-01-01 00:00:00")
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.generate_aws_checksum")
 def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     patched_generate_aws_checksum,
@@ -329,6 +360,7 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
     fake_safe_file_contents,
     mock_scihub_credentials,
     mock_s3_bucket,
+    get_copernicus_token,
 ):
     db_session.add(
         Granule(
@@ -345,9 +377,6 @@ def test_that_download_file_correctly_uploads_file_to_s3_and_updates_db(
         )
     )
     db_session.commit()
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     responses.add(
         responses.GET,
         download_url,
@@ -418,7 +447,6 @@ def test_that_update_last_file_downloaded_time_fails_gracefully(
     )
 
 
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_handler_correctly_logs_and_returns_if_no_granule_found():
     sqs_message = {
         "Records": [
@@ -439,7 +467,6 @@ def test_that_handler_correctly_logs_and_returns_if_no_granule_found():
         patched_logger.assert_called_once_with("Granule with id: test-id not found")
 
 
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_handler_correctly_logs_and_returns_if_error_getting_granule(
     fake_db_session_that_fails,
 ):
@@ -469,7 +496,6 @@ def test_that_handler_correctly_logs_and_returns_if_error_getting_granule(
             assert_that(str(ex.value)).is_equal_to(expected_error_message)
 
 
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_handler_correctly_logs_and_returns_if_already_downloaded(
     db_session,
 ):
@@ -508,7 +534,6 @@ def test_that_handler_correctly_logs_and_returns_if_already_downloaded(
         )
 
 
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 def test_that_handler_correctly_logs_and_errors_if_retry_limit_reached(
     db_session,
 ):
@@ -550,7 +575,6 @@ def test_that_handler_correctly_logs_and_errors_if_retry_limit_reached(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(
     mock_increase_retry_count, db_session
@@ -598,15 +622,12 @@ def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.get_image_checksum")
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
-    mock_increase_retry_count, mock_get_image_checksum, db_session
+    mock_increase_retry_count, mock_get_image_checksum, db_session,
+    get_copernicus_token,
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     responses.add(
         responses.GET,
         download_url,
@@ -621,8 +642,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
                         "id": "test-id",
                         "filename": "test-filename",
                         "download_url": (
-                            "https://scihub.copernicus.eu/dhus/odata/v1/"
-                            "Products('test-id')/$value"
+                            download_url
                         ),
                     }
                 )
@@ -647,7 +667,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
     expected_error_message = (
         "Requests exception thrown downloading granule with download_url:"
         f" {download_url}, exception was: 404 Client Error: Not Found for url: "
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
+        + download_url
     )
 
     mock_get_image_checksum.return_value = "test-checksum"
@@ -660,15 +680,12 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.get_image_checksum")
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
-    mock_increase_retry_count, mock_get_image_checksum, db_session, mock_s3_bucket
+    mock_increase_retry_count, mock_get_image_checksum, db_session,
+    mock_s3_bucket, get_copernicus_token,
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     responses.add(
         responses.GET,
         download_url,
@@ -683,8 +700,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
                         "id": "test-id",
                         "filename": "test-filename.SAFE",
                         "download_url": (
-                            "https://scihub.copernicus.eu/dhus/odata/v1/"
-                            "Products('test-id')/$value"
+                            download_url
                         ),
                     }
                 )
@@ -730,7 +746,6 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
 
 
 @responses.activate
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.get_image_checksum")
 @mock.patch("handler.get_granule")
 @mock.patch("handler.increase_retry_count")
@@ -742,10 +757,8 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
     db_session,
     mock_s3_bucket,
     fake_db_session_that_fails,
+    get_copernicus_token,
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     responses.add(
         responses.GET,
         download_url,
@@ -760,8 +773,7 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
                         "id": "test-id",
                         "filename": "test-filename.SAFE",
                         "download_url": (
-                            "https://scihub.copernicus.eu/dhus/odata/v1/"
-                            "Products('test-id')/$value"
+                            download_url
                         ),
                     }
                 )
@@ -808,7 +820,6 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
 
 @responses.activate
 @freeze_time("2020-02-02 00:00:00")
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})
 @mock.patch("handler.LOGGER.info")
 def test_that_handler_correctly_downloads_file_and_updates_granule(
     patched_logger,
@@ -816,10 +827,8 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     fake_safe_file_contents,
     mock_s3_bucket,
     mock_scihub_credentials,
+    get_copernicus_token,
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     sqs_message = {
         "Records": [
             {
@@ -893,7 +902,6 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
 
 @responses.activate
 @freeze_time("2020-02-02 00:00:00")
-@mock.patch.dict(os.environ, {"USE_INTHUB2": "YES"})
 @mock.patch("handler.LOGGER.info")
 def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2(
     patched_logger,
@@ -901,10 +909,8 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
     fake_safe_file_contents,
     mock_s3_bucket,
     mock_inthub2_credentials,
+    get_copernicus_token,
 ):
-    download_url = (
-        "https://scihub.copernicus.eu/dhus/odata/v1/Products('test-id')/$value"
-    )
     sqs_message = {
         "Records": [
             {
@@ -920,7 +926,7 @@ def test_that_handler_correctly_downloads_file_and_updates_granule_using_inthub2
     }
     responses.add(
         responses.GET,
-        download_url.replace("scihub", "inthub2", 1),
+        download_url,
         body=fake_safe_file_contents,
         stream=True,
         status=200,

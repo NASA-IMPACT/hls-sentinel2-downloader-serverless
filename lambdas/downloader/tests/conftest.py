@@ -1,6 +1,7 @@
 import json
 import os
 from contextlib import contextmanager
+from unittest.mock import patch
 
 import alembic.command
 import alembic.config
@@ -139,6 +140,28 @@ def mock_inthub2_credentials(secrets_manager_client, monkeysession):
     )
     monkeysession.setenv("STAGE", "test")
     return secret
+
+
+@pytest.fixture(scope="session")
+def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
+    secret = {
+        "username": "test-copernicus-username",
+        "password": "test-copernicus-password"
+    }
+    secrets_manager_client.create_secret(
+        Name="hls-s2-downloader-serverless/test/copernicus-credentials",
+        SecretString=json.dumps(secret),
+    )
+    monkeysession.setenv("STAGE", "test")
+    return secret
+
+
+@pytest.fixture()
+def get_copernicus_token():
+    with patch(
+        "handler.get_copernicus_token",  return_value="token", autospec=True
+    ) as m:
+        yield m
 
 
 def check_pg_status(engine: Engine) -> bool:
