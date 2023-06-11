@@ -268,7 +268,7 @@ def download_file(
                     Body=response.raw.read(),
                     Bucket=upload_bucket,
                     Key=f"{zip_key}",
-                    ContentMD5=aws_checksum,
+                    #  ContentMD5=aws_checksum,
                 )
 
                 granule = db.query(Granule).filter(Granule.id == image_id).first()
