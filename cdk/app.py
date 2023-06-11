@@ -2,8 +2,11 @@
 import os
 
 from aws_cdk import core
+from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 
+
+load_dotenv(override=True)
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
@@ -12,7 +15,7 @@ enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
 schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
 use_inthub2 = os.environ["USE_INTHUB2"] == "TRUE"
 removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
-
+print(identifier)
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",

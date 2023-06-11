@@ -75,7 +75,7 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-downloader-rds",
             engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
-                version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
+                version=aws_rds.AuroraPostgresEngineVersion.VER_11_15
             ),
             instance_props=aws_rds.InstanceProps(
                 vpc=vpc,
