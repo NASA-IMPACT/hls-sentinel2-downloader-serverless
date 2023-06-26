@@ -109,7 +109,7 @@ def make_scihub_result(idx: int) -> ScihubResult:
 @pytest.fixture
 def scihub_result_maker():
     def make_scihub_results(number_of_results: int) -> List[ScihubResult]:
-        return [make_scihub_result(idx) for idx in range(0, number_of_results)]
+        return [make_scihub_result(idx) for idx in range(number_of_results)]
 
     return make_scihub_results
 

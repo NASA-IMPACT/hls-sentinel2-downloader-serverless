@@ -1,7 +1,7 @@
 import json
 import os
-from datetime import date, datetime
-from typing import Dict, List, Tuple
+from datetime import date, datetime, timezone
+from typing import Callable, Dict, List, Tuple
 
 import boto3
 import humanfriendly
@@ -9,29 +9,35 @@ import requests
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
-from db.session import get_session, get_session_maker
+from db.session import get_session_maker
 from mypy_boto3_sqs.client import SQSClient
 from scihub_result import ScihubResult
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session
+from typing_extensions import TypeAlias
+
+SessionMaker: TypeAlias = Callable[[], Session]
 
 SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
 SCIHUB_PRODUCT_URL_FMT = f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/"
 ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
+EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
-def handler(event, context):
-    session_maker = get_session_maker()
+def handler(event, context) -> None:
+    _handler(event, get_session_maker())
+
+
+def _handler(event, session_maker: SessionMaker) -> None:
     accepted_tile_ids = get_accepted_tile_ids()
     scihub_auth = get_scihub_auth()
-    keep_querying_for_imagery = True
     updated_total_results = False
     day = datetime.strptime(event["query_date"], "%Y-%m-%d").date()
 
     fetched_links = get_fetched_links(session_maker, day)
     params = get_query_parameters(fetched_links, day)
 
-    while keep_querying_for_imagery:
+    while True:
         scihub_results, total_results = get_page_for_query_and_total_results(
             params, scihub_auth
         )
@@ -41,7 +47,6 @@ def handler(event, context):
             updated_total_results = True
 
         if not scihub_results:
-            keep_querying_for_imagery = False
             break
 
         number_of_fetched_links = len(scihub_results)
@@ -58,7 +63,7 @@ def handler(event, context):
 
 
 def add_scihub_results_to_db_and_sqs(
-    session_maker: sessionmaker, scihub_results: List[ScihubResult]
+    session_maker: SessionMaker, scihub_results: List[ScihubResult]
 ):
     """
     Creates a record in the `granule` table for each of the provided ScihubResults and
@@ -72,26 +77,27 @@ def add_scihub_results_to_db_and_sqs(
     """
     sqs_client = boto3.client("sqs")
     to_download_queue_url = os.environ["TO_DOWNLOAD_SQS_QUEUE_URL"]
-    for result in scihub_results:
-        with get_session(session_maker) as db:
+
+    with session_maker() as session:
+        for result in scihub_results:
             try:
-                db.add(
+                session.add(
                     Granule(
-                        id=result["image_id"],
-                        filename=result["filename"],
-                        tileid=result["tileid"],
-                        size=result["size"],
-                        beginposition=result["beginposition"],
-                        endposition=result["endposition"],
-                        ingestiondate=result["ingestiondate"],
-                        download_url=result["download_url"],
+                        id=result.image_id,
+                        filename=result.filename,
+                        tileid=result.tileid,
+                        size=result.size,
+                        beginposition=result.beginposition,
+                        endposition=result.endposition,
+                        ingestiondate=result.ingestiondate,
+                        download_url=result.download_url,
                     )
                 )
-                db.commit()
+                session.commit()
                 add_scihub_result_to_sqs(result, sqs_client, to_download_queue_url)
             except IntegrityError:
-                print(f"{result['image_id']} already in Database, not adding")
-                db.rollback()
+                print(f"{result.image_id} already in Database, not adding")
+                session.rollback()
 
 
 def add_scihub_result_to_sqs(
@@ -108,15 +114,15 @@ def add_scihub_result_to_sqs(
         QueueUrl=queue_url,
         MessageBody=json.dumps(
             {
-                "id": scihub_result["image_id"],
-                "filename": scihub_result["filename"],
-                "download_url": scihub_result["download_url"],
+                "id": scihub_result.image_id,
+                "filename": scihub_result.filename,
+                "download_url": scihub_result.download_url,
             }
         ),
     )
 
 
-def get_fetched_links(session_maker: sessionmaker, day: date) -> int:
+def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
     """
     For a given day, return the total
     `fetched_links`, where `fetched_links` is the total number of granules that have
@@ -128,23 +134,25 @@ def get_fetched_links(session_maker: sessionmaker, day: date) -> int:
     :param day: date representing the day to return results for
     :returns: int representing `fetched_links`
     """
-    with get_session(session_maker) as db:
-        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
-        if not granule_count:
-            granule_count = GranuleCount(
-                date=day,
-                available_links=0,
-                fetched_links=0,
-                last_fetched_time=datetime.now(),
-            )
-            db.add(granule_count)
-            db.commit()
-            return 0
-        else:
+    with session_maker() as session:
+        granule_count = session.query(GranuleCount).filter_by(date=day).first()
+
+        if granule_count:
             return granule_count.fetched_links
 
+        granule_count = GranuleCount(
+            date=day,
+            available_links=0,
+            fetched_links=0,
+            last_fetched_time=datetime.now(),
+        )
+        session.add(granule_count)
+        session.commit()
 
-def update_total_results(session_maker: sessionmaker, day: date, total_results: int):
+        return 0
+
+
+def update_total_results(session_maker: SessionMaker, day: date, total_results: int):
     """
     For a given day and number of results, update the `available_links` value
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
@@ -153,13 +161,13 @@ def update_total_results(session_maker: sessionmaker, day: date, total_results: 
     :param total_results: int representing the total results available for the day,
         this value will be applied to `available_links`
     """
-    with get_session(session_maker) as db:
-        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
-        granule_count.available_links = total_results
-        db.commit()
+    with session_maker() as session:
+        if granule_count := session.query(GranuleCount).filter_by(date=day).first():
+            granule_count.available_links = total_results
+            session.commit()
 
 
-def update_last_fetched_link_time(session_maker: sessionmaker):
+def update_last_fetched_link_time(session_maker: SessionMaker):
     """
     Update the `last_linked_fetched_time` value in the `status` table
     Will set the value to `datetime.now()`, if not already present, the value will be
@@ -169,19 +177,19 @@ def update_last_fetched_link_time(session_maker: sessionmaker):
     """
     last_fetched_key_name = "last_linked_fetched_time"
     datetime_now = str(datetime.now())
-    with get_session(session_maker) as db:
-        last_linked_fetched_time = (
-            db.query(Status).filter(Status.key_name == last_fetched_key_name).first()
-        )
-        if not last_linked_fetched_time:
-            db.add(Status(key_name=last_fetched_key_name, value=datetime_now))
-            db.commit()
-        else:
+
+    with session_maker() as session:
+        if last_linked_fetched_time := (
+            session.query(Status).filter_by(key_name=last_fetched_key_name).first()
+        ):
             last_linked_fetched_time.value = datetime_now
-            db.commit()
+        else:
+            session.add(Status(key_name=last_fetched_key_name, value=datetime_now))
+
+        session.commit()
 
 
-def update_fetched_links(session_maker: sessionmaker, day: date, fetched_links: int):
+def update_fetched_links(session_maker: SessionMaker, day: date, fetched_links: int):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
@@ -191,11 +199,11 @@ def update_fetched_links(session_maker: sessionmaker, day: date, fetched_links: 
     :param fetched_links: int representing the total number of links fetched in this run
         it is not the total number of Granules created
     """
-    with get_session(session_maker) as db:
-        granule_count = db.query(GranuleCount).filter(GranuleCount.date == day).first()
-        granule_count.fetched_links += fetched_links
-        granule_count.last_fetched_time = datetime.now()
-        db.commit()
+    with session_maker() as session:
+        if granule_count := session.query(GranuleCount).filter_by(date=day).first():
+            granule_count.fetched_links += fetched_links
+            granule_count.last_fetched_time = datetime.now()
+            session.commit()
 
 
 def get_accepted_tile_ids() -> List[str]:
@@ -242,7 +250,7 @@ def filter_scihub_results(
     return [
         scihub_result
         for scihub_result in scihub_results
-        if scihub_result["tileid"] in accepted_tile_ids
+        if scihub_result.tileid in accepted_tile_ids
     ]
 
 
@@ -298,6 +306,16 @@ def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
     """
     image_id = feed_entry["id"]
     product_url = SCIHUB_PRODUCT_URL_FMT.format(image_id)
+
+    # These default assigments are simply to avoid type checkers from issuing
+    # "possibly unbound" warnings when constructing the ScihubResult instance below,
+    # since all of their assignments farther below appear within conditional blocks.
+    filename = ""
+    tileid = ""
+    size = 0
+    beginposition = EPOCH
+    endposition = EPOCH
+    ingestiondate = EPOCH
 
     for string in feed_entry["str"]:
         if string["name"] == "filename":
