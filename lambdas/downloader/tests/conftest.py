@@ -146,7 +146,7 @@ def mock_inthub2_credentials(secrets_manager_client, monkeysession):
 def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
     secret = {
         "username": "test-copernicus-username",
-        "password": "test-copernicus-password"
+        "password": "test-copernicus-password",
     }
     secrets_manager_client.create_secret(
         Name="hls-s2-downloader-serverless/test/copernicus-credentials",
@@ -159,7 +159,7 @@ def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
 @pytest.fixture()
 def get_copernicus_token():
     with patch(
-        "handler.get_copernicus_token",  return_value="token", autospec=True
+        "handler.get_copernicus_token", return_value="token", autospec=True
     ) as m:
         yield m
 

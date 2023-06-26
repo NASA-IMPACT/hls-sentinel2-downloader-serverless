@@ -11,10 +11,9 @@ from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session, get_session_maker
 from mypy_boto3_sqs.client import SQSClient
+from scihub_result import ScihubResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
-
-from scihub_result import ScihubResult
 
 SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
 SCIHUB_PRODUCT_URL_FMT = f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/"
@@ -33,7 +32,6 @@ def handler(event, context):
     params = get_query_parameters(fetched_links, day)
 
     while keep_querying_for_imagery:
-
         scihub_results, total_results = get_page_for_query_and_total_results(
             params, scihub_auth
         )
