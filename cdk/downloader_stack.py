@@ -121,7 +121,7 @@ class DownloaderStack(core.Stack):
         rule = aws_events.Rule(
             self,
             id=f"{identifier}-token-cron-rule",
-            schedule=aws_events.Schedule.expression("cron(0/20 * * * ? *)"),
+            schedule=aws_events.Schedule.expression("cron(0/5 * * * ? *)"),
         )
         rule.add_target(aws_events_targets.LambdaFunction(self.token_rotator))
 
