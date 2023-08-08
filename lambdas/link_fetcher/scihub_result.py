@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from datetime import datetime
-from typing import TypedDict
 
 
-class ScihubResult(TypedDict):
+@dataclass(frozen=True)
+class ScihubResult:
     image_id: str
     filename: str
     tileid: str

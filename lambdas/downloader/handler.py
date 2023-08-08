@@ -11,11 +11,10 @@ from botocore import client
 from db.models.granule import Granule
 from db.models.status import Status
 from db.session import get_session, get_session_maker
-from mypy_boto3_s3.client import S3Client
-from sqlalchemy.exc import SQLAlchemyError
-
 from exceptions import (
     ChecksumRetrievalException,
+    CopernicusAuthenticationNotRetrievedException,
+    CopernicusTokenNotRetrievedException,
     FailedToDownloadFileException,
     FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
@@ -23,10 +22,10 @@ from exceptions import (
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
-    CopernicusAuthenticationNotRetrievedException,
-    CopernicusTokenNotRetrievedException,
     SciHubAuthenticationNotRetrievedException,
 )
+from mypy_boto3_s3.client import S3Client
+from sqlalchemy.exc import SQLAlchemyError
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
@@ -41,7 +40,7 @@ SCIHUB_CHECKSUM_URL_FMT = (
 COPERNICUS_IDENTITY_URL = os.environ.get(
     "COPERNICUS_IDENTITY_URL",
     "https://identity.dataspace.copernicus.eu/auth/realms/"
-    "CDSE/protocol/openid-connect/token"
+    "CDSE/protocol/openid-connect/token",
 )
 
 
@@ -149,10 +148,7 @@ def get_copernicus_token() -> str:
         token = token_parameter["Parameter"]["Value"]
         return token
     except Exception as ex:
-        error_message = (
-            "There was error retrieving the keycloak token"
-            f" {str(ex)}"
-        )
+        error_message = "There was error retrieving the keycloak token" f" {str(ex)}"
         LOGGER.error(error_message)
         raise CopernicusTokenNotRetrievedException(error_message)
 
@@ -228,7 +224,7 @@ def download_file(
         try:
             token = get_copernicus_token()
             session = requests.Session()
-            session.headers.update({'Authorization': f'Bearer {token}'})
+            session.headers.update({"Authorization": f"Bearer {token}"})
             with session.get(url=download_url, stream=True) as response:
                 response.raise_for_status()
 

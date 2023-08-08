@@ -12,12 +12,11 @@ import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
 from moto import mock_secretsmanager, mock_sqs
+from scihub_result import ScihubResult
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-
-from scihub_result import ScihubResult
 
 UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -110,7 +109,7 @@ def make_scihub_result(idx: int) -> ScihubResult:
 @pytest.fixture
 def scihub_result_maker():
     def make_scihub_results(number_of_results: int) -> List[ScihubResult]:
-        return [make_scihub_result(idx) for idx in range(0, number_of_results)]
+        return [make_scihub_result(idx) for idx in range(number_of_results)]
 
     return make_scihub_results
 

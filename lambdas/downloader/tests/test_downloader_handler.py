@@ -5,15 +5,13 @@ from unittest import mock
 
 import pytest
 import responses
-from responses import matchers
 from assertpy import assert_that
 from botocore.client import ClientError
 from db.models.granule import Granule
 from db.models.status import Status
-from freezegun import freeze_time
-
 from exceptions import (
     ChecksumRetrievalException,
+    CopernicusTokenNotRetrievedException,
     FailedToDownloadFileException,
     FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
@@ -22,13 +20,13 @@ from exceptions import (
     GranuleNotFoundException,
     RetryLimitReachedException,
     SciHubAuthenticationNotRetrievedException,
-    CopernicusTokenNotRetrievedException,
 )
-
-
+from freezegun import freeze_time
 from handler import (
     download_file,
     generate_aws_checksum,
+    get_copernicus_credentials,
+    get_copernicus_token,
     get_download_url,
     get_granule,
     get_image_checksum,
@@ -36,13 +34,10 @@ from handler import (
     handler,
     increase_retry_count,
     update_last_file_downloaded_time,
-    get_copernicus_credentials,
-    get_copernicus_token,
 )
+from responses import matchers
 
-download_url = (
-    "http://zipper.dataspace.copernicus.eu/odata/v1/Products(test-id)/$value"
-)
+download_url = "http://zipper.dataspace.copernicus.eu/odata/v1/Products(test-id)/$value"
 
 
 def test_that_get_download_url_returns_correct_url():
@@ -142,9 +137,7 @@ def test_that_inthub2_credentials_loaded_correctly(
     assert_that(auth[1]).is_equal_to(mock_inthub2_credentials["password"])
 
 
-def test_copernicus_credentials_loaded_correctly(
-    mock_coperernicus_credentials
-):
+def test_copernicus_credentials_loaded_correctly(mock_coperernicus_credentials):
     credentials = get_copernicus_credentials()
     assert_that(credentials["username"]).is_equal_to(
         mock_coperernicus_credentials["username"]
@@ -153,7 +146,7 @@ def test_copernicus_credentials_loaded_correctly(
 
 @responses.activate
 def test_that_get_copernicus_token_raises_exception_if_request_fails(
-    mock_coperernicus_credentials
+    mock_coperernicus_credentials,
 ):
     token_url = (
         "https://identity.dataspace.copernicus.eu/auth/realms/"
@@ -241,11 +234,7 @@ def test_that_download_file_correctly_raises_exception_if_request_fails(
         download_url,
         body=b"",
         status=404,
-        match=[
-            matchers.header_matcher(
-                {"Authorization": "Bearer token"}
-            )
-        ],
+        match=[matchers.header_matcher({"Authorization": "Bearer token"})],
     )
 
     with pytest.raises(FailedToDownloadFileException) as ex:
@@ -276,11 +265,7 @@ def test_that_download_file_correctly_raises_exception_if_s3_upload_fails(
         download_url,
         body=b"",
         status=200,
-        match=[
-            matchers.header_matcher(
-                {"Authorization": "Bearer token"}
-            )
-        ],
+        match=[matchers.header_matcher({"Authorization": "Bearer token"})],
     )
 
     class FakeClient:
@@ -310,8 +295,11 @@ def test_that_download_file_correctly_raises_exception_if_s3_upload_fails(
 
 @responses.activate
 def test_that_download_file_correctly_raises_exception_if_db_update_fails(
-    db_session, mock_s3_bucket, mock_scihub_credentials,
-    fake_db_session_that_fails, get_copernicus_token,
+    db_session,
+    mock_s3_bucket,
+    mock_scihub_credentials,
+    fake_db_session_that_fails,
+    get_copernicus_token,
 ):
     db_session.add(
         Granule(
@@ -625,7 +613,9 @@ def test_that_handler_correctly_logs_and_errors_if_get_image_checksum_fails(
 @mock.patch("handler.get_image_checksum")
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
-    mock_increase_retry_count, mock_get_image_checksum, db_session,
+    mock_increase_retry_count,
+    mock_get_image_checksum,
+    db_session,
     get_copernicus_token,
 ):
     responses.add(
@@ -641,9 +631,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
                     {
                         "id": "test-id",
                         "filename": "test-filename",
-                        "download_url": (
-                            download_url
-                        ),
+                        "download_url": (download_url),
                     }
                 )
             }
@@ -683,8 +671,11 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
 @mock.patch("handler.get_image_checksum")
 @mock.patch("handler.increase_retry_count")
 def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
-    mock_increase_retry_count, mock_get_image_checksum, db_session,
-    mock_s3_bucket, get_copernicus_token,
+    mock_increase_retry_count,
+    mock_get_image_checksum,
+    db_session,
+    mock_s3_bucket,
+    get_copernicus_token,
 ):
     responses.add(
         responses.GET,
@@ -699,9 +690,7 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
                     {
                         "id": "test-id",
                         "filename": "test-filename.SAFE",
-                        "download_url": (
-                            download_url
-                        ),
+                        "download_url": (download_url),
                     }
                 )
             }
@@ -772,9 +761,7 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
                     {
                         "id": "test-id",
                         "filename": "test-filename.SAFE",
-                        "download_url": (
-                            download_url
-                        ),
+                        "download_url": (download_url),
                     }
                 )
             }
