@@ -25,7 +25,6 @@ from freezegun import freeze_time
 from handler import (
     download_file,
     generate_aws_checksum,
-    get_copernicus_credentials,
     get_copernicus_token,
     get_download_url,
     get_granule,
@@ -135,38 +134,6 @@ def test_that_inthub2_credentials_loaded_correctly(
     auth = get_scihub_auth(use_inthub2=True)
     assert_that(auth[0]).is_equal_to(mock_inthub2_credentials["username"])
     assert_that(auth[1]).is_equal_to(mock_inthub2_credentials["password"])
-
-
-def test_copernicus_credentials_loaded_correctly(mock_coperernicus_credentials):
-    credentials = get_copernicus_credentials()
-    assert_that(credentials["username"]).is_equal_to(
-        mock_coperernicus_credentials["username"]
-    )
-
-
-@responses.activate
-def test_that_get_copernicus_token_raises_exception_if_request_fails(
-    mock_coperernicus_credentials,
-):
-    token_url = (
-        "https://identity.dataspace.copernicus.eu/auth/realms/"
-        "CDSE/protocol/openid-connect/token"
-    )
-    responses.add(
-        responses.POST,
-        token_url,
-        body=b"",
-        status=404,
-    )
-
-    with pytest.raises(CopernicusTokenNotRetrievedException) as ex:
-        get_copernicus_token()
-
-    assert_that(str(ex.value)).is_equal_to(
-        "There was error retrieving the keycloak token"
-        " 404 Client Error: Not Found for url:"
-        f" {token_url}"
-    )
 
 
 @mock.patch.dict(os.environ, {"USE_INTHUB2": "NO"})

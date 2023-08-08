@@ -228,7 +228,7 @@ def download_file(
             with session.get(url=download_url, stream=True) as response:
                 response.raise_for_status()
 
-                #  aws_checksum = generate_aws_checksum(image_checksum)
+                aws_checksum = generate_aws_checksum(image_checksum)
 
                 s3_client = get_s3_client()
                 upload_bucket = os.environ["UPLOAD_BUCKET"]

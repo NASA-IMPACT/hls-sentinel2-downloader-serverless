@@ -8,7 +8,7 @@ import alembic.config
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from moto import mock_s3, mock_secretsmanager
+from moto import mock_s3, mock_secretsmanager, mock_ssm
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -105,6 +105,12 @@ def secrets_manager_client():
 
 
 @pytest.fixture(scope="session")
+def ssm_client():
+    with mock_ssm():
+        yield boto3.client("ssm")
+
+
+@pytest.fixture(scope="session")
 def db_connection_secret(secrets_manager_client, monkeysession):
     arn = secrets_manager_client.create_secret(
         Name="db-connection",
@@ -156,12 +162,16 @@ def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
     return secret
 
 
-@pytest.fixture()
-def get_copernicus_token():
-    with patch(
-        "handler.get_copernicus_token", return_value="token", autospec=True
-    ) as m:
-        yield m
+@pytest.fixture(scope="session")
+def get_copernicus_token(ssm_client, monkeysession):
+    token = "token"
+    ssm_client.put_parameter(
+        Name="/hls-s2-downloader-serverless/test/copernicus-token",
+        Value=token,
+        Type="String"
+    )
+    monkeysession.setenv("STAGE", "test")
+    return token
 
 
 def check_pg_status(engine: Engine) -> bool:
