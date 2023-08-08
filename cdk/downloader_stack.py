@@ -97,6 +97,34 @@ class DownloaderStack(core.Stack):
             parameter_name=f"/integration_tests/{identifier}/downloader_rds_secret_arn",
         )
 
+        token_parameter = aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-copernicus-token",
+            string_value="placeholder",
+            parameter_name=f"/hls-s2-downloader-serverless/{identifier}/copernicus-token",
+        )
+
+        self.token_rotator = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{identifier}-token-rotator",
+            entry="lambdas/token_rotator",
+            environment={"STAGE": identifier},
+            index="handler.py",
+            handler="handler",
+            memory_size=1200,
+            timeout=core.Duration.minutes(5),
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+        )
+
+        token_parameter.grant_write(self.token_rotator.role)
+
+        rule = aws_events.Rule(
+            self,
+            id=f"{identifier}-token-cron-rule",
+            schedule=aws_events.Schedule.expression("cron(0/20 * * * ? *)"),
+        )
+        rule.add_target(aws_events_targets.LambdaFunction(self.token_rotator))
+
         core.CfnOutput(
             self,
             id=f"{identifier}-downloader-ip",
@@ -317,6 +345,9 @@ class DownloaderStack(core.Stack):
         )
         copernicus_credentials.grant_read(link_fetcher)
         copernicus_credentials.grant_read(self.downloader)
+        copernicus_credentials.grant_read(self.token_rotator)
+
+        token_parameter.grant_read(self.downloader)
 
         if use_inthub2:
             inthub2_credentials = aws_secretsmanager.Secret.from_secret_name_v2(

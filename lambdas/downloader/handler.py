@@ -135,45 +135,19 @@ def get_granule(image_id: str) -> Granule:
             raise FailedToRetrieveGranuleException(error_message)
 
 
-def get_copernicus_credentials() -> CopernicusCredentials:
-    """
-    Retrieves the username and password for Copernicus which are stored in
-    SecretsManager
-    :returns: Tuple[str, str] representing the username and password
-    """
-    try:
-        stage = os.environ["STAGE"]
-        secrets_manager_client = boto3.client("secretsmanager")
-        secret = json.loads(
-            secrets_manager_client.get_secret_value(
-                SecretId=(
-                    f"hls-s2-downloader-serverless/{stage}/copernicus-credentials"
-                )
-            )["SecretString"]
-        )
-        return {"username": secret["username"], "password": secret["password"]}
-    except Exception as ex:
-        raise CopernicusAuthenticationNotRetrievedException(
-            f"There was an error retrieving Copernicus Credentials: {str(ex)}"
-        )
-
-
 def get_copernicus_token() -> str:
     """
-    Retrieves keycloak token from Copernicus endpoint
+    Retrieves keycloak token from parameter store.
     :returns: str of token
     """
     try:
-        credentials = get_copernicus_credentials()
-        data = {
-            "client_id": "cdse-public",
-            "username": credentials["username"],
-            "password": credentials["password"],
-            "grant_type": "password",
-        }
-        response = requests.post(COPERNICUS_IDENTITY_URL, data)
-        response.raise_for_status()
-        return response.json()["access_token"]
+        stage = os.environ["STAGE"]
+        ssm_client = boto3.client("ssm")
+        token_parameter = ssm_client.get_parameter(
+            Name=f"/hls-s2-downloader-serverless/{stage}/copernicus-token",
+        )
+        token = token_parameter["Parameter"]["Value"]
+        return token
     except Exception as ex:
         error_message = (
             "There was error retrieving the keycloak token"
@@ -258,7 +232,7 @@ def download_file(
             with session.get(url=download_url, stream=True) as response:
                 response.raise_for_status()
 
-                aws_checksum = generate_aws_checksum(image_checksum)
+                #  aws_checksum = generate_aws_checksum(image_checksum)
 
                 s3_client = get_s3_client()
                 upload_bucket = os.environ["UPLOAD_BUCKET"]
