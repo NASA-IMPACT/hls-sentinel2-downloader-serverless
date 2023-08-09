@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Set, Tuple
 
 import boto3
 import humanfriendly
+import iso8601
 import requests
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
@@ -275,29 +276,6 @@ def get_query_parameters(start: int, day: date) -> Dict:
     }
 
 
-def ensure_three_decimal_points_for_milliseconds_and_replace_z(
-    datetimestring: str,
-) -> str:
-    """
-    To convert SciHub Datetimes to Python Datetimes, we need them in ISO format
-    SciHub Datetimes can have milliseconds of less than 3 digits therefore
-    we pad them with zeros to the right to make 3 digits, as required by `datetime`
-    We also need to replace Z at the end with +00:00
-    :param datetimestring: Str representing a SciHub Datetime
-    :returns: Str representing a correctly padded SciHub Datetime
-    """
-    datetimestring_stripped = datetimestring.replace("Z", "")
-    try:
-        number_of_decimal_points = len(datetimestring_stripped.split(".")[1])
-        if number_of_decimal_points < 3:
-            datetimestring_stripped = (
-                f"{datetimestring_stripped}{(3 - number_of_decimal_points) * '0'}"
-            )
-    except IndexError:
-        datetimestring_stripped = f"{datetimestring_stripped}.000"
-    return f"{datetimestring_stripped}+00:00"
-
-
 def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
     """
     Creates a SciHubResult object from a feed entry returned from a SciHub query
@@ -327,23 +305,11 @@ def create_scihub_result_from_feed_entry(feed_entry: Dict) -> ScihubResult:
 
     for date_entry in feed_entry["date"]:
         if date_entry["name"] == "beginposition":
-            beginposition = datetime.fromisoformat(
-                ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date_entry["content"]
-                )
-            )
+            beginposition = iso8601.parse_date(date_entry["content"])
         elif date_entry["name"] == "endposition":
-            endposition = datetime.fromisoformat(
-                ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date_entry["content"]
-                )
-            )
+            endposition = iso8601.parse_date(date_entry["content"])
         elif date_entry["name"] == "ingestiondate":
-            ingestiondate = datetime.fromisoformat(
-                ensure_three_decimal_points_for_milliseconds_and_replace_z(
-                    date_entry["content"]
-                )
-            )
+            ingestiondate = iso8601.parse_date(date_entry["content"])
 
     download_url = f"{product_url}$value"
 

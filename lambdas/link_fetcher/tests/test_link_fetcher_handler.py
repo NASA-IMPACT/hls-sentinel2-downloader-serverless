@@ -16,7 +16,6 @@ from handler import (
     add_scihub_results_to_db_and_sqs,
     create_scihub_result_from_feed_entry,
     _handler,
-    ensure_three_decimal_points_for_milliseconds_and_replace_z,
     filter_scihub_results,
     get_accepted_tile_ids,
     get_fetched_links,
@@ -88,42 +87,6 @@ def test_that_link_fetcher_handler_generates_a_scihub_result_correctly(
     assert_that(actual_scihub_result).is_equal_to(expected_scihub_result)
 
 
-def test_that_create_scihub_result_datetime_formatting_creates_iso_formats():
-    parsed_datetime = datetime.fromisoformat(
-        ensure_three_decimal_points_for_milliseconds_and_replace_z(
-            "2021-02-09T17:47:22.412Z"
-        )
-    )
-    assert_that(parsed_datetime).is_equal_to(
-        datetime(2021, 2, 9, 17, 47, 22, 412000, tzinfo=timezone.utc)
-    )
-
-    parsed_datetime = datetime.fromisoformat(
-        ensure_three_decimal_points_for_milliseconds_and_replace_z(
-            "2021-02-09T17:52:37.25Z"
-        )
-    )
-    assert_that(parsed_datetime).is_equal_to(
-        datetime(2021, 2, 9, 17, 52, 37, 250000, tzinfo=timezone.utc)
-    )
-
-    parsed_datetime = datetime.fromisoformat(
-        ensure_three_decimal_points_for_milliseconds_and_replace_z(
-            "2021-02-09T17:47:19.8Z"
-        )
-    )
-    assert_that(parsed_datetime).is_equal_to(
-        datetime(2021, 2, 9, 17, 47, 19, 800000, tzinfo=timezone.utc)
-    )
-
-    parsed_datetime = datetime.fromisoformat(
-        ensure_three_decimal_points_for_milliseconds_and_replace_z(
-            "2021-02-09T17:47:19Z"
-        )
-    )
-    assert_that(parsed_datetime).is_equal_to(
-        datetime(2021, 2, 9, 17, 47, 19, 000000, tzinfo=timezone.utc)
-    )
 
 
 @responses.activate
