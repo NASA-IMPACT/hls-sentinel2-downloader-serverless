@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import date, datetime, timezone
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Set, Tuple
 
 import boto3
 import humanfriendly
@@ -206,19 +206,18 @@ def update_fetched_links(session_maker: SessionMaker, day: date, fetched_links: 
             session.commit()
 
 
-def get_accepted_tile_ids() -> List[str]:
+def get_accepted_tile_ids() -> Set[str]:
     """
-    Returns a list of MGRS square IDs that are acceptable for processing within the
-    downloader
-    :returns: List[str] representing all of the acceptable MGRS square IDs
+    Return MGRS square IDs acceptable for processing within the downloader.
+
+    :returns: set of all acceptable MGRS square IDs
     """
-    with open(
-        os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME
-        ),
-        "r",
-    ) as tile_ids_in:
-        return [line.strip() for line in tile_ids_in]
+    accepted_tile_ids_filepath = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), ACCEPTED_TILE_IDS_FILENAME
+    )
+
+    with open(accepted_tile_ids_filepath) as tile_ids_in:
+        return {line.strip() for line in tile_ids_in}
 
 
 def get_scihub_auth() -> Tuple[str, str]:
@@ -237,15 +236,16 @@ def get_scihub_auth() -> Tuple[str, str]:
 
 
 def filter_scihub_results(
-    scihub_results: List[ScihubResult], accepted_tile_ids: List[str]
+    scihub_results: List[ScihubResult], accepted_tile_ids: Set[str]
 ) -> List[ScihubResult]:
     """
     Filters the given SciHub results list and returns a list of results that tile ids
-    are within our accepted list of ids
+    are within our accepted list of ids.
+
     :param scihub_results: List[ScihubResult] representing the results of a query to
         SciHub
-    :param accepted_tile_ids: List[str] representing a list of acceptable MGRS tile ids
-    :returns: List[SciHubResult] representing a filtered version of the passed in list
+    :param accepted_tile_ids: Set[str] representing acceptable MGRS tile ids
+    :returns: List[SciHubResult] representing a filtered version of the given results
     """
     return [
         scihub_result
