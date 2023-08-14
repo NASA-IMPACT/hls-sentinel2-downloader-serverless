@@ -3,37 +3,34 @@ import os
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import List
+from typing import Callable, Sequence, Set, cast
 
 import alembic.command
 import alembic.config
 import boto3
+import pathlib
 import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
+from handler import SEARCH_URL, SearchResult
 from moto import mock_secretsmanager, mock_sqs
-from scihub_result import ScihubResult
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine, url
+from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+UNIT_TEST_DIR = pathlib.Path(__file__).parent
 
 
 @pytest.fixture
-def mock_scihub_response():
-    with open(
-        os.path.join(UNIT_TEST_DIR, "example_scihub_response.json"), "rb"
-    ) as json_in:
-        return json.load(json_in)
+def mock_search_response():
+    return json.loads((UNIT_TEST_DIR / "example_search_response.json").read_text())
 
 
 @pytest.fixture
-def accepted_tile_ids():
-    link_fetcher_dir = UNIT_TEST_DIR.replace("tests", "")
-    with open(os.path.join(link_fetcher_dir, "allowed_tiles.txt"), "r") as text_in:
-        return [line.strip() for line in text_in]
+def accepted_tile_ids() -> Set[str]:
+    with open(UNIT_TEST_DIR.parent / "allowed_tiles.txt") as lines:
+        return set(map(str.strip, lines))
 
 
 def check_pg_status(engine: Engine) -> bool:
@@ -53,30 +50,26 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
         host="localhost",
         database=os.environ["PG_DB"],
     )
-    pg_engine = create_engine(db_url)
+    pg_engine = cast(Engine, create_engine(db_url))
     docker_services.wait_until_responsive(
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
 
-    alembic_root = UNIT_TEST_DIR.replace(
-        "lambdas/link_fetcher/tests", "alembic_migration"
-    )
-    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
-    alembic_config.set_main_option("script_location", alembic_root)
+    alembic_root = UNIT_TEST_DIR.parent.parent.parent / "alembic_migration"
+    alembic_config = alembic.config.Config(str(alembic_root / "alembic.ini"))
+    alembic_config.set_main_option("script_location", str(alembic_root))
     alembic.command.upgrade(alembic_config, "head")
 
     return pg_engine
 
 
 @pytest.fixture
-def db_session(postgres_engine):
-    connection = postgres_engine.connect()
-    transaction = connection.begin()
-    session = Session(bind=connection)
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
+def db_session(postgres_engine: Engine):
+    with postgres_engine.connect() as connection:
+        with cast(Transaction, connection.begin()) as transaction:
+            with Session(bind=connection) as session:
+                yield session
+            transaction.rollback()
 
 
 @pytest.fixture
@@ -88,9 +81,10 @@ def db_session_context(db_session):
     yield db_context
 
 
-def make_scihub_result(idx: int) -> ScihubResult:
+def make_search_result(idx: int) -> SearchResult:
     id_filled = str(idx).zfill(3)
-    return ScihubResult(
+
+    return SearchResult(
         image_id=f"422fd86d-7019-47c6-be4f-036fbf5ce{id_filled}",
         filename="S2B_MSIL1C20200101T222829_N0208_R129_T51CWM_20200101T230625.SAFE",
         tileid="51CWM",
@@ -99,19 +93,18 @@ def make_scihub_result(idx: int) -> ScihubResult:
         endposition=datetime(2020, 1, 1, 22, 28, 29, 24000, tzinfo=timezone.utc),
         ingestiondate=datetime(2020, 1, 1, 23, 59, 32, 994000, tzinfo=timezone.utc),
         download_url=(
-            "https://scihub.copernicus.eu/dhus/odata/v1/"
-            "Products('422fd86d-7019-47c6-be4f-036fbf5ce"
-            f"{id_filled}')/$value"
+            "https://zipper.creodias.eu/download/"
+            f"bde39034-06c2-5927-ba1c-4960a201f{id_filled}"
         ),
     )
 
 
 @pytest.fixture
-def scihub_result_maker():
-    def make_scihub_results(number_of_results: int) -> List[ScihubResult]:
-        return [make_scihub_result(idx) for idx in range(number_of_results)]
+def search_result_maker() -> Callable[[int], Sequence[SearchResult]]:
+    def make_search_results(number_of_results: int) -> Sequence[SearchResult]:
+        return tuple(map(make_search_result, range(number_of_results)))
 
-    return make_scihub_results
+    return make_search_results
 
 
 @pytest.fixture(autouse=True)
@@ -164,76 +157,61 @@ def db_connection_secret(secrets_manager_client, monkeysession):
     monkeysession.setenv("DB_CONNECTION_SECRET_ARN", arn)
 
 
-@pytest.fixture(scope="session")
-def mock_scihub_credentials(secrets_manager_client, monkeysession):
-    secret = {"username": "test-username", "password": "test-password"}
-    secrets_manager_client.create_secret(
-        Name="hls-s2-downloader-serverless/test/scihub-credentials",
-        SecretString=json.dumps(secret),
-    )
-    monkeysession.setenv("STAGE", "test")
-    return secret
-
-
 @pytest.fixture
-def generate_mock_responses_for_one_day(
-    mock_scihub_response,
-):
-    scihub_query_base_fmt = (
-        "https://scihub.copernicus.eu/dhus/search?q=(platformname:Sentinel-2) "
-        "AND (processinglevel:Level-1C) "
-        "AND (ingestiondate:[{0}T00:00:00Z TO {0}T23:59:59Z])"
-        "&rows=100&format=json&orderby=ingestiondate desc&start={1}"
+def generate_mock_responses_for_one_day(mock_search_response):
+    search_query_fmt = (
+        f"{SEARCH_URL}?processingLevel=S2MSI1C"
+        "&publishedAfter={0}T00:00:00Z"
+        "&publishedBefore={0}T23:59:59Z"
+        "&sortParam=published"
+        "&sortOrder=desc"
+        "&maxRecords=100"
+        "&index={1}"
     )
 
     # Generate base for response
-    scihub_response_2020 = deepcopy(mock_scihub_response)
-    total_entries = len(scihub_response_2020["feed"]["entry"])
+    search_response_2020 = deepcopy(mock_search_response)
+    total_entries = len(search_response_2020["features"])
 
     # Give each entry a unique ID for tests
-    for idx in range(0, total_entries):
-        scihub_response_2020["feed"]["entry"][idx]["id"] = str(idx + 1)
+    for idx in range(total_entries):
+        search_response_2020["features"][idx]["id"] = str(idx + 1)
 
-    # Generate 3 responses per year, 2x 20 entry results and 1 empty result
-    scihub_response_2020_first_20 = deepcopy(scihub_response_2020)
-    scihub_response_2020_first_20["feed"]["entry"] = scihub_response_2020["feed"][
-        "entry"
-    ][:20]
-    scihub_response_2020_next_20 = deepcopy(scihub_response_2020)
-    scihub_response_2020_next_20["feed"]["entry"] = scihub_response_2020["feed"][
-        "entry"
-    ][20:]
-    scihub_response_2020_empty = deepcopy(scihub_response_2020)
-    scihub_response_2020_empty["feed"].pop("entry")
+    # Generate 3 responses per year, 2 x 5 entry results and 1 empty result
+    search_response_2020_first_20 = deepcopy(search_response_2020)
+    search_response_2020_first_20["features"] = search_response_2020["features"][:5]
+    search_response_2020_next_20 = deepcopy(search_response_2020)
+    search_response_2020_next_20["features"] = search_response_2020["features"][5:]
+    search_response_2020_empty = deepcopy(search_response_2020)
+    search_response_2020_empty["features"] = []
 
     # Create responses for sentinel query based on year and start point
     responses.add(
         responses.GET,
-        scihub_query_base_fmt.format("2020-01-01", 0),
-        json=scihub_response_2020_first_20,
+        search_query_fmt.format("2020-01-01", 1),
+        json=search_response_2020_first_20,
         status=200,
     )
     responses.add(
         responses.GET,
-        scihub_query_base_fmt.format("2020-01-01", 20),
-        json=scihub_response_2020_next_20,
+        search_query_fmt.format("2020-01-01", 6),
+        json=search_response_2020_next_20,
         status=200,
     )
     responses.add(
         responses.GET,
-        scihub_query_base_fmt.format("2020-01-01", 40),
-        json=scihub_response_2020_empty,
+        search_query_fmt.format("2020-01-01", 11),
+        json=search_response_2020_empty,
         status=200,
     )
 
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
-    return os.path.join(UNIT_TEST_DIR, "docker-compose.yml")
+    return UNIT_TEST_DIR / "docker-compose.yml"
 
 
 @pytest.fixture(scope="session")
 def monkeysession(request):
-    mpatch = MonkeyPatch()
-    yield mpatch
-    mpatch.undo()
+    with MonkeyPatch().context() as mp:
+        yield mp
