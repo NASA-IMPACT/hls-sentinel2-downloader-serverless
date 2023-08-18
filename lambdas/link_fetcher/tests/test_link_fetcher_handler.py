@@ -12,6 +12,7 @@ from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from freezegun import freeze_time
 from handler import (
+    MIN_REMAINING_MILLIS,
     SEARCH_URL,
     SearchResult,
     _handler,
@@ -78,9 +79,7 @@ def test_that_link_fetcher_handler_generates_a_search_result_correctly(
 
 
 @responses.activate
-def test_that_link_fetcher_handler_gets_correct_query_results(
-    mock_search_response
-):
+def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_response):
     responses.add(
         responses.GET,
         (
@@ -106,7 +105,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(
 
 @responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
-    mock_search_response
+    mock_search_response,
 ):
     resp = mock_search_response.copy()
     resp.pop("features")
@@ -400,11 +399,17 @@ def test_that_link_fetcher_handler_correctly_functions(
     db_connection_secret,
     mock_sqs_queue,
 ):
-    _handler({"query_date": "2020-01-01"}, lambda: db_session)
+    class MockContext:
+        def get_remaining_time_in_millis(self) -> int:
+            return MIN_REMAINING_MILLIS
 
-    # Assert all granules present
+    result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
+
+    assert result == {"query_date": "2020-01-01", "completed": True}
+
+    # Assert all filtered granules present
     granules = db_session.query(Granule).all()
-    assert_that(granules).is_length(5)
+    assert_that(granules).is_length(5)  # 5 of 10 are filtered out
 
     query_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
     # Assert 2020-01-01 has correct granule count
@@ -433,3 +438,54 @@ def test_that_link_fetcher_handler_correctly_functions(
         "ApproximateNumberOfMessages"
     ]
     assert_that(int(number_of_messages_in_queue)).is_equal_to(5)
+
+
+@responses.activate
+@freeze_time("2020-01-01")
+@pytest.mark.usefixtures("generate_mock_responses_for_one_day")
+def test_that_link_fetcher_handler_bails_early(
+    db_session: Session,
+    db_session_context,
+    db_connection_secret,
+    mock_sqs_queue,
+):
+    class MockContext:
+        def get_remaining_time_in_millis(self) -> int:
+            return MIN_REMAINING_MILLIS - 1
+
+    result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
+
+    # Assert that we bailed early
+    assert result == {"query_date": "2020-01-01", "completed": False}
+
+    # Assert all filtered granules present
+    granules = db_session.query(Granule).all()
+    assert_that(granules).is_length(4)  # 1 of the first 5 is filtered out
+
+    query_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
+    # Assert 2020-01-01 has correct granule count
+    granule_count = (
+        db_session.query(GranuleCount)
+        .filter(GranuleCount.date == query_date)  # type: ignore
+        .first()
+    )
+    assert granule_count is not None
+    assert_that(granule_count.available_links).is_equal_to(6786)
+    assert_that(granule_count.fetched_links).is_equal_to(5)
+    assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
+
+    # Assert status is correct
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_linked_fetched_time")  # type: ignore
+        .first()
+    )
+    assert status is not None
+    assert_that(status.value).is_equal_to(str(datetime.now()))
+
+    # Assert queue is populated
+    mock_sqs_queue.load()
+    number_of_messages_in_queue = mock_sqs_queue.attributes[
+        "ApproximateNumberOfMessages"
+    ]
+    assert_that(int(number_of_messages_in_queue)).is_equal_to(4)

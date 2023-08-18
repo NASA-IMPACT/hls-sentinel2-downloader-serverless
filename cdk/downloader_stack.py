@@ -12,10 +12,11 @@ from aws_cdk import (
     aws_secretsmanager,
     aws_sqs,
     aws_ssm,
-    aws_stepfunctions,
-    aws_stepfunctions_tasks,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
     core,
 )
+from typing import Optional
 
 
 class DownloaderStack(core.Stack):
@@ -25,7 +26,7 @@ class DownloaderStack(core.Stack):
         construct_id: str,
         identifier: str,
         upload_bucket: str,
-        scihub_url: str = None,
+        scihub_url: Optional[str] = None,
         enable_downloading: bool = False,
         use_inthub2: bool = False,
         schedule_link_fetching: bool = False,
@@ -214,9 +215,6 @@ class DownloaderStack(core.Stack):
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
         }
 
-        if scihub_url:
-            link_fetcher_environment_vars["SCIHUB_URL"] = scihub_url
-
         lambda_insights_policy = aws_iam.ManagedPolicy.from_managed_policy_arn(
             self,
             id=f"cloudwatch-lambda-insights-policy-{identifier}",
@@ -335,7 +333,6 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-scihub-credentials",
             secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
         )
-        scihub_credentials.grant_read(link_fetcher)
         scihub_credentials.grant_read(self.downloader)
 
         copernicus_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
@@ -367,31 +364,39 @@ class DownloaderStack(core.Stack):
             )
         )
 
-        date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
+        date_generator_task = tasks.LambdaInvoke(
             self,
             id=f"{identifier}-date-generator-invoke",
             lambda_function=date_generator,
         )
 
-        link_fetcher_task = aws_stepfunctions_tasks.LambdaInvoke(
+        link_fetcher_task = tasks.LambdaInvoke(
             self,
             id=f"{identifier}-link-fetcher-invoke",
             lambda_function=link_fetcher,
+            output_path="$.Payload",
         )
 
-        link_fetcher_map_task = aws_stepfunctions.Map(
+        link_fetcher_map_task = sfn.Map(
             self,
             id=f"{identifier}-link-fetcher-map",
             input_path="$.Payload.query_dates",
             parameters={"query_date.$": "$$.Map.Item.Value"},
             max_concurrency=3,
-        ).iterator(link_fetcher_task)
+        ).iterator(
+            link_fetcher_task.next(
+                sfn.Choice(self, "Fetching completed?").when(
+                    sfn.Condition.boolean_equals("$.completed", False),
+                    link_fetcher_task,
+                )
+            )
+        )
 
         link_fetcher_step_function_definition = date_generator_task.next(
             link_fetcher_map_task
         )
 
-        link_fetcher_step_function = aws_stepfunctions.StateMachine(
+        link_fetcher_step_function = sfn.StateMachine(
             self,
             id=f"{identifier}-link-fetcher-step-function",
             definition=link_fetcher_step_function_definition,

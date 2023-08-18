@@ -171,17 +171,12 @@ def generate_mock_responses_for_one_day(mock_search_response):
 
     # Generate base for response
     search_response_2020 = deepcopy(mock_search_response)
-    total_entries = len(search_response_2020["features"])
-
-    # Give each entry a unique ID for tests
-    for idx in range(total_entries):
-        search_response_2020["features"][idx]["id"] = str(idx + 1)
 
     # Generate 3 responses per year, 2 x 5 entry results and 1 empty result
-    search_response_2020_first_20 = deepcopy(search_response_2020)
-    search_response_2020_first_20["features"] = search_response_2020["features"][:5]
-    search_response_2020_next_20 = deepcopy(search_response_2020)
-    search_response_2020_next_20["features"] = search_response_2020["features"][5:]
+    search_response_2020_page1 = deepcopy(search_response_2020)
+    search_response_2020_page1["features"] = search_response_2020["features"][:5]
+    search_response_2020_page2 = deepcopy(search_response_2020)
+    search_response_2020_page2["features"] = search_response_2020["features"][5:]
     search_response_2020_empty = deepcopy(search_response_2020)
     search_response_2020_empty["features"] = []
 
@@ -189,13 +184,13 @@ def generate_mock_responses_for_one_day(mock_search_response):
     responses.add(
         responses.GET,
         search_query_fmt.format("2020-01-01", 1),
-        json=search_response_2020_first_20,
+        json=search_response_2020_page1,
         status=200,
     )
     responses.add(
         responses.GET,
         search_query_fmt.format("2020-01-01", 6),
-        json=search_response_2020_next_20,
+        json=search_response_2020_page2,
         status=200,
     )
     responses.add(

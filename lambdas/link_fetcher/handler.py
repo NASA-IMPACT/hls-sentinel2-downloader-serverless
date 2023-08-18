@@ -3,7 +3,18 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence, Set, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Final,
+    Mapping,
+    Protocol,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+)
 
 import boto3
 import humanfriendly
@@ -22,12 +33,12 @@ if TYPE_CHECKING:
 
 SessionMaker: TypeAlias = Callable[[], Session]
 
-SEARCH_URL = (
+ACCEPTED_TILE_IDS_FILENAME: Final = "allowed_tiles.txt"
+MIN_REMAINING_MILLIS: Final = 60_000
+SEARCH_URL: Final = (
     "https://catalogue.dataspace.copernicus.eu/resto/api/collections"
     "/Sentinel2/search.json"
 )
-
-ACCEPTED_TILE_IDS_FILENAME = "allowed_tiles.txt"
 
 
 @dataclass(frozen=True)
@@ -42,39 +53,54 @@ class SearchResult:
     download_url: str
 
 
-def handler(event: Mapping[str, Any], context) -> None:
-    _handler(event, get_session_maker())
+class Context(Protocol):
+    def get_remaining_time_in_millis(self) -> int:
+        ...
 
 
-def _handler(event: Mapping[str, Any], session_maker: SessionMaker) -> None:
+class HandlerResult(TypedDict):
+    query_date: str
+    completed: bool
+
+
+def handler(event: Mapping[str, Any], context: Context) -> HandlerResult:
+    return _handler(event, context, get_session_maker())
+
+
+def _handler(
+    event: Mapping[str, Any],
+    context: Context,
+    session_maker: SessionMaker,
+) -> HandlerResult:
     accepted_tile_ids = get_accepted_tile_ids()
-    updated_total_results = False
-    day = datetime.strptime(event["query_date"], "%Y-%m-%d").date()
+    query_date = event["query_date"]
+    day = datetime.strptime(query_date, "%Y-%m-%d").date()
 
     fetched_links = get_fetched_links(session_maker, day)
     params = get_query_parameters(fetched_links, day)
+    search_results, total_results = get_page_for_query_and_total_results(params)
+    update_total_results(session_maker, day, total_results)
+    bail_early = False
 
-    while True:
-        search_results, total_results = get_page_for_query_and_total_results(params)
-
-        if not updated_total_results:
-            update_total_results(session_maker, day, total_results)
-            updated_total_results = True
-
-        if not search_results:
-            break
-
+    while search_results:
         number_of_fetched_links = len(search_results)
-        params = {**params, "index": params["index"] + number_of_fetched_links}
-
         filtered_search_results = filter_search_results(
             search_results, accepted_tile_ids
         )
-
         add_search_results_to_db_and_sqs(session_maker, filtered_search_results)
-
         update_last_fetched_link_time(session_maker)
         update_fetched_links(session_maker, day, number_of_fetched_links)
+
+        params = {**params, "index": params["index"] + number_of_fetched_links}
+        print(f"Fetched {params['index'] - 1} of {total_results} links")
+
+        if bail_early := context.get_remaining_time_in_millis() < MIN_REMAINING_MILLIS:
+            print("Bailing early to avoid Lambda timeout")
+            break
+
+        search_results, _ = get_page_for_query_and_total_results(params)
+
+    return {"query_date": query_date, "completed": not bail_early}
 
 
 def add_search_results_to_db_and_sqs(
