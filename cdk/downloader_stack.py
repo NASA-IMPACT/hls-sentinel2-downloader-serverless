@@ -385,10 +385,12 @@ class DownloaderStack(core.Stack):
             max_concurrency=3,
         ).iterator(
             link_fetcher_task.next(
-                sfn.Choice(self, "Fetching completed?").when(
+                sfn.Choice(self, "Fetching completed?")
+                .when(
                     sfn.Condition.boolean_equals("$.completed", False),
                     link_fetcher_task,
                 )
+                .otherwise(sfn.Succeed(self, "Success"))
             )
         )
 
@@ -412,7 +414,7 @@ class DownloaderStack(core.Stack):
         )
 
         if schedule_link_fetching:
-            _ = aws_events.Rule(
+            aws_events.Rule(
                 self,
                 id=f"{identifier}-link-fetch-rule",
                 schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),

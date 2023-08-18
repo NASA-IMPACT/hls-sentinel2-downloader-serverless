@@ -77,6 +77,7 @@ def _handler(
     day = datetime.strptime(query_date, "%Y-%m-%d").date()
 
     fetched_links = get_fetched_links(session_maker, day)
+    print(f"Number of previously fetched links for {query_date}: {fetched_links}")
     params = get_query_parameters(fetched_links, day)
     search_results, total_results = get_page_for_query_and_total_results(params)
     update_total_results(session_maker, day, total_results)
