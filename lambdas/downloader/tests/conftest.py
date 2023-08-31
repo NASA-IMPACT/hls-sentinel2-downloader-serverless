@@ -23,7 +23,7 @@ UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 @pytest.fixture
 def example_checksum_response():
     with open(
-        os.path.join(UNIT_TEST_DIR, "example_scihub_checksum_response.json"), "rb"
+        os.path.join(UNIT_TEST_DIR, "example_checksum_response.json"), "rb"
     ) as json_in:
         return json.load(json_in)
 
@@ -127,28 +127,6 @@ def db_connection_secret(secrets_manager_client, monkeysession):
 
 
 @pytest.fixture(scope="session")
-def mock_scihub_credentials(secrets_manager_client, monkeysession):
-    secret = {"username": "test-username", "password": "test-password"}
-    secrets_manager_client.create_secret(
-        Name="hls-s2-downloader-serverless/test/scihub-credentials",
-        SecretString=json.dumps(secret),
-    )
-    monkeysession.setenv("STAGE", "test")
-    return secret
-
-
-@pytest.fixture(scope="session")
-def mock_inthub2_credentials(secrets_manager_client, monkeysession):
-    secret = {"username": "test-inthub2-username", "password": "test-inthub2-password"}
-    secrets_manager_client.create_secret(
-        Name="hls-s2-downloader-serverless/test/inthub2-credentials",
-        SecretString=json.dumps(secret),
-    )
-    monkeysession.setenv("STAGE", "test")
-    return secret
-
-
-@pytest.fixture(scope="session")
 def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
     secret = {
         "username": "test-copernicus-username",
@@ -163,12 +141,12 @@ def mock_coperernicus_credentials(secrets_manager_client, monkeysession):
 
 
 @pytest.fixture(scope="session")
-def get_copernicus_token(ssm_client, monkeysession):
+def mock_get_copernicus_token(ssm_client, monkeysession):
     token = "token"
     ssm_client.put_parameter(
         Name="/hls-s2-downloader-serverless/test/copernicus-token",
         Value=token,
-        Type="String"
+        Type="String",
     )
     monkeysession.setenv("STAGE", "test")
     return token

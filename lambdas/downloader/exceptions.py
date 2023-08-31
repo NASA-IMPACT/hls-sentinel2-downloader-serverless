@@ -36,7 +36,3 @@ class FailedToUploadFileException(Exception):
 
 class FailedToUpdateGranuleDownloadFinishException(Exception):
     pass
-
-
-class SciHubAuthenticationNotRetrievedException(Exception):
-    pass

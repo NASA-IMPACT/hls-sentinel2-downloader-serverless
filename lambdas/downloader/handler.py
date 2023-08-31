@@ -22,7 +22,6 @@ from exceptions import (
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
-    SciHubAuthenticationNotRetrievedException,
 )
 from mypy_boto3_s3.client import S3Client
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,9 +32,8 @@ LOGGER.setLevel(logging.INFO)
 COPERNICUS_ZIPPER_URL = (
     "http://zipper.dataspace.copernicus.eu/odata/v1/Products({})/$value"
 )
-SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
-SCIHUB_CHECKSUM_URL_FMT = (
-    f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/?$format=json&$select=Checksum"
+COPERNICUS_CHECKSUM_URL_FMT = (
+    "https://catalogue.dataspace.copernicus.eu/odata/v1/Products({})"
 )
 COPERNICUS_IDENTITY_URL = os.environ.get(
     "COPERNICUS_IDENTITY_URL",
@@ -153,31 +151,6 @@ def get_copernicus_token() -> str:
         raise CopernicusTokenNotRetrievedException(error_message)
 
 
-def get_scihub_auth(use_inthub2: bool = False) -> Tuple[str, str]:
-    """
-    Retrieves the username and password for SciHub or IntHub, which are stored in
-    SecretsManager
-    :param use_inthub2: bool whether to use Inthub or not
-    :returns: Tuple[str, str] representing the username and password
-    """
-    try:
-        stage = os.environ["STAGE"]
-        destination = "inthub2" if use_inthub2 else "scihub"
-        secrets_manager_client = boto3.client("secretsmanager")
-        secret = json.loads(
-            secrets_manager_client.get_secret_value(
-                SecretId=(
-                    f"hls-s2-downloader-serverless/{stage}/{destination}-credentials"
-                )
-            )["SecretString"]
-        )
-        return (secret["username"], secret["password"])
-    except Exception as ex:
-        raise SciHubAuthenticationNotRetrievedException(
-            f"There was an error retrieving SciHub Credentials: {str(ex)}"
-        )
-
-
 def get_image_checksum(image_id: str) -> str:
     """
     Takes an `image_id` of a granule and retrieves its Checksum value from the
@@ -186,11 +159,13 @@ def get_image_checksum(image_id: str) -> str:
     :returns: str representing the Checksum value returned from the SciHub API
     """
     try:
-        auth = get_scihub_auth()
-        response = requests.get(url=SCIHUB_CHECKSUM_URL_FMT.format(image_id), auth=auth)
+        url = COPERNICUS_CHECKSUM_URL_FMT.format(image_id)
+        response = requests.get(url=url)
         response.raise_for_status()
-
-        return response.json()["d"]["Checksum"]["Value"]
+        checksums = response.json()["value"][0]["Checksum"]
+        md5_object = [c for c in checksums if c["Algorithm"] == "MD5"][0]
+        md5 = md5_object["Value"]
+        return md5
     except Exception as ex:
         error_message = (
             "There was an error retrieving the Checksum for Granule with id:"
@@ -238,7 +213,7 @@ def download_file(
                     Body=response.raw.read(),
                     Bucket=upload_bucket,
                     Key=f"{zip_key}",
-                    #  ContentMD5=aws_checksum,
+                    ContentMD5=aws_checksum,
                 )
 
                 granule = db.query(Granule).filter(Granule.id == image_id).first()
