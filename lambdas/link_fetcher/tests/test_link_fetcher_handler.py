@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Callable, Sequence
 from unittest.mock import patch
 
@@ -137,37 +137,43 @@ def test_that_link_fetcher_handler_correctly_filters_search_results(accepted_til
     # For testing purposes, we care only about the `tileid` property of each
     # SearchResult, so we'll just set dummy values for everything, and make
     # copies with meaningful `tileid` values.
-    EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    min_beginposition = now - timedelta(days=30)
     result = SearchResult(
         image_id="",
         filename="",
         tileid="",
         size=0,
-        beginposition=EPOCH,
-        endposition=EPOCH,
-        ingestiondate=EPOCH,
+        beginposition=min_beginposition,
+        endposition=now,
+        ingestiondate=now,
         download_url="",
     )
 
     list_to_filter = [
-        dataclasses.replace(result, tileid="51HVC"),
-        dataclasses.replace(result, tileid="56HKK"),
-        dataclasses.replace(result, tileid="99LOL"),
-        dataclasses.replace(result, tileid="20TLT"),
-        dataclasses.replace(result, tileid="99IDK"),
-        dataclasses.replace(result, tileid="14VLM"),
-        dataclasses.replace(result, tileid="01GEM"),
+        dataclasses.replace(
+            result,
+            tileid="51HVC",
+            beginposition=min_beginposition - timedelta(microseconds=1),
+        ),  # Accepted tileid, but acquired too long ago
+        dataclasses.replace(result, tileid="56HKK"),  # Accepted tileid
+        dataclasses.replace(result, tileid="99LOL"),  # Not accepted tileid
+        dataclasses.replace(result, tileid="20TLT"),  # Accepted tileid
+        dataclasses.replace(result, tileid="99IDK"),  # Not accepted tileid
+        dataclasses.replace(result, tileid="14VLM"),  # Accepted tileid
+        dataclasses.replace(result, tileid="01GEM"),  # Accepted tileid
     ]
 
     expected_results = (
-        dataclasses.replace(result, tileid="51HVC"),
-        dataclasses.replace(result, tileid="56HKK"),
-        dataclasses.replace(result, tileid="20TLT"),
-        dataclasses.replace(result, tileid="14VLM"),
-        dataclasses.replace(result, tileid="01GEM"),
+        list_to_filter[1],
+        list_to_filter[3],
+        list_to_filter[5],
+        list_to_filter[6],
     )
 
-    actual_results = filter_search_results(list_to_filter, accepted_tile_ids)
+    actual_results = filter_search_results(
+        list_to_filter, accepted_tile_ids, min_beginposition
+    )
 
     assert actual_results == expected_results
 

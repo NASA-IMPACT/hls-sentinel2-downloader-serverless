@@ -2,7 +2,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -20,6 +20,7 @@ import boto3
 import humanfriendly
 import iso8601
 import requests
+from datetime import timezone
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
@@ -77,23 +78,24 @@ def _handler(
     day = datetime.strptime(query_date, "%Y-%m-%d").date()
 
     fetched_links = get_fetched_links(session_maker, day)
-    print(f"Number of previously fetched links for {query_date}: {fetched_links}")
     params = get_query_parameters(fetched_links, day)
     search_results, total_results = get_page_for_query_and_total_results(params)
+    print(f"Previously fetched links for {query_date}: {fetched_links}/{total_results}")
     update_total_results(session_maker, day, total_results)
     bail_early = False
+    min_beginposition = datetime.now(timezone.utc) - timedelta(days=30)
 
     while search_results:
         number_of_fetched_links = len(search_results)
         filtered_search_results = filter_search_results(
-            search_results, accepted_tile_ids
+            search_results, accepted_tile_ids, min_beginposition
         )
         add_search_results_to_db_and_sqs(session_maker, filtered_search_results)
         update_last_fetched_link_time(session_maker)
         update_fetched_links(session_maker, day, number_of_fetched_links)
 
         params = {**params, "index": params["index"] + number_of_fetched_links}
-        print(f"Fetched {params['index'] - 1} of {total_results} links")
+        print(f"Fetched links for {query_date}: {params['index'] - 1}/{total_results}")
 
         if bail_early := context.get_remaining_time_in_millis() < MIN_REMAINING_MILLIS:
             print("Bailing early to avoid Lambda timeout")
@@ -263,7 +265,9 @@ def get_accepted_tile_ids() -> Set[str]:
 
 
 def filter_search_results(
-    search_results: Sequence[SearchResult], accepted_tile_ids: Set[str]
+    search_results: Sequence[SearchResult],
+    accepted_tile_ids: Set[str],
+    min_beginposition: datetime,
 ) -> Sequence[SearchResult]:
     """
     Filters the given search results list and returns a list of results that tile ids
@@ -278,6 +282,7 @@ def filter_search_results(
         search_result
         for search_result in search_results
         if search_result.tileid in accepted_tile_ids
+        and min_beginposition <= search_result.beginposition
     )
 
 
