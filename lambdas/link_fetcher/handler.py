@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ from typing import (
     TypedDict,
 )
 
+import backoff
 import boto3
 import humanfriendly
 import iso8601
@@ -39,6 +41,9 @@ SEARCH_URL: Final = (
     "https://catalogue.dataspace.copernicus.eu/resto/api/collections"
     "/Sentinel2/search.json"
 )
+
+# Log `backoff` library's retry attempts on request failures
+logging.getLogger("backoff").addHandler(logging.StreamHandler())
 
 
 @dataclass(frozen=True)
@@ -336,6 +341,23 @@ def create_search_result(search_item: Mapping[str, Any]) -> SearchResult:
     )
 
 
+def client_error(e: Exception) -> bool:
+    return (
+        # `e` will always be a RequestException, but the type signature required
+        # for this function is `Exception`, so we're simply making the type
+        # checker happy, so it doesn't flag `response` as an unknown member.
+        isinstance(e, requests.exceptions.RequestException)
+        and 400 <= e.response.status_code < 500
+    )
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_tries=20,  # Be somewhat persistent in the face of 503 responses
+    max_time=10 * 60,  # Max time between retries: 10 minutes (measured in seconds)
+    giveup=client_error,  # Don't retry 4XX responses
+)
 def get_page_for_query_and_total_results(
     query_params: Mapping[str, Any]
 ) -> Tuple[Sequence[SearchResult], int]:
