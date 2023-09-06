@@ -20,7 +20,6 @@ import boto3
 import humanfriendly
 import iso8601
 import requests
-from datetime import timezone
 from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
@@ -83,12 +82,11 @@ def _handler(
     print(f"Previously fetched links for {query_date}: {fetched_links}/{total_results}")
     update_total_results(session_maker, day, total_results)
     bail_early = False
-    min_beginposition = datetime.now(timezone.utc) - timedelta(days=30)
 
     while search_results:
         number_of_fetched_links = len(search_results)
         filtered_search_results = filter_search_results(
-            search_results, accepted_tile_ids, min_beginposition
+            search_results, accepted_tile_ids
         )
         add_search_results_to_db_and_sqs(session_maker, filtered_search_results)
         update_last_fetched_link_time(session_maker)
@@ -267,7 +265,6 @@ def get_accepted_tile_ids() -> Set[str]:
 def filter_search_results(
     search_results: Sequence[SearchResult],
     accepted_tile_ids: Set[str],
-    min_beginposition: datetime,
 ) -> Sequence[SearchResult]:
     """
     Filters the given search results list and returns a list of results that tile ids
@@ -282,7 +279,6 @@ def filter_search_results(
         search_result
         for search_result in search_results
         if search_result.tileid in accepted_tile_ids
-        and min_beginposition <= search_result.beginposition
     )
 
 
@@ -295,11 +291,13 @@ def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
     :returns: mapping of query parameters
     """
     date_string = day.strftime("%Y-%m-%d")
+    oldest_acquisition_date = day - timedelta(days=30)
 
     return {
         "processingLevel": "S2MSI1C",
         "publishedAfter": f"{date_string}T00:00:00Z",
         "publishedBefore": f"{date_string}T23:59:59Z",
+        "startDate": f"{oldest_acquisition_date.strftime('%Y-%m-%d')}T00:00:00Z",
         "sortParam": "published",
         "sortOrder": "desc",
         "maxRecords": 100,

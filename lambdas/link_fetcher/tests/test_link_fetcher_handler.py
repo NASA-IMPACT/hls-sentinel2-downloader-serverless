@@ -43,6 +43,7 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         "processingLevel": "S2MSI1C",
         "publishedAfter": "2020-01-01T00:00:00Z",
         "publishedBefore": "2020-01-01T23:59:59Z",
+        "startDate": "2019-12-02T00:00:00Z",
         "sortParam": "published",
         "sortOrder": "desc",
         "maxRecords": 100,
@@ -86,6 +87,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
             f"{SEARCH_URL}?processingLevel=S2MSI1C"
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
+            "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=100"
@@ -116,6 +118,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
             f"{SEARCH_URL}?processingLevel=S2MSI1C"
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
+            "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=100"
@@ -138,24 +141,19 @@ def test_that_link_fetcher_handler_correctly_filters_search_results(accepted_til
     # SearchResult, so we'll just set dummy values for everything, and make
     # copies with meaningful `tileid` values.
     now = datetime.now(timezone.utc)
-    min_beginposition = now - timedelta(days=30)
     result = SearchResult(
         image_id="",
         filename="",
         tileid="",
         size=0,
-        beginposition=min_beginposition,
+        beginposition=now,
         endposition=now,
         ingestiondate=now,
         download_url="",
     )
 
     list_to_filter = [
-        dataclasses.replace(
-            result,
-            tileid="51HVC",
-            beginposition=min_beginposition - timedelta(microseconds=1),
-        ),  # Accepted tileid, but acquired too long ago
+        dataclasses.replace(result, tileid="51HVC"),  # Accepted tileid
         dataclasses.replace(result, tileid="56HKK"),  # Accepted tileid
         dataclasses.replace(result, tileid="99LOL"),  # Not accepted tileid
         dataclasses.replace(result, tileid="20TLT"),  # Accepted tileid
@@ -165,15 +163,14 @@ def test_that_link_fetcher_handler_correctly_filters_search_results(accepted_til
     ]
 
     expected_results = (
+        list_to_filter[0],
         list_to_filter[1],
         list_to_filter[3],
         list_to_filter[5],
         list_to_filter[6],
     )
 
-    actual_results = filter_search_results(
-        list_to_filter, accepted_tile_ids, min_beginposition
-    )
+    actual_results = filter_search_results(list_to_filter, accepted_tile_ids)
 
     assert actual_results == expected_results
 

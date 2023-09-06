@@ -163,6 +163,7 @@ def generate_mock_responses_for_one_day(mock_search_response):
         f"{SEARCH_URL}?processingLevel=S2MSI1C"
         "&publishedAfter={0}T00:00:00Z"
         "&publishedBefore={0}T23:59:59Z"
+        "&startDate=2019-12-02T00:00:00Z"
         "&sortParam=published"
         "&sortOrder=desc"
         "&maxRecords=100"
