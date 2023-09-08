@@ -22,32 +22,41 @@ aws_cdk_reqs = [
 ]
 
 inst_reqs = [
+    *[f"aws_cdk.{x}=={aws_cdk_version}" for x in aws_cdk_reqs],
     "boto3",
-    "psycopg2",
     "polling2",
+    "psycopg2",
     "python-dotenv",
 ]
 
-inst_reqs.append([f"aws_cdk.{x}=={aws_cdk_version}" for x in aws_cdk_reqs])
+boto_stubs = (
+    "boto3-stubs[lambda,s3,sqs,ssm,stepfunctions]",
+    "botocore-stubs",
+)
 
 extra_reqs = {
     "test": [
         "assertpy",
-        "pytest",
-        "pytest-cov",
         "black",
+        *boto_stubs,
         "flake8",
         "isort",
+        "moto",
+        "mypy",
+        "pytest",
+        "pytest-cov",
     ],
     "dev": [
         "assertpy",
-        "pytest",
         "black",
+        *boto_stubs,
         "flake8",
-        "nodeenv",
         "isort",
+        "mypy",
+        "nodeenv",
         "pre-commit",
         "pre-commit-hooks",
+        "pytest",
     ],
 }
 

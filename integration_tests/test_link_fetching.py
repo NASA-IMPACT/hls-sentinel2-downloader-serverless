@@ -10,10 +10,10 @@ from db.session import get_session, get_session_maker
 
 
 def check_execution_succeeded(step_function_client, execution_arn):
-    execution_status = step_function_client.describe_execution(
-        executionArn=execution_arn
-    )["status"]
-    return True if execution_status == "SUCCEEDED" else False
+    return (
+        step_function_client.describe_execution(executionArn=execution_arn)["status"]
+        == "SUCCEEDED"
+    )
 
 
 def check_sqs_message_count(sqs_client, queue_url, count):
@@ -31,7 +31,8 @@ def test_that_link_fetching_invocation_executes_correctly(
     )["executionArn"]
 
     polling2.poll(
-        lambda: check_execution_succeeded(step_function_client, execution_arn),
+        check_execution_succeeded,
+        args=(step_function_client, execution_arn),
         step=5,
         timeout=120,
     )
@@ -49,7 +50,7 @@ def test_that_link_fetching_invocation_executes_correctly(
         assert_that(statuses).is_length(1)
 
     polling2.poll(
-        lambda: check_sqs_message_count(sqs_client, queue_url, 68), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 68), step=5, timeout=120
     )
 
 
@@ -82,7 +83,8 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
     )["executionArn"]
 
     polling2.poll(
-        lambda: check_execution_succeeded(step_function_client, execution_arn),
+        check_execution_succeeded,
+        args=(step_function_client, execution_arn),
         step=5,
         timeout=120,
     )
@@ -109,5 +111,5 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
         assert_that(statuses).is_length(1)
 
     polling2.poll(
-        lambda: check_sqs_message_count(sqs_client, queue_url, 67), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 67), step=5, timeout=120
     )
