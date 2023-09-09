@@ -5,16 +5,23 @@ from assertpy import assert_that
 from db.models.granule import Granule
 from db.models.status import Status
 from db.session import get_session, get_session_maker
+from mypy_boto3_lambda import LambdaClient
+from mypy_boto3_s3.service_resource import Bucket
 
 
 def test_that_downloader_correctly_downloads_file_and_updates_database(
-    db_setup, mock_scihub_api_url, lambda_client, downloader_arn, upload_bucket
+    db_setup,
+    mock_scihub_api_url: str,
+    lambda_client: LambdaClient,
+    downloader_arn: str,
+    upload_bucket: Bucket,
 ):
     image_download_url_part = "/dhus/odata/v1/Products('integration-test-id')/$value"
     image_download_url = f"{mock_scihub_api_url}{image_download_url_part}"
 
     now = datetime.now(timezone.utc)
     session_maker = get_session_maker()
+
     with get_session(session_maker) as db:
         db.add(
             Granule(
@@ -47,7 +54,7 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
     )
 
     before_invocation = datetime.now(timezone.utc)
-    _ = lambda_client.invoke(
+    lambda_client.invoke(
         FunctionName=downloader_arn,
         InvocationType="RequestResponse",
         Payload=invocation_body,
