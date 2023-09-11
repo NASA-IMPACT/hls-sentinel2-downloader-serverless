@@ -1,7 +1,8 @@
 import json
 import os
 from contextlib import contextmanager
-from unittest.mock import patch
+from pathlib import Path
+from typing import cast
 
 import alembic.command
 import alembic.config
@@ -15,31 +16,26 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 DELETE_DATABASE_TABLE_CONTENTS = """
-DELETE from granule; DELETE from granule_count; DELETE from status;
+DELETE from granule;
+DELETE from granule_count;
+DELETE from status;
 """
-UNIT_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+UNIT_TEST_DIR = Path(__file__).absolute().parent
 
 
 @pytest.fixture
-def example_checksum_response():
-    with open(
-        os.path.join(UNIT_TEST_DIR, "example_checksum_response.json"), "rb"
-    ) as json_in:
-        return json.load(json_in)
+def example_checksum_response() -> str:
+    return json.loads((UNIT_TEST_DIR / "example_checksum_response.json").read_text())
 
 
 @pytest.fixture
-def checksum_file_contents():
-    with open(
-        os.path.join(UNIT_TEST_DIR, "checksum_test_file.txt"), "rb"
-    ) as checksum_in:
-        return checksum_in.read()
+def checksum_file_contents() -> str:
+    return (UNIT_TEST_DIR / "checksum_test_file.txt").read_text()
 
 
 @pytest.fixture
-def fake_safe_file_contents():
-    with open(os.path.join(UNIT_TEST_DIR, "fake_safe_file.SAFE"), "rb") as safe_in:
-        return safe_in.read()
+def fake_safe_file_contents() -> bytes:
+    return (UNIT_TEST_DIR / "fake_safe_file.SAFE").read_bytes()
 
 
 @pytest.fixture(autouse=True)
@@ -60,16 +56,14 @@ def postgres_engine(docker_ip, docker_services, db_connection_secret):
         host="localhost",
         database=os.environ["PG_DB"],
     )
-    pg_engine = create_engine(db_url)
+    pg_engine = cast(Engine, create_engine(db_url))
     docker_services.wait_until_responsive(
         timeout=15.0, pause=1, check=lambda: check_pg_status(pg_engine)
     )
 
-    alembic_root = UNIT_TEST_DIR.replace(
-        "lambdas/downloader/tests", "alembic_migration"
-    )
-    alembic_config = alembic.config.Config(os.path.join(alembic_root, "alembic.ini"))
-    alembic_config.set_main_option("script_location", alembic_root)
+    alembic_root = UNIT_TEST_DIR.parent.parent.parent / "alembic_migration"
+    alembic_config = alembic.config.Config(str(alembic_root / "alembic.ini"))
+    alembic_config.set_main_option("script_location", str(alembic_root))
     alembic.command.upgrade(alembic_config, "head")
 
     return pg_engine
@@ -161,8 +155,8 @@ def check_pg_status(engine: Engine) -> bool:
 
 
 @pytest.fixture(scope="session")
-def docker_compose_file(pytestconfig):
-    return os.path.join(UNIT_TEST_DIR, "docker-compose.yml")
+def docker_compose_file(pytestconfig) -> str:
+    return str(UNIT_TEST_DIR / "docker-compose.yml")
 
 
 @pytest.fixture(scope="session")

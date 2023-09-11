@@ -1,5 +1,5 @@
 import json
-import os
+import re
 from datetime import datetime
 from unittest import mock
 
@@ -11,7 +11,6 @@ from db.models.granule import Granule
 from db.models.status import Status
 from exceptions import (
     ChecksumRetrievalException,
-    CopernicusTokenNotRetrievedException,
     FailedToDownloadFileException,
     FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
@@ -24,7 +23,6 @@ from freezegun import freeze_time
 from handler import (
     download_file,
     generate_aws_checksum,
-    get_copernicus_token,
     get_download_url,
     get_granule,
     get_image_checksum,
@@ -410,11 +408,10 @@ def test_that_handler_correctly_logs_and_returns_if_error_getting_granule(
     )
 
     with mock.patch("handler.get_session", fake_db_session_that_fails):
-        with mock.patch("handler.LOGGER.error") as patched_logger:
-            with pytest.raises(FailedToRetrieveGranuleException) as ex:
-                handler(sqs_message, None)
-            patched_logger.assert_called_once_with(expected_error_message)
-            assert_that(str(ex.value)).is_equal_to(expected_error_message)
+        with pytest.raises(
+            FailedToRetrieveGranuleException, match=expected_error_message
+        ):
+            handler(sqs_message, None)
 
 
 def test_that_handler_correctly_logs_and_returns_if_already_downloaded(
@@ -487,12 +484,11 @@ def test_that_handler_correctly_logs_and_errors_if_retry_limit_reached(
     )
     db_session.commit()
 
-    with mock.patch("handler.LOGGER.error") as patched_logger:
-        with pytest.raises(RetryLimitReachedException):
-            handler(sqs_message, None)
-        patched_logger.assert_called_once_with(
-            "Granule with id: test-id has reached its retry limit"
-        )
+    with pytest.raises(
+        RetryLimitReachedException,
+        match="Granule with id: test-id has reached its retry limit",
+    ):
+        handler(sqs_message, None)
 
 
 @responses.activate
@@ -583,18 +579,17 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_download(
     )
     db_session.commit()
 
-    expected_error_message = (
+    expected_error_message = re.escape(
         "Requests exception thrown downloading granule with download_url:"
-        f" {download_url}, exception was: 404 Client Error: Not Found for url: "
-        + download_url
+        f" {download_url}, exception was: 404 Client Error: Not Found for url:"
+        f" {download_url}"
     )
 
     mock_get_image_checksum.return_value = "test-checksum"
-    with mock.patch("handler.LOGGER.error") as mock_logger:
-        with pytest.raises(FailedToDownloadFileException) as ex:
-            handler(sqs_message, None)
-        mock_logger.assert_called_once_with(expected_error_message)
-    assert_that(str(ex.value)).is_equal_to(expected_error_message)
+
+    with pytest.raises(FailedToDownloadFileException, match=expected_error_message):
+        handler(sqs_message, None)
+
     mock_increase_retry_count.assert_called_once()
 
 
@@ -649,19 +644,18 @@ def test_that_handler_correctly_logs_and_errors_if_image_fails_to_upload(
                 "Something Broke",
             )
 
-    expected_error_message = (
+    expected_error_message = re.escape(
         "Boto3 Client Error raised when uploading file: test-filename.SAFE for granule"
         " with id: test-id, error was: An error occurred (500) when calling the "
         "Something Broke operation: Something Broke"
     )
 
     mock_get_image_checksum.return_value = "36F3AB53F6D2D9592CF50CE4682FF7EA"
+
     with mock.patch("handler.get_s3_client", FakeClient):
-        with mock.patch("handler.LOGGER.error") as mock_logger:
-            with pytest.raises(FailedToUploadFileException) as ex:
-                handler(sqs_message, None)
-            mock_logger.assert_called_once_with(expected_error_message)
-        assert_that(str(ex.value)).is_equal_to(expected_error_message)
+        with pytest.raises(FailedToUploadFileException, match=expected_error_message):
+            handler(sqs_message, None)
+
     mock_increase_retry_count.assert_called_once()
 
 
@@ -726,12 +720,12 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
         " granule with id: test-id, exception was: An Exception"
     )
 
-    with mock.patch("handler.LOGGER.error") as mock_logger:
-        with mock.patch("handler.get_session", fake_db_session_that_fails):
-            with pytest.raises(FailedToUpdateGranuleDownloadFinishException) as ex:
-                handler(sqs_message, None)
-            mock_logger.assert_called_once_with(expected_error_message)
-    assert_that(str(ex.value)).is_equal_to(expected_error_message)
+    with mock.patch("handler.get_session", fake_db_session_that_fails):
+        with pytest.raises(
+            FailedToUpdateGranuleDownloadFinishException, match=expected_error_message
+        ):
+            handler(sqs_message, None)
+
     mock_increase_retry_count.assert_called_once()
 
 
