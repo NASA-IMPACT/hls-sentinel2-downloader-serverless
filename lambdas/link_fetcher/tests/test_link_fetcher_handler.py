@@ -1,6 +1,6 @@
 import dataclasses
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Callable, Sequence
 from unittest.mock import patch
 
