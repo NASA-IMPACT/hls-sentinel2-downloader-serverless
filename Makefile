@@ -1,4 +1,15 @@
-.PHONEY: install lint format diff deploy destroy diff-integration deploy-integration destroy-integration unit-tests integration-tests
+.PHONEY:
+	deploy
+	deploy-integration
+	destroy
+	destroy-integration
+	diff
+	diff-integration
+	format
+	install
+	integration-tests
+	lint
+	unit-tests
 
 install:
 	$(MAKE) -C layers/db install
@@ -34,22 +45,22 @@ format:
 	$(MAKE) -C alembic_migration format
 
 diff:
-	pipenv run npx cdk diff --app cdk/app.py || true
+	tox -e dev -- diff --app cdk/app.py || true
 
 deploy:
-	pipenv run npx cdk deploy --app cdk/app.py --require-approval never
+	tox -e dev -- deploy --app cdk/app.py --require-approval never
 
 destroy:
-	pipenv run npx cdk destroy --app cdk/app.py --force
+	tox -e dev -- destroy --app cdk/app.py --force
 
 diff-integration:
-	pipenv run npx cdk diff '*' --app cdk/app_integration.py || true
+	tox -e dev -- diff '*' --app cdk/app_integration.py || true
 
 deploy-integration:
-	pipenv run npx cdk deploy '*' --app cdk/app_integration.py --require-approval never
+	tox -e dev -- deploy '*' --app cdk/app_integration.py --require-approval never
 
 destroy-integration:
-	pipenv run npx cdk destroy '*' --app cdk/app_integration.py --force
+	tox -e dev -- destroy '*' --app cdk/app_integration.py --force
 
 unit-tests:
 	$(MAKE) -C lambdas/link_fetcher test
@@ -61,4 +72,4 @@ unit-tests:
 	$(MAKE) -C alembic_migration test
 
 integration-tests:
-	pipenv run pytest -s integration_tests
+	tox -e integration
