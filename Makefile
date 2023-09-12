@@ -73,3 +73,28 @@ unit-tests:
 
 integration-tests:
 	tox -e integration
+
+#-------------------------------------------------------------------------------
+# For invocation via tox only (i.e., in tox.ini commands entries)
+#-------------------------------------------------------------------------------
+
+tox:
+	@if [[ -z $${TOX_ENV_DIR+x} ]]; then echo "ERROR: For tox.ini use only" >&2; exit 1; fi
+
+# Install node in the virtualenv, if it's not installed or it's the wrong version.
+# Pull node version from .nvmrc file.
+install-node: tox
+	@NODE_VERSION=$$(<.nvmrc); \
+	if [[ ! $$(type node 2>/dev/null) =~ $${VIRTUAL_ENV} || ! $$(node -v) =~ $${NODE_VERSION} ]]; then \
+	    nodeenv --node $${NODE_VERSION} --python-virtualenv; \
+	fi
+
+# Install cdk in the virtualenv, if it's not installed or it's the wrong version.
+# Pull CDK version from value of aws_cdk_version variable in setup.py.
+install-cdk: install-node
+	@CDK_VERSION=$$(grep "aws_cdk_version = " setup.py | sed -Ee 's/aws_cdk_version = "(.+)"/\1/'); \
+	if [[ ! $$(type cdk 2>/dev/null) =~ $${VIRTUAL_ENV} || ! $$(cdk --version) =~ $${CDK_VERSION} ]]; then \
+	    npm install --location global "aws-cdk@$${CDK_VERSION}"; \
+	fi
+	@# Acknowledge CDK notice regarding CDK v1 being in maintenance mode.
+	@grep -q 19836 cdk.context.json 2>/dev/null || cdk acknowledge 19836
