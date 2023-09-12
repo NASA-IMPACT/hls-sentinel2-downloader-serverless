@@ -2,9 +2,11 @@
 import os
 
 from aws_cdk import core
+from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 from integration_stack import IntegrationStack
 
+load_dotenv(override=True)
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
