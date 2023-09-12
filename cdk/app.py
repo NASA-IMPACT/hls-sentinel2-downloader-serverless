@@ -5,7 +5,6 @@ from aws_cdk import core
 from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 
-
 load_dotenv(override=True)
 app = core.App()
 

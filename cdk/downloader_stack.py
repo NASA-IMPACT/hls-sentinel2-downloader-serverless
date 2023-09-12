@@ -1,3 +1,5 @@
+from typing import Optional
+
 from aws_cdk import (
     aws_cloudwatch,
     aws_ec2,
@@ -12,11 +14,10 @@ from aws_cdk import (
     aws_secretsmanager,
     aws_sqs,
     aws_ssm,
-    aws_stepfunctions as sfn,
-    aws_stepfunctions_tasks as tasks,
-    core,
 )
-from typing import Optional
+from aws_cdk import aws_stepfunctions as sfn
+from aws_cdk import aws_stepfunctions_tasks as tasks
+from aws_cdk import core
 
 
 class DownloaderStack(core.Stack):

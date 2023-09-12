@@ -1,5 +1,6 @@
 import json
 import os
+import pathlib
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -8,7 +9,6 @@ from typing import Callable, Sequence, Set, cast
 import alembic.command
 import alembic.config
 import boto3
-import pathlib
 import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch

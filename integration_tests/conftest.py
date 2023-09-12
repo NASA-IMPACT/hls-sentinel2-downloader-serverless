@@ -8,10 +8,9 @@ from db.session import get_session, get_session_maker
 from dotenv import load_dotenv
 from mypy_boto3_lambda import LambdaClient
 from mypy_boto3_s3 import S3ServiceResource
+from mypy_boto3_sqs import SQSClient
 from mypy_boto3_ssm import SSMClient
 from mypy_boto3_stepfunctions import SFNClient
-from mypy_boto3_sqs import SQSClient
-
 
 EMPTY_TABLES_QUERY = (
     "DELETE FROM GRANULE; DELETE FROM GRANULE_COUNT; DELETE FROM STATUS;"
