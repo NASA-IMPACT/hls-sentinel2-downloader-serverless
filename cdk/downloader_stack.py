@@ -341,7 +341,6 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-copernicus-credentials",
             secret_name=f"hls-s2-downloader-serverless/{identifier}/copernicus-credentials",
         )
-        copernicus_credentials.grant_read(link_fetcher)
         copernicus_credentials.grant_read(self.downloader)
         copernicus_credentials.grant_read(self.token_rotator)
 
