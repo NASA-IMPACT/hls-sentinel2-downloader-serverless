@@ -43,7 +43,7 @@ SEARCH_URL: Final = (
 )
 
 # Log `backoff` library's retry attempts on request failures
-logging.getLogger("backoff").addHandler(logging.StreamHandler())
+logging.getLogger("backoff").setLevel(logging.DEBUG)
 
 
 @dataclass(frozen=True)
@@ -341,14 +341,11 @@ def create_search_result(search_item: Mapping[str, Any]) -> SearchResult:
     )
 
 
-def client_error(e: Exception) -> bool:
+def is_http_client_error(e: Exception) -> bool:
     return (
-        # `e` will always be a RequestException, but the type signature required
-        # for this function is `Exception`, so we're simply making the type
-        # checker happy, so it doesn't flag `response` as an unknown member.
-        isinstance(e, requests.RequestException)
-        and hasattr(e, "response")
-        and e.response.status_code is not None
+        isinstance(e, requests.HTTPError)
+        and getattr(e, "response", None) is not None
+        and isinstance(getattr(e.response, "status_code", None), int)
         and 400 <= e.response.status_code < 500
     )
 
@@ -358,7 +355,7 @@ def client_error(e: Exception) -> bool:
     requests.RequestException,
     max_tries=20,  # Be somewhat persistent in the face of 503 responses
     max_time=10 * 60,  # Max time between retries: 10 minutes (measured in seconds)
-    giveup=client_error,  # Don't retry 4XX responses
+    giveup=is_http_client_error,  # Don't retry 4XX responses
 )
 def get_page_for_query_and_total_results(
     query_params: Mapping[str, Any]
