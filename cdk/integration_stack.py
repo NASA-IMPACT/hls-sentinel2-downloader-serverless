@@ -22,6 +22,8 @@ class IntegrationStack(core.Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # TODO remove this, along with other references to it, but leaving for
+        # now, just in case removing it would break the downloader lambda
         aws_secretsmanager.Secret(
             self,
             id=f"{identifier}-integration-scihub-credentials",
@@ -90,10 +92,12 @@ class IntegrationStack(core.Stack):
             self,
             id=f"{identifier}-mock-scihub-api-dhus-search",
             parent=mock_scihub_api.root,
-            path_part="dhus",
+            path_part="resto",
         )
 
-        dhus_resource.add_resource("search").add_method(
+        dhus_resource.add_resource("api").add_resource("collections").add_resource(
+            "Sentinel2"
+        ).add_resource("search.json").add_method(
             http_method="GET",
             method_responses=[
                 aws_apigateway.MethodResponse(

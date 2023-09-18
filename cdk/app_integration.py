@@ -20,6 +20,7 @@ downloader_stack = DownloaderStack(
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=integration_stack.upload_bucket.bucket_name,
+    search_url=integration_stack.scihub_url,
     scihub_url=integration_stack.scihub_url,
 )
 

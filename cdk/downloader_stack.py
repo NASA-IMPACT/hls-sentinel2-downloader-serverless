@@ -26,8 +26,10 @@ class DownloaderStack(core.Stack):
         self,
         scope: core.Construct,
         construct_id: str,
+        *,
         identifier: str,
         upload_bucket: str,
+        search_url: Optional[str] = None,
         scihub_url: Optional[str] = None,
         enable_downloading: bool = False,
         use_inthub2: bool = False,
@@ -215,6 +217,7 @@ class DownloaderStack(core.Stack):
             "STAGE": identifier,
             "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+            **({"SEARCH_URL": search_url} if search_url else {}),
         }
 
         lambda_insights_policy = aws_iam.ManagedPolicy.from_managed_policy_arn(
@@ -272,10 +275,8 @@ class DownloaderStack(core.Stack):
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
             "USE_INTHUB2": "YES" if use_inthub2 else "NO",
+            **({"SCIHUB_URL": scihub_url} if scihub_url else {}),
         }
-
-        if scihub_url:
-            downloader_environment_vars["SCIHUB_URL"] = scihub_url
 
         self.downloader = aws_lambda_python.PythonFunction(
             self,

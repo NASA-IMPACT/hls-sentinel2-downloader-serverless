@@ -41,7 +41,7 @@ def test_that_link_fetching_invocation_executes_correctly(
 
     with get_session(session_maker) as db:
         granules = db.query(Granule).all()
-        assert_that(granules).is_length(68)
+        assert_that(granules).is_length(78)
 
         granule_counts = db.query(GranuleCount).all()
         assert_that(granule_counts).is_length(5)
@@ -50,7 +50,7 @@ def test_that_link_fetching_invocation_executes_correctly(
         assert_that(statuses).is_length(1)
 
     polling2.poll(
-        check_sqs_message_count, args=(sqs_client, queue_url, 68), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 78), step=5, timeout=120
     )
 
 
@@ -65,7 +65,7 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
         # Using its ID
         db_insert_duplicate.add(
             Granule(
-                id="85f05891-8a4e-47c0-9d8a-71f01e6a0b1c",
+                id="483cab2e-06f1-5944-a06b-ef7026cc6fd0",
                 filename="A filename",
                 tileid="TS101",
                 size=100,
@@ -93,12 +93,12 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
 
     with get_session(session_maker) as db:
         granules = db.query(Granule).all()
-        assert_that(granules).is_length(68)
+        assert_that(granules).is_length(78)
 
         # Assert that the original granule we added is still there
         granule_we_inserted = (
             db.query(Granule)
-            .filter(Granule.id == "85f05891-8a4e-47c0-9d8a-71f01e6a0b1c")
+            .filter(Granule.id == "483cab2e-06f1-5944-a06b-ef7026cc6fd0")
             .first()
         )
         assert_that(granule_we_inserted.tileid).is_equal_to("TS101")
@@ -111,5 +111,5 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
         assert_that(statuses).is_length(1)
 
     polling2.poll(
-        check_sqs_message_count, args=(sqs_client, queue_url, 67), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 77), step=5, timeout=120
     )

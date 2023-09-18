@@ -37,9 +37,9 @@ SessionMaker: TypeAlias = Callable[[], Session]
 
 ACCEPTED_TILE_IDS_FILENAME: Final = "allowed_tiles.txt"
 MIN_REMAINING_MILLIS: Final = 60_000
-SEARCH_URL: Final = (
-    "https://catalogue.dataspace.copernicus.eu/resto/api/collections"
-    "/Sentinel2/search.json"
+SEARCH_URL: Final = os.environ.get(
+    "SEARCH_URL",
+    "https://catalogue.dataspace.copernicus.eu",
 )
 
 # Log `backoff` library's retry attempts on request failures
@@ -353,7 +353,7 @@ def is_http_client_error(e: Exception) -> bool:
 @backoff.on_exception(
     backoff.expo,
     requests.RequestException,
-    max_tries=20,  # Be somewhat persistent in the face of 503 responses
+    max_tries=20,  # Be somewhat persistent in the face of 5xx responses
     max_time=10 * 60,  # Max time between retries: 10 minutes (measured in seconds)
     giveup=is_http_client_error,  # Don't retry 4XX responses
 )
@@ -371,7 +371,10 @@ def get_page_for_query_and_total_results(
         number of results that match the query
     """
 
-    resp = requests.get(SEARCH_URL, params=query_params)
+    resp = requests.get(
+        f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json",
+        params=query_params,
+    )
     resp.raise_for_status()
     results = resp.json()
     total_results = results["properties"]["totalResults"]
