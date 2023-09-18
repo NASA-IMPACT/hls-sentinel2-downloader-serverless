@@ -181,6 +181,10 @@ class DownloaderStack(core.Stack):
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
             retention_period=core.Duration.days(14),
             visibility_timeout=core.Duration.minutes(15),
+            dead_letter_queue=aws_sqs.DeadLetterQueue(
+                max_receive_count=10,
+                queue=aws_sqs.Queue(self, f"{identifier}-to-download-dlq"),
+            ),
         )
 
         aws_ssm.StringParameter(
