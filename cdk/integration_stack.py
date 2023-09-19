@@ -88,14 +88,14 @@ class IntegrationStack(core.Stack):
             parameter_name=f"/integration_tests/{identifier}/mock_scihub_url",
         )
 
-        dhus_resource = aws_apigateway.Resource(
+        search_resource = aws_apigateway.Resource(
             self,
-            id=f"{identifier}-mock-scihub-api-dhus-search",
+            id=f"{identifier}-mock-scihub-api-search-search",
             parent=mock_scihub_api.root,
             path_part="resto",
         )
 
-        dhus_resource.add_resource("api").add_resource("collections").add_resource(
+        search_resource.add_resource("api").add_resource("collections").add_resource(
             "Sentinel2"
         ).add_resource("search.json").add_method(
             http_method="GET",
@@ -115,9 +115,14 @@ class IntegrationStack(core.Stack):
             ),
         )
 
-        dhus_resource.add_resource("odata").add_resource("v1").add_resource(
-            "{product+}"
-        ).add_method(
+        download_resource = aws_apigateway.Resource(
+            self,
+            id=f"{identifier}-mock-scihub-api-download-search",
+            parent=mock_scihub_api.root,
+            path_part="odata",
+        )
+
+        download_resource.add_resource("v1").add_resource("{product+}").add_method(
             http_method="GET",
             method_responses=[
                 aws_apigateway.MethodResponse(

@@ -21,7 +21,8 @@ downloader_stack = DownloaderStack(
     identifier=identifier,
     upload_bucket=integration_stack.upload_bucket.bucket_name,
     search_url=integration_stack.scihub_url,
-    scihub_url=integration_stack.scihub_url,
+    zipper_url=integration_stack.scihub_url,
+    checksum_url=integration_stack.scihub_url,
 )
 
 integration_stack.upload_bucket.grant_put(downloader_stack.downloader)

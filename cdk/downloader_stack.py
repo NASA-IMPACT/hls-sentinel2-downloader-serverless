@@ -30,7 +30,8 @@ class DownloaderStack(core.Stack):
         identifier: str,
         upload_bucket: str,
         search_url: Optional[str] = None,
-        scihub_url: Optional[str] = None,
+        zipper_url: Optional[str] = None,
+        checksum_url: Optional[str] = None,
         enable_downloading: bool = False,
         use_inthub2: bool = False,
         schedule_link_fetching: bool = False,
@@ -279,7 +280,8 @@ class DownloaderStack(core.Stack):
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
             "USE_INTHUB2": "YES" if use_inthub2 else "NO",
-            **({"SCIHUB_URL": scihub_url} if scihub_url else {}),
+            **({"COPERNICUS_ZIPPER_URL": zipper_url} if zipper_url else {}),
+            **({"COPERNICUS_CHECKSUM_URL": checksum_url} if checksum_url else {}),
         }
 
         self.downloader = aws_lambda_python.PythonFunction(

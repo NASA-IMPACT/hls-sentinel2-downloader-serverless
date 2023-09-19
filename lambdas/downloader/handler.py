@@ -31,11 +31,13 @@ if TYPE_CHECKING:
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
-COPERNICUS_ZIPPER_URL = (
-    "http://zipper.dataspace.copernicus.eu/odata/v1/Products({})/$value"
+COPERNICUS_ZIPPER_URL = os.environ.get(
+    "COPERNICUS_ZIPPER_URL",
+    "http://zipper.dataspace.copernicus.eu",
 )
-COPERNICUS_CHECKSUM_URL_FMT = (
-    "https://catalogue.dataspace.copernicus.eu/odata/v1/Products({})"
+COPERNICUS_CHECKSUM_URL = os.environ.get(
+    "COPERNICUS_CHECKSUM_URL",
+    "https://catalogue.dataspace.copernicus.eu",
 )
 COPERNICUS_IDENTITY_URL = os.environ.get(
     "COPERNICUS_IDENTITY_URL",
@@ -89,7 +91,7 @@ def get_download_url(image_id: str) -> str:
     Takes the `image_id` value from `image_message` and returns a
     the zipper download url.
     """
-    return COPERNICUS_ZIPPER_URL.format(image_id)
+    return f"{COPERNICUS_ZIPPER_URL}/odata/v1/Products({image_id})/$value"
 
 
 def get_granule(image_id: str) -> Granule:
@@ -156,7 +158,9 @@ def get_image_checksum(image_id: str) -> str:
     :returns: str representing the Checksum value returned from the SciHub API
     """
     try:
-        response = requests.get(COPERNICUS_CHECKSUM_URL_FMT.format(image_id))
+        response = requests.get(
+            f"{COPERNICUS_CHECKSUM_URL}/odata/v1/Products({image_id})"
+        )
         response.raise_for_status()
         checksums = response.json()["value"][0]["Checksum"]
         md5_object = [c for c in checksums if c["Algorithm"] == "MD5"][0]

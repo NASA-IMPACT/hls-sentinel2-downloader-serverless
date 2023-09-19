@@ -160,7 +160,7 @@ def db_connection_secret(secrets_manager_client, monkeysession):
 @pytest.fixture
 def generate_mock_responses_for_one_day(mock_search_response):
     search_query_fmt = (
-        f"{SEARCH_URL}?processingLevel=S2MSI1C"
+        f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C"
         "&publishedAfter={0}T00:00:00Z"
         "&publishedBefore={0}T23:59:59Z"
         "&startDate=2019-12-02T00:00:00Z"

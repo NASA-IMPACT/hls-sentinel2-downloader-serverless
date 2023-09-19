@@ -84,7 +84,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
     responses.add(
         responses.GET,
         (
-            f"{SEARCH_URL}?processingLevel=S2MSI1C"
+            f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C"
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"
@@ -115,7 +115,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
     responses.add(
         responses.GET,
         (
-            f"{SEARCH_URL}?processingLevel=S2MSI1C"
+            f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C"
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"

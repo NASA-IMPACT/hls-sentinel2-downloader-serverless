@@ -1,41 +1,38 @@
 import json
 from datetime import datetime, timezone
 
-from assertpy import assert_that
 from db.models.granule import Granule
 from db.models.status import Status
-from db.session import get_session, get_session_maker
 from mypy_boto3_lambda import LambdaClient
 from mypy_boto3_s3.service_resource import Bucket
+from sqlalchemy.orm import Session
 
 
 def test_that_downloader_correctly_downloads_file_and_updates_database(
-    db_setup,
+    db_session: Session,
     mock_scihub_api_url: str,
     lambda_client: LambdaClient,
     downloader_arn: str,
     upload_bucket: Bucket,
 ):
-    image_download_url_part = "/dhus/odata/v1/Products('integration-test-id')/$value"
-    image_download_url = f"{mock_scihub_api_url}{image_download_url_part}"
+    image_download_url_path = "/dhus/odata/v1/Products('integration-test-id')/$value"
+    image_download_url = f"{mock_scihub_api_url}{image_download_url_path}"
 
-    now = datetime.now(timezone.utc)
-    session_maker = get_session_maker()
+    before_invocation = datetime.now(timezone.utc)
 
-    with get_session(session_maker) as db:
-        db.add(
-            Granule(
-                id="integration-test-id",
-                filename="integration-test-filename.SAFE",
-                tileid="TS101",
-                size=100,
-                beginposition=now,
-                endposition=now,
-                ingestiondate=now,
-                download_url=image_download_url,
-            )
+    db_session.add(
+        Granule(
+            id="integration-test-id",
+            filename="integration-test-filename.SAFE",
+            tileid="TS101",
+            size=100,
+            beginposition=before_invocation,
+            endposition=before_invocation,
+            ingestiondate=before_invocation,
+            download_url=image_download_url,
         )
-        db.commit()
+    )
+    db_session.commit()
 
     invocation_body = json.dumps(
         {
@@ -53,30 +50,30 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
         }
     )
 
-    before_invocation = datetime.now(timezone.utc)
     lambda_client.invoke(
         FunctionName=downloader_arn,
         InvocationType="RequestResponse",
         Payload=invocation_body,
     )
+
+    granule = (
+        db_session.query(Granule).filter(Granule.id == "integration-test-id").first()
+    )
+    last_file_downloaded_time = datetime.strptime(
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+        .value,
+        "%Y-%m-%d %H:%M:%S.%f",
+    ).replace(tzinfo=timezone.utc)
+
     after_invocation = datetime.now(timezone.utc)
 
-    with get_session(session_maker) as db:
-        granule = db.query(Granule).filter(Granule.id == "integration-test-id").first()
-        assert_that(granule.downloaded).is_true()
-        assert_that(granule.checksum).is_equal_to("ACD23199F98D2333A87013C047E43F62")
-
-        status = (
-            db.query(Status)
-            .filter(Status.key_name == "last_file_downloaded_time")
-            .first()
-        )
-        assert_that(
-            datetime.strptime(status.value, "%Y-%m-%d %H:%M:%S.%f").replace(
-                tzinfo=timezone.utc
-            )
-        ).is_between(before_invocation, after_invocation)
+    assert granule.downloaded
+    assert granule.checksum == "ACD23199F98D2333A87013C047E43F62"
+    assert before_invocation <= last_file_downloaded_time <= after_invocation
 
     bucket_objects = list(upload_bucket.objects.all())
-    assert_that(bucket_objects).is_length(1)
-    assert_that(bucket_objects[0].key).is_equal_to("integration-test-filename.zip")
+
+    assert len(bucket_objects) == 1
+    assert bucket_objects[0].key == "integration-test-filename.zip"

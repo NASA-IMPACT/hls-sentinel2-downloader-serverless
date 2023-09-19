@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import re
 from dataclasses import dataclass
@@ -17,7 +16,6 @@ from typing import (
     TypedDict,
 )
 
-import backoff
 import boto3
 import humanfriendly
 import iso8601
@@ -41,9 +39,6 @@ SEARCH_URL: Final = os.environ.get(
     "SEARCH_URL",
     "https://catalogue.dataspace.copernicus.eu",
 )
-
-# Log `backoff` library's retry attempts on request failures
-logging.getLogger("backoff").setLevel(logging.DEBUG)
 
 
 @dataclass(frozen=True)
@@ -341,22 +336,6 @@ def create_search_result(search_item: Mapping[str, Any]) -> SearchResult:
     )
 
 
-def is_http_client_error(e: Exception) -> bool:
-    return (
-        isinstance(e, requests.HTTPError)
-        and getattr(e, "response", None) is not None
-        and isinstance(getattr(e.response, "status_code", None), int)
-        and 400 <= e.response.status_code < 500
-    )
-
-
-@backoff.on_exception(
-    backoff.expo,
-    requests.RequestException,
-    max_tries=20,  # Be somewhat persistent in the face of 5xx responses
-    max_time=10 * 60,  # Max time between retries: 10 minutes (measured in seconds)
-    giveup=is_http_client_error,  # Don't retry 4XX responses
-)
 def get_page_for_query_and_total_results(
     query_params: Mapping[str, Any]
 ) -> Tuple[Sequence[SearchResult], int]:

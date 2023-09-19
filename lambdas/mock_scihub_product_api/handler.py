@@ -1,40 +1,28 @@
 import base64
-import json
-import os
+from pathlib import Path
+from typing import Any, Mapping
 
 
-def handler(event, context):
-    if "pathParameters" in event and "product" in event["pathParameters"]:
-        if event["pathParameters"]["product"] == "Products('integration-test-id')":
-            with open(
-                os.path.join(
-                    ".", "scihub_responses", "scihub_response_mock_image_checksum.json"
-                ),
-                "rb",
-            ) as file_in:
-                body = json.dumps(json.load(file_in))
-            return {"statusCode": 200, "body": body}
-        elif (
-            event["pathParameters"]["product"]
-            == "Products('integration-test-id')/$value"
-        ):
-            with open(
-                os.path.join(
-                    ".", "scihub_responses", "scihub_response_mock_image.SAFE"
-                ),
-                "rb",
-            ) as file_in:
-                body = base64.b64encode(file_in.read()).decode("utf-8")
-            return {
-                "isBase64Encoded": True,
-                "statusCode": 200,
-                "body": body,
-                "headers": {
-                    "Content-Type": "application/octet-stream",
-                    "Content-Disposition": 'attachment; filename="blah.SAFE"',
-                },
-            }
-        else:
-            return {"statusCode": 404}
-    else:
-        return {"statusCode": 404}
+def handler(event: Mapping[str, Any], _) -> Mapping[str, Any]:
+    product = event.get("pathParameters", {}).get("product")
+    fixtures_dir = Path(__file__).parent / "scihub_responses"
+
+    if product == "Products(integration-test-id)":
+        body = (fixtures_dir / "scihub_response_mock_image_checksum.json").read_text()
+        return {"statusCode": 200, "body": body}
+
+    if product == "Products(integration-test-id)/$value":
+        fixture = (fixtures_dir / "scihub_response_mock_image.SAFE").read_bytes()
+        body = base64.b64encode(fixture).decode("utf-8")
+
+        return {
+            "isBase64Encoded": True,
+            "statusCode": 200,
+            "body": body,
+            "headers": {
+                "Content-Type": "application/octet-stream",
+                "Content-Disposition": 'attachment; filename="blah.SAFE"',
+            },
+        }
+
+    return {"statusCode": 404}

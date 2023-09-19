@@ -1,16 +1,17 @@
 import os
-from typing import Callable, Iterable, NoReturn, Union
+from typing import Callable, Iterable, NoReturn, Union, cast
 
 import boto3
 import polling2
 import pytest
-from db.session import get_session, get_session_maker
+from db.session import get_session_maker
 from dotenv import load_dotenv
 from mypy_boto3_lambda import LambdaClient
 from mypy_boto3_s3 import S3ServiceResource
 from mypy_boto3_sqs import SQSClient
 from mypy_boto3_ssm import SSMClient
 from mypy_boto3_stepfunctions import SFNClient
+from sqlalchemy.orm import Session
 
 EMPTY_TABLES_QUERY = (
     "DELETE FROM GRANULE; DELETE FROM GRANULE_COUNT; DELETE FROM STATUS;"
@@ -63,17 +64,17 @@ def ssm_parameter(
 
 
 @pytest.fixture
-def db_setup(monkeypatch, ssm_parameter: Callable[[str], str]):
+def db_session(monkeypatch, ssm_parameter: Callable[[str], str]) -> Iterable[Session]:
     db_connection_secret_arn = ssm_parameter("downloader_rds_secret_arn")
     monkeypatch.setenv("DB_CONNECTION_SECRET_ARN", db_connection_secret_arn)
-    session_maker = get_session_maker()
+    session_maker = cast(Callable[[], Session], get_session_maker())
 
-    with get_session(session_maker) as db:
-        db.execute(EMPTY_TABLES_QUERY)
-        db.commit()
-        yield
-        db.execute(EMPTY_TABLES_QUERY)
-        db.commit()
+    with session_maker() as session:
+        session.execute(EMPTY_TABLES_QUERY)
+        session.commit()
+        yield session
+        session.execute(EMPTY_TABLES_QUERY)
+        session.commit()
 
 
 @pytest.fixture
