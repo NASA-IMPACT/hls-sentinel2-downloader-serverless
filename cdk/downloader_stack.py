@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Optional
 
 from aws_cdk import (
@@ -372,32 +371,50 @@ class DownloaderStack(core.Stack):
             )
         )
 
-        link_fetcher_step_function_role = aws_iam.Role(
+        date_generator_task = tasks.LambdaInvoke(
             self,
-            id=f"{identifier}-link-fetcher-step-function-role",
-            assumed_by=aws_iam.ServicePrincipal("states.amazonaws.com"),
+            id=f"{identifier}-date-generator-invoke",
+            lambda_function=date_generator,
         )
-        date_generator.grant_invoke(link_fetcher_step_function_role)
-        link_fetcher.grant_invoke(link_fetcher_step_function_role)
 
-        # We define the step function in a separate file so that we can use
-        # tools for locally visualizing the state machine graph.
-        link_fetcher_asl = Path(__file__).with_name("link-fetcher.asl.json").read_text()
-        link_fetcher_step_function = sfn.CfnStateMachine(
+        link_fetcher_task = tasks.LambdaInvoke(
             self,
-            f"{identifier}-link-fetcher-step-function",
-            role_arn=link_fetcher_step_function_role.role_arn,
-            definition_string=link_fetcher_asl,
-            definition_substitutions={
-                "date_generator_function_arn": date_generator.function_arn,
-                "link_fetcher_function_arn": link_fetcher.function_arn,
-            },
+            id=f"{identifier}-link-fetcher-invoke",
+            lambda_function=link_fetcher,
+            output_path="$.Payload",
+        )
+
+        link_fetcher_map_task = sfn.Map(
+            self,
+            id=f"{identifier}-link-fetcher-map",
+            input_path="$.Payload.query_dates",
+            parameters={"query_date.$": "$$.Map.Item.Value"},
+            max_concurrency=3,
+        ).iterator(
+            link_fetcher_task.next(
+                sfn.Choice(self, "Fetching completed?")
+                .when(
+                    sfn.Condition.boolean_equals("$.completed", False),
+                    link_fetcher_task,
+                )
+                .otherwise(sfn.Succeed(self, "Success"))
+            )
+        )
+
+        link_fetcher_step_function_definition = date_generator_task.next(
+            link_fetcher_map_task
+        )
+
+        link_fetcher_step_function = sfn.StateMachine(
+            self,
+            id=f"{identifier}-link-fetcher-step-function",
+            definition=link_fetcher_step_function_definition,
         )
 
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-link-fetcher-step-function-arn",
-            string_value=link_fetcher_step_function.attr_arn,
+            string_value=link_fetcher_step_function.state_machine_arn,
             parameter_name=(
                 f"/integration_tests/{identifier}/link_fetcher_step_function_arn"
             ),
