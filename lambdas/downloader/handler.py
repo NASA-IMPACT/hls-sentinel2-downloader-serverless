@@ -159,7 +159,8 @@ def get_image_checksum(image_id: str) -> str:
     """
     try:
         response = requests.get(
-            f"{COPERNICUS_CHECKSUM_URL}/odata/v1/Products({image_id})"
+            f"{COPERNICUS_CHECKSUM_URL}/odata/v1/Products?$filter=Id eq '{image_id}'"
+
         )
         response.raise_for_status()
         checksums = response.json()["value"][0]["Checksum"]

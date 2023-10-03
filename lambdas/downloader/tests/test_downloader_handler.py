@@ -33,7 +33,7 @@ from handler import (
 from responses import matchers
 
 download_url = "http://zipper.dataspace.copernicus.eu/odata/v1/Products(test-id)/$value"
-checksum_url = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products(test-id)"
+checksum_url = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Id eq 'test-id'"
 
 
 def test_that_get_download_url_returns_correct_url():
