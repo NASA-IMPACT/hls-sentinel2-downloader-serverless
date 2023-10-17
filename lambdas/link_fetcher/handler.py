@@ -354,9 +354,11 @@ def get_page_for_query_and_total_results(
         f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json",
         params=query_params,
     )
+    print(f"Search URL: {resp.url}")
     resp.raise_for_status()
     results = resp.json()
-    total_results = results["properties"]["totalResults"]
+    # If totalResults is either missing or present but set to None, default it to -1
+    total_results = results["properties"].get("totalResults", -1) or -1
 
     search_results = tuple(
         create_search_result(entry) for entry in results.get("features", [])

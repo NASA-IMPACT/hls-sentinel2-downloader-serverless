@@ -24,6 +24,9 @@ db = {editable = true, path = "./../../layers/db"}
 psycopg2 = "==2.8.6"
 pytest-docker = "==0.10.1"
 pytest-cov = "==2.11.1"
+mypy = "==1.6.0"
+types-requests = "==2.25.1"
+types-humanfriendly = "*"
 
 [requires]
 python_version = "3.8"

@@ -106,6 +106,66 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
 
 
 @responses.activate
+def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_missing(
+    mock_search_response,
+):
+    resp = mock_search_response.copy()
+    del resp["properties"]["totalResults"]
+
+    responses.add(
+        responses.GET,
+        (
+            f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C"
+            "&publishedAfter=2020-01-01T00:00:00Z"
+            "&publishedBefore=2020-01-01T23:59:59Z"
+            "&startDate=2019-12-02T00:00:00Z"
+            "&sortParam=published"
+            "&sortOrder=desc"
+            "&maxRecords=100"
+            "&index=1"
+        ),
+        json=resp,
+        status=200,
+    )
+
+    _, total_results = get_page_for_query_and_total_results(
+        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+    )
+
+    assert total_results == -1
+
+
+@responses.activate
+def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_null(
+    mock_search_response,
+):
+    resp = mock_search_response.copy()
+    resp["properties"]["totalResults"] = None
+
+    responses.add(
+        responses.GET,
+        (
+            f"{SEARCH_URL}/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C"
+            "&publishedAfter=2020-01-01T00:00:00Z"
+            "&publishedBefore=2020-01-01T23:59:59Z"
+            "&startDate=2019-12-02T00:00:00Z"
+            "&sortParam=published"
+            "&sortOrder=desc"
+            "&maxRecords=100"
+            "&index=1"
+        ),
+        json=resp,
+        status=200,
+    )
+
+    _, total_results = get_page_for_query_and_total_results(
+        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+    )
+
+    assert total_results == -1
+
+
+@responses.activate
 def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_left(
     mock_search_response,
 ):
