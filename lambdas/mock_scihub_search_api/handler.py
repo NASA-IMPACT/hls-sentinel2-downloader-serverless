@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 def handler(event, _):
+    print(event)
     yesterday = datetime.now().date() - timedelta(days=1)
     yesterday_str = yesterday.strftime("%Y-%m-%d")
     params = event["queryStringParameters"]
