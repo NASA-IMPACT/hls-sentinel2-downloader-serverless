@@ -382,6 +382,16 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-link-fetcher-invoke",
             lambda_function=link_fetcher,
             output_path="$.Payload",
+        ).add_retry(
+            backoff_rate=2,
+            interval=core.Duration.seconds(2),
+            max_attempts=7,
+            errors=[
+                "Lambda.ServiceException",
+                "Lambda.AWSLambdaException",
+                "Lambda.SdkClientException",
+                "States.TaskFailed",
+            ],
         )
 
         link_fetcher_map_task = sfn.Map(
