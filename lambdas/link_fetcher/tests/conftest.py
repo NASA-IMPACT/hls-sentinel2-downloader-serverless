@@ -168,6 +168,7 @@ def generate_mock_responses_for_one_day(mock_search_response):
         "&sortOrder=desc"
         "&maxRecords=100"
         "&index={1}"
+        "&exactCount=1"
     )
 
     # Generate base for response

@@ -303,6 +303,10 @@ def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
         "maxRecords": 100,
         # `start` is 0-based, but `index` is 1-based, so we must add 1
         "index": start + 1,
+        # Fix for issue #28, due to breaking change in the OpenSearch API
+        # Search for "update of the exactCount parameter" at the following URL:
+        # https://documentation.dataspace.copernicus.eu/APIs/ReleaseNotes.html#opensearch-api-error-handling-update-2023-10-24
+        "exactCount": 1,
     }
 
 

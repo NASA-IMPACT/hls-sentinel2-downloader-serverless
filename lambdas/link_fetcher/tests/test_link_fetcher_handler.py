@@ -50,6 +50,7 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         # `start` is 0-based, but `index` is 1-based, so we must add 1 when
         # computing the page number from the `start` index.
         "index": 1,
+        "exactCount": 1,
     }
 
     actual_query_parameters = get_query_parameters(start=0, day=date(2020, 1, 1))
@@ -92,6 +93,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
             "&sortOrder=desc"
             "&maxRecords=100"
             "&index=1"
+            "&exactCount=1"
         ),
         json=mock_search_response,
         status=200,
@@ -123,6 +125,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_missing(
             "&sortOrder=desc"
             "&maxRecords=100"
             "&index=1"
+            "&exactCount=1"
         ),
         json=resp,
         status=200,
@@ -153,6 +156,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_null(
             "&sortOrder=desc"
             "&maxRecords=100"
             "&index=1"
+            "&exactCount=1"
         ),
         json=resp,
         status=200,
@@ -183,6 +187,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
             "&sortOrder=desc"
             "&maxRecords=100"
             "&index=1"
+            "&exactCount=1"
         ),
         json=resp,
         status=200,
