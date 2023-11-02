@@ -175,15 +175,20 @@ class DownloaderStack(core.Stack):
             service_token=migration_function.function_arn,
         )
 
+        queue_retention_period = core.Duration.days(14)
         to_download_queue = aws_sqs.Queue(
             self,
             id=f"{identifier}-to-download-queue",
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
-            retention_period=core.Duration.days(14),
+            retention_period=queue_retention_period,
             visibility_timeout=core.Duration.minutes(15),
             dead_letter_queue=aws_sqs.DeadLetterQueue(
                 max_receive_count=10,
-                queue=aws_sqs.Queue(self, f"{identifier}-to-download-dlq"),
+                queue=aws_sqs.Queue(
+                    self,
+                    f"{identifier}-to-download-dlq",
+                    retention_period=queue_retention_period,
+                ),  # type: ignore
             ),
         )
 
