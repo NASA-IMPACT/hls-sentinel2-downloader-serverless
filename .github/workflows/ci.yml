@@ -6,6 +6,8 @@ on:
 jobs:
   linting:
     runs-on: ubuntu-20.04
+    env:
+      PIPENV_NO_INHERIT: TRUE
     steps:
       - uses: actions/checkout@v4
 
@@ -136,6 +138,8 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-20.04
+    env:
+      PIPENV_NO_INHERIT: TRUE
     steps:
       - uses: actions/checkout@v4
 
