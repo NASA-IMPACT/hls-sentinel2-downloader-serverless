@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.8.6
+      - name: Set up Python 3.8.18
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.6
+          python-version: 3.8.18
 
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
@@ -143,10 +143,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.8.6
+      - name: Set up Python 3.8.18
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.6
+          python-version: 3.8.18
 
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
@@ -263,6 +263,7 @@ jobs:
         if: steps.db-cache.outputs.cache-hit != 'true'
         run: |
           make -C layers/db install
+          pipenv run pip list
 
       - name: Create .env files for tests
         run: |
@@ -312,10 +313,10 @@ jobs:
           echo OWNER="ci-developmentseed" >> .env
           echo IDENTIFIER=${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.commit }} >> .env
 
-      - name: Set up Python 3.8.6
+      - name: Set up Python 3.8.18
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.6
+          python-version: 3.8.18
 
       - name: Setup up Node
         uses: actions/setup-node@v4
