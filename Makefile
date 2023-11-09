@@ -1,4 +1,5 @@
 .PHONEY:
+	clean
 	deploy
 	deploy-integration
 	destroy
@@ -10,6 +11,16 @@
 	integration-tests
 	lint
 	unit-tests
+
+clean:
+	pipenv --rm || true
+	$(MAKE) -C layers/db clean
+	$(MAKE) -C lambdas/link_fetcher clean
+	$(MAKE) -C lambdas/date_generator clean
+	$(MAKE) -C lambdas/downloader clean
+	$(MAKE) -C lambdas/mock_scihub_search_api clean
+	$(MAKE) -C lambdas/mock_scihub_product_api clean
+	$(MAKE) -C alembic_migration clean
 
 install:
 	$(MAKE) -C layers/db install

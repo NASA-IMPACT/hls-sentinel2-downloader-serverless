@@ -85,12 +85,12 @@ jobs:
           path: /home/runner/.local/share/virtualenvs/mock_scihub_search_api-${{ steps.hashes.outputs.mockscihubsearchapi }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_search_api/Pipfile.lock') }}
 
-      - name: Setup db cache
-        uses: actions/cache@v3
-        id: db-cache
-        with:
-          path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
-          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
+      # - name: Setup db cache
+      #   uses: actions/cache@v3
+      #   id: db-cache
+      #   with:
+      #     path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
+      #     key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
       - name: Install root dependencies
         # if: steps.root-cache.outputs.cache-hit != 'true'
@@ -217,12 +217,12 @@ jobs:
           path: /home/runner/.local/share/virtualenvs/mock_scihub_search_api-${{ steps.hashes.outputs.mockscihubsearchapi }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_search_api/Pipfile.lock') }}
 
-      - name: Setup db cache
-        uses: actions/cache@v3
-        id: db-cache
-        with:
-          path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
-          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
+      # - name: Setup db cache
+      #   uses: actions/cache@v3
+      #   id: db-cache
+      #   with:
+      #     path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
+      #     key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
       - name: Install root dependencies
         # if: steps.root-cache.outputs.cache-hit != 'true'
