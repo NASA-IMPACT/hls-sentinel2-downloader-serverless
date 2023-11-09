@@ -15,7 +15,8 @@ jobs:
           python-version: 3.8.6
 
       - name: Install Pipenv
-        uses: dschep/install-pipenv-action@v1
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
+        shell: bash
 
       - name: Install tox
         run: |
@@ -144,7 +145,8 @@ jobs:
           python-version: 3.8.6
 
       - name: Install Pipenv
-        uses: dschep/install-pipenv-action@v1
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
+        shell: bash
 
       - name: Install tox
         run: |
@@ -321,7 +323,8 @@ jobs:
           npm install -g aws-cdk
 
       - name: Install Pipenv
-        uses: dschep/install-pipenv-action@v1
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
+        shell: bash
 
       - name: Install tox
         run: |
