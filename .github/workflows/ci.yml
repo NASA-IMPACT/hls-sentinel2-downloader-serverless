@@ -260,9 +260,10 @@ jobs:
           make -C lambdas/mock_scihub_search_api install
 
       - name: Install db dependencies
-        if: steps.db-cache.outputs.cache-hit != 'true'
+        # if: steps.db-cache.outputs.cache-hit != 'true'
         run: |
           make -C layers/db install
+          cd layers/db
           pipenv run pip list
 
       - name: Create .env files for tests
