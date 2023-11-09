@@ -6,7 +6,6 @@ from typing import Any, Mapping
 def handler(event: Mapping[str, Any], _) -> Mapping[str, Any]:
     print(event)
     product = event.get("pathParameters", {}).get("product")
-    filterParam = (event.get("queryStringParameters") or {}).get("$filter")
     fixtures_dir = Path(__file__).parent / "scihub_responses"
 
     if product == "Products(integration-test-id)":
