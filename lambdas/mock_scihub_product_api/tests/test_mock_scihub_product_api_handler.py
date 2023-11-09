@@ -14,10 +14,10 @@ def test_that_handler_returns_correct_checksum_response_for_known_product_id(
         "pathParameters": {"product": "Products(integration-test-id)"},
     }
     resp = handler(request, None)
+    assert_that(resp["statusCode"]).is_equal_to(200)
     assert_that(json.loads(resp["body"])).is_equal_to(
         scihub_response_mock_image_checksum
     )
-    assert_that(resp["statusCode"]).is_equal_to(200)
 
 
 def test_that_handler_returns_correct_image_response_for_known_product_id():

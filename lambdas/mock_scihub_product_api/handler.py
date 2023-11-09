@@ -9,7 +9,7 @@ def handler(event: Mapping[str, Any], _) -> Mapping[str, Any]:
     filterParam = (event.get("queryStringParameters") or {}).get("$filter")
     fixtures_dir = Path(__file__).parent / "scihub_responses"
 
-    if filterParam == "Id eq 'integration-test-id'":
+    if product == "Products(integration-test-id)":
         body = (fixtures_dir / "scihub_response_mock_image_checksum.json").read_text()
         return {"statusCode": 200, "body": body}
 
