@@ -1,3 +1,5 @@
+SHELL := $(shell which bash)
+
 .PHONEY:
 	clean
 	deploy
