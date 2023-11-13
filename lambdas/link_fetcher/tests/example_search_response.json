@@ -1,0 +1,1679 @@
+{
+    "type": "FeatureCollection",
+    "properties": {
+        "id": "ab610abd-4b7c-50ad-bd3e-7409a6e738aa",
+        "totalResults": 6786,
+        "exactCount": true,
+        "startIndex": 1,
+        "itemsPerPage": 10,
+        "query": {
+            "originalFilters": {
+                "collection": "Sentinel2",
+                "processingLevel": "S2MSI1C",
+                "sortParam": "published",
+                "sortOrder": "descending",
+                "maxRecords": "10",
+                "page": "1"
+            },
+            "appliedFilters": {
+                "collection": "Sentinel2",
+                "processingLevel": "S2MSI1C",
+                "sortParam": "published",
+                "sortOrder": "descending",
+                "maxRecords": "10",
+                "page": "1"
+            },
+            "processingTime": 1.986796182
+        },
+        "links": [
+            {
+                "rel": "self",
+                "type": "application/json",
+                "title": "self",
+                "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C&published=[2020-01-01T00:00:00Z,2020-01-01T23:59:59Z]&sortParam=published&sortOrder=descending&maxRecords=10&page=1"
+            },
+            {
+                "rel": "search",
+                "type": "application/opensearchdescription+xml",
+                "title": "OpenSearch Description Document",
+                "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/describe.xml"
+            },
+            {
+                "rel": "next",
+                "type": "application/json",
+                "title": "next",
+                "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C&published=[2020-01-01T00:00:00Z,2020-01-01T23:59:59Z]&sortParam=published&sortOrder=descending&maxRecords=10&page=2"
+            },
+            {
+                "rel": "last",
+                "type": "application/json",
+                "title": "last",
+                "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C&published=[2020-01-01T00:00:00Z,2020-01-01T23:59:59Z]&sortParam=published&sortOrder=descending&maxRecords=10&page=679"
+            }
+        ]
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "id": "483cab2e-06f1-5944-a06b-ef7026cc6fd0",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -158.03827,
+                            20.92787835903
+                        ],
+                        [
+                            -158.0037,
+                            21.076080645996
+                        ],
+                        [
+                            -157.96892,
+                            21.22451156985
+                        ],
+                        [
+                            -157.93416,
+                            21.372942821857
+                        ],
+                        [
+                            -157.89912,
+                            21.521301391881
+                        ],
+                        [
+                            -157.86464,
+                            21.669768388564
+                        ],
+                        [
+                            -157.85779,
+                            21.699014108987
+                        ],
+                        [
+                            -157.08179,
+                            21.692006047224
+                        ],
+                        [
+                            -156.99359,
+                            21.675470589355
+                        ],
+                        [
+                            -156.97241,
+                            21.67148223128
+                        ],
+                        [
+                            -156.98563,
+                            20.699544901345
+                        ],
+                        [
+                            -158.03969,
+                            20.708649594724
+                        ],
+                        [
+                            -158.03827,
+                            20.92787835903
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QFJ_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QFJ_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QFJ_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QFJ_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:39:20.033Z",
+                "published": "2020-01-01T23:39:20.033Z",
+                "snowCover": 0,
+                "cloudCover": 14.4122,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-158.03827,20.92787835903 -158.0037,21.076080645996 -157.96892,21.22451156985 -157.93416,21.372942821857 -157.89912,21.521301391881 -157.86464,21.669768388564 -157.85779,21.699014108987 -157.08179,21.692006047224 -156.99359,21.675470589355 -156.97241,21.67148223128 -156.98563,20.699544901345 -158.03969,20.708649594724 -158.03827,20.92787835903</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -157.47583355416702,
+                        21.18322142046015
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/483cab2e-06f1-5944-a06b-ef7026cc6fd0",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 483cab2e-06f1-5944-a06b-ef7026cc6fd0",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/483cab2e-06f1-5944-a06b-ef7026cc6fd0.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "bde39034-06c2-5927-ba1c-4960a201f2d5",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -157.07895,
+                            20.789486981566
+                        ],
+                        [
+                            -156.02495,
+                            20.774450452075
+                        ],
+                        [
+                            -156.04381,
+                            19.783589289271
+                        ],
+                        [
+                            -157.09113,
+                            19.797848807493
+                        ],
+                        [
+                            -157.07895,
+                            20.789486981566
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGH_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QGH_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGH_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGH_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:39:16.452Z",
+                "published": "2020-01-01T23:39:16.452Z",
+                "snowCover": 0,
+                "cloudCover": 11.5249,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-157.07895,20.789486981566 -156.02495,20.774450452075 -156.04381,19.783589289271 -157.09113,19.797848807493 -157.07895,20.789486981566</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -156.55976215646973,
+                        20.28687075577864
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/bde39034-06c2-5927-ba1c-4960a201f2d5",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for bde39034-06c2-5927-ba1c-4960a201f2d5",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/bde39034-06c2-5927-ba1c-4960a201f2d5.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "52bd3154-0b89-539f-8457-4f5bd5b9afd8",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -155.18777,
+                            20.757564113999
+                        ],
+                        [
+                            -155.2182,
+                            20.637221498157
+                        ],
+                        [
+                            -155.25572,
+                            20.489023499865
+                        ],
+                        [
+                            -155.293,
+                            20.340779162068
+                        ],
+                        [
+                            -155.33015,
+                            20.192553721145
+                        ],
+                        [
+                            -155.36766,
+                            20.044477085617
+                        ],
+                        [
+                            -155.40895,
+                            19.897590785024
+                        ],
+                        [
+                            -155.44052,
+                            19.771907788716
+                        ],
+                        [
+                            -156.13705,
+                            19.785107789494
+                        ],
+                        [
+                            -156.11879,
+                            20.776051689494
+                        ],
+                        [
+                            -155.18777,
+                            20.757564113999
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHH_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QHH_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHH_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHH_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:39:16.210Z",
+                "published": "2020-01-01T23:39:16.210Z",
+                "snowCover": 0,
+                "cloudCover": 6.5193,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-155.18777,20.757564113999 -155.2182,20.637221498157 -155.25572,20.489023499865 -155.293,20.340779162068 -155.33015,20.192553721145 -155.36766,20.044477085617 -155.40895,19.897590785024 -155.44052,19.771907788716 -156.13705,19.785107789494 -156.11879,20.776051689494 -155.18777,20.757564113999</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -155.71725431984757,
+                        20.29632934452333
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/52bd3154-0b89-539f-8457-4f5bd5b9afd8",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 52bd3154-0b89-539f-8457-4f5bd5b9afd8",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/52bd3154-0b89-539f-8457-4f5bd5b9afd8.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "fa278569-3917-5fd5-9322-1d8547f2c18d",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            119.47033310337,
+                            -82.023503598946
+                        ],
+                        [
+                            119.06495718669,
+                            -81.805298876974
+                        ],
+                        [
+                            119.12180417592,
+                            -81.802904449787
+                        ],
+                        [
+                            119.11825939302,
+                            -81.801005864351
+                        ],
+                        [
+                            119.12648023487,
+                            -81.800659519775
+                        ],
+                        [
+                            118.74842411827,
+                            -81.598572657088
+                        ],
+                        [
+                            118.74452006928,
+                            -81.598737151072
+                        ],
+                        [
+                            118.74444745062,
+                            -81.598698278621
+                        ],
+                        [
+                            118.69059253474,
+                            -81.600967251594
+                        ],
+                        [
+                            118.28873919691,
+                            -81.376920738895
+                        ],
+                        [
+                            118.33876685259,
+                            -81.374813999886
+                        ],
+                        [
+                            118.33511126052,
+                            -81.372762603657
+                        ],
+                        [
+                            118.34100089662,
+                            -81.372514531729
+                        ],
+                        [
+                            117.98502277079,
+                            -81.172889125485
+                        ],
+                        [
+                            117.98424991592,
+                            -81.172921645611
+                        ],
+                        [
+                            117.98413965047,
+                            -81.172859832411
+                        ],
+                        [
+                            117.93225655235,
+                            -81.175043140025
+                        ],
+                        [
+                            117.7229612212,
+                            -81.054737170336
+                        ],
+                        [
+                            123.16362696097,
+                            -81.008575415111
+                        ],
+                        [
+                            123.37542117725,
+                            -81.099578254389
+                        ],
+                        [
+                            123.4039951206,
+                            -81.136029753672
+                        ],
+                        [
+                            123.4017616583,
+                            -81.136154858346
+                        ],
+                        [
+                            123.40176618767,
+                            -81.136156781977
+                        ],
+                        [
+                            123.39926822265,
+                            -81.136296468109
+                        ],
+                        [
+                            123.4066704563,
+                            -81.139442653195
+                        ],
+                        [
+                            124.06900628754,
+                            -81.984377977222
+                        ],
+                        [
+                            119.47033310337,
+                            -82.023503598946
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNQ_20200101T221716.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T213941_N0208_R057_T50CNQ_20200101T221716.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:39:41.024Z",
+                "completionDate": "2020-01-01T21:39:41.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNQ_20200101T221716.SAFE/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNQ_20200101T221716-ql.jpg",
+                "updated": "2020-01-01T23:39:15.670Z",
+                "published": "2020-01-01T23:39:15.670Z",
+                "snowCover": 0,
+                "cloudCover": 100.0,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>119.47033310337,-82.023503598946 119.06495718669,-81.805298876974 119.12180417592,-81.802904449787 119.11825939302,-81.801005864351 119.12648023487,-81.800659519775 118.74842411827,-81.598572657088 118.74452006928,-81.598737151072 118.74444745062,-81.598698278621 118.69059253474,-81.600967251594 118.28873919691,-81.376920738895 118.33876685259,-81.374813999886 118.33511126052,-81.372762603657 118.34100089662,-81.372514531729 117.98502277079,-81.172889125485 117.98424991592,-81.172921645611 117.98413965047,-81.172859832411 117.93225655235,-81.175043140025 117.7229612212,-81.054737170336 123.16362696097,-81.008575415111 123.37542117725,-81.099578254389 123.4039951206,-81.136029753672 123.4017616583,-81.136154858346 123.40176618767,-81.136156781977 123.39926822265,-81.136296468109 123.4066704563,-81.139442653195 124.06900628754,-81.984377977222 119.47033310337,-82.023503598946</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        121.12584618736976,
+                        -81.50253164889634
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T213941_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/fa278569-3917-5fd5-9322-1d8547f2c18d",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for fa278569-3917-5fd5-9322-1d8547f2c18d",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/fa278569-3917-5fd5-9322-1d8547f2c18d.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "6cb81824-3126-53ee-b7f2-74cd130c010e",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -157.06725,
+                            21.689279531494
+                        ],
+                        [
+                            -156.99359,
+                            21.675470589355
+                        ],
+                        [
+                            -156.88554,
+                            21.655133432467
+                        ],
+                        [
+                            -156.88617,
+                            21.652555813702
+                        ],
+                        [
+                            -156.88608,
+                            21.652539338342
+                        ],
+                        [
+                            -156.88618,
+                            21.652081377476
+                        ],
+                        [
+                            -156.6736,
+                            21.609356623145
+                        ],
+                        [
+                            -156.67355,
+                            21.609535712174
+                        ],
+                        [
+                            -156.67123,
+                            21.609069640215
+                        ],
+                        [
+                            -156.67107,
+                            21.609759148643
+                        ],
+                        [
+                            -156.6708,
+                            21.609705793301
+                        ],
+                        [
+                            -156.67062,
+                            21.610423772675
+                        ],
+                        [
+                            -156.67052,
+                            21.610402347791
+                        ],
+                        [
+                            -156.67024,
+                            21.611568076849
+                        ],
+                        [
+                            -156.4348,
+                            21.562555136551
+                        ],
+                        [
+                            -156.43536,
+                            21.560213014277
+                        ],
+                        [
+                            -156.43532,
+                            21.560203782247
+                        ],
+                        [
+                            -156.4355,
+                            21.559497212114
+                        ],
+                        [
+                            -156.22458,
+                            21.513584534658
+                        ],
+                        [
+                            -156.22444,
+                            21.514171724485
+                        ],
+                        [
+                            -156.22243,
+                            21.513732557457
+                        ],
+                        [
+                            -156.22229,
+                            21.514270309739
+                        ],
+                        [
+                            -156.22221,
+                            21.51425455393
+                        ],
+                        [
+                            -156.22177,
+                            21.516071770778
+                        ],
+                        [
+                            -156.01099,
+                            21.467826126331
+                        ],
+                        [
+                            -156.02669,
+                            20.685657249692
+                        ],
+                        [
+                            -157.08006,
+                            20.700623752454
+                        ],
+                        [
+                            -157.06725,
+                            21.689279531494
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGJ_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QGJ_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGJ_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QGJ_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:39:13.310Z",
+                "published": "2020-01-01T23:39:13.310Z",
+                "snowCover": 0,
+                "cloudCover": 8.7237,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-157.06725,21.689279531494 -156.99359,21.675470589355 -156.88554,21.655133432467 -156.88617,21.652555813702 -156.88608,21.652539338342 -156.88618,21.652081377476 -156.6736,21.609356623145 -156.67355,21.609535712174 -156.67123,21.609069640215 -156.67107,21.609759148643 -156.6708,21.609705793301 -156.67062,21.610423772675 -156.67052,21.610402347791 -156.67024,21.611568076849 -156.4348,21.562555136551 -156.43536,21.560213014277 -156.43532,21.560203782247 -156.4355,21.559497212114 -156.22458,21.513584534658 -156.22444,21.514171724485 -156.22243,21.513732557457 -156.22229,21.514270309739 -156.22221,21.51425455393 -156.22177,21.516071770778 -156.01099,21.467826126331 -156.02669,20.685657249692 -157.08006,20.700623752454 -157.06725,21.689279531494</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -156.56658939320562,
+                        21.139929464413417
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/6cb81824-3126-53ee-b7f2-74cd130c010e",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 6cb81824-3126-53ee-b7f2-74cd130c010e",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/6cb81824-3126-53ee-b7f2-74cd130c010e.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "4233ccde-6828-5c8b-b2f1-e3a895649153",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -155.41846,
+                            19.859731161892
+                        ],
+                        [
+                            -155.44612,
+                            19.749618466182
+                        ],
+                        [
+                            -155.4823,
+                            19.601450882022
+                        ],
+                        [
+                            -155.52042,
+                            19.453818570687
+                        ],
+                        [
+                            -155.55484,
+                            19.305077053149
+                        ],
+                        [
+                            -155.58908,
+                            19.156236783474
+                        ],
+                        [
+                            -155.6245,
+                            19.007724816439
+                        ],
+                        [
+                            -155.65732,
+                            18.873341857307
+                        ],
+                        [
+                            -156.15276,
+                            18.882319378433
+                        ],
+                        [
+                            -156.13547,
+                            19.873377343643
+                        ],
+                        [
+                            -155.41846,
+                            19.859731161892
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHG_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QHG_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHG_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QHG_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:39:01.183Z",
+                "published": "2020-01-01T23:39:01.183Z",
+                "snowCover": 0,
+                "cloudCover": 23.7225,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-155.41846,19.859731161892 -155.44612,19.749618466182 -155.4823,19.601450882022 -155.52042,19.453818570687 -155.55484,19.305077053149 -155.58908,19.156236783474 -155.6245,19.007724816439 -155.65732,18.873341857307 -156.15276,18.882319378433 -156.13547,19.873377343643 -155.41846,19.859731161892</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -155.83776088947502,
+                        19.402175158412454
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/4233ccde-6828-5c8b-b2f1-e3a895649153",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 4233ccde-6828-5c8b-b2f1-e3a895649153",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/4233ccde-6828-5c8b-b2f1-e3a895649153.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "ad386633-25fd-5fef-9f8d-f8681fd78309",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            117.81550456472,
+                            -81.107932416591
+                        ],
+                        [
+                            117.54559968603,
+                            -80.952787206352
+                        ],
+                        [
+                            117.58060799528,
+                            -80.95131527286
+                        ],
+                        [
+                            117.58027847455,
+                            -80.951122686966
+                        ],
+                        [
+                            117.5827879756,
+                            -80.951017213045
+                        ],
+                        [
+                            117.58259454244,
+                            -80.950904046403
+                        ],
+                        [
+                            117.58858645831,
+                            -80.950652490373
+                        ],
+                        [
+                            117.58477839009,
+                            -80.94842274748
+                        ],
+                        [
+                            117.58847040554,
+                            -80.948267703726
+                        ],
+                        [
+                            117.58827821585,
+                            -80.948155289901
+                        ],
+                        [
+                            117.59454207554,
+                            -80.94789222048
+                        ],
+                        [
+                            117.36543222043,
+                            -80.813916445993
+                        ],
+                        [
+                            117.76829751077,
+                            -80.124455609646
+                        ],
+                        [
+                            121.253788466,
+                            -80.148704843331
+                        ],
+                        [
+                            121.58961701319,
+                            -80.306286439761
+                        ],
+                        [
+                            121.54557899186,
+                            -80.308721311448
+                        ],
+                        [
+                            121.54558061176,
+                            -80.308722048764
+                        ],
+                        [
+                            121.54282506481,
+                            -80.308874162416
+                        ],
+                        [
+                            121.97315723881,
+                            -80.504646317254
+                        ],
+                        [
+                            121.97851687559,
+                            -80.504349214983
+                        ],
+                        [
+                            121.98329498805,
+                            -80.506525148505
+                        ],
+                        [
+                            121.98920208692,
+                            -80.506197324163
+                        ],
+                        [
+                            121.98930969087,
+                            -80.506246393778
+                        ],
+                        [
+                            122.02261313772,
+                            -80.504402894157
+                        ],
+                        [
+                            122.5048500739,
+                            -80.721271735727
+                        ],
+                        [
+                            122.45743596986,
+                            -80.723912453037
+                        ],
+                        [
+                            122.45745316898,
+                            -80.723920034502
+                        ],
+                        [
+                            122.45474633164,
+                            -80.724070603341
+                        ],
+                        [
+                            122.89432512515,
+                            -80.917868038035
+                        ],
+                        [
+                            122.8990683382,
+                            -80.917603526655
+                        ],
+                        [
+                            122.90363931902,
+                            -80.919617346374
+                        ],
+                        [
+                            122.91167013763,
+                            -80.919168878899
+                        ],
+                        [
+                            122.91191007361,
+                            -80.919274555577
+                        ],
+                        [
+                            122.95075745124,
+                            -80.917110548314
+                        ],
+                        [
+                            123.45376759222,
+                            -81.133241809205
+                        ],
+                        [
+                            123.4017616583,
+                            -81.136154858346
+                        ],
+                        [
+                            123.40176618767,
+                            -81.136156781977
+                        ],
+                        [
+                            123.39926822265,
+                            -81.136296468109
+                        ],
+                        [
+                            123.42461145717,
+                            -81.14706815004
+                        ],
+                        [
+                            117.81550456472,
+                            -81.107932416591
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T51CVL_20200101T221716.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T213941_N0208_R057_T51CVL_20200101T221716.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:39:41.024Z",
+                "completionDate": "2020-01-01T21:39:41.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T51CVL_20200101T221716.SAFE/S2A_MSIL1C_20200101T213941_N0208_R057_T51CVL_20200101T221716-ql.jpg",
+                "updated": "2020-01-01T23:39:00.624Z",
+                "published": "2020-01-01T23:39:00.624Z",
+                "snowCover": 0,
+                "cloudCover": 100.0,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>117.81550456472,-81.107932416591 117.54559968603,-80.952787206352 117.58060799528,-80.95131527286 117.58027847455,-80.951122686966 117.5827879756,-80.951017213045 117.58259454244,-80.950904046403 117.58858645831,-80.950652490373 117.58477839009,-80.94842274748 117.58847040554,-80.948267703726 117.58827821585,-80.948155289901 117.59454207554,-80.94789222048 117.36543222043,-80.813916445993 117.76829751077,-80.124455609646 121.253788466,-80.148704843331 121.58961701319,-80.306286439761 121.54557899186,-80.308721311448 121.54558061176,-80.308722048764 121.54282506481,-80.308874162416 121.97315723881,-80.504646317254 121.97851687559,-80.504349214983 121.98329498805,-80.506525148505 121.98920208692,-80.506197324163 121.98930969087,-80.506246393778 122.02261313772,-80.504402894157 122.5048500739,-80.721271735727 122.45743596986,-80.723912453037 122.45745316898,-80.723920034502 122.45474633164,-80.724070603341 122.89432512515,-80.917868038035 122.8990683382,-80.917603526655 122.90363931902,-80.919617346374 122.91167013763,-80.919168878899 122.91191007361,-80.919274555577 122.95075745124,-80.917110548314 123.45376759222,-81.133241809205 123.4017616583,-81.136154858346 123.40176618767,-81.136156781977 123.39926822265,-81.136296468109 123.42461145717,-81.14706815004 117.81550456472,-81.107932416591</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        119.99323712205359,
+                        -80.67241051006283
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T213941_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/ad386633-25fd-5fef-9f8d-f8681fd78309",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for ad386633-25fd-5fef-9f8d-f8681fd78309",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/ad386633-25fd-5fef-9f8d-f8681fd78309.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "5cf05efa-a879-52d9-94b3-0673162af2d1",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -157.957,
+                            18.998726660343
+                        ],
+                        [
+                            -157.9962,
+                            19.00597034835
+                        ],
+                        [
+                            -157.99545,
+                            19.009205759067
+                        ],
+                        [
+                            -157.99812,
+                            19.009652146126
+                        ],
+                        [
+                            -157.9981,
+                            19.009804101244
+                        ],
+                        [
+                            -157.99818,
+                            19.009818817677
+                        ],
+                        [
+                            -157.99805,
+                            19.010408536521
+                        ],
+                        [
+                            -158.21576,
+                            19.04648823769
+                        ],
+                        [
+                            -158.21632,
+                            19.044071488666
+                        ],
+                        [
+                            -158.2164,
+                            19.044085126051
+                        ],
+                        [
+                            -158.21655,
+                            19.043423759688
+                        ],
+                        [
+                            -158.46378,
+                            19.084613455672
+                        ],
+                        [
+                            -158.44952,
+                            19.146903212522
+                        ],
+                        [
+                            -158.41528,
+                            19.295345634286
+                        ],
+                        [
+                            -158.38115,
+                            19.443847640309
+                        ],
+                        [
+                            -158.3468,
+                            19.592353589711
+                        ],
+                        [
+                            -158.31233,
+                            19.740800116862
+                        ],
+                        [
+                            -158.27794,
+                            19.889198114736
+                        ],
+                        [
+                            -158.27676,
+                            19.894296264947
+                        ],
+                        [
+                            -157.95128,
+                            19.893337529016
+                        ],
+                        [
+                            -157.957,
+                            18.998726660343
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QEG_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T04QEG_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T04QEG_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T04QEG_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:38:55.583Z",
+                "published": "2020-01-01T23:38:55.583Z",
+                "snowCover": 0,
+                "cloudCover": 54.0738,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-157.957,18.998726660343 -157.9962,19.00597034835 -157.99545,19.009205759067 -157.99812,19.009652146126 -157.9981,19.009804101244 -157.99818,19.009818817677 -157.99805,19.010408536521 -158.21576,19.04648823769 -158.21632,19.044071488666 -158.2164,19.044085126051 -158.21655,19.043423759688 -158.46378,19.084613455672 -158.44952,19.146903212522 -158.41528,19.295345634286 -158.38115,19.443847640309 -158.3468,19.592353589711 -158.31233,19.740800116862 -158.27794,19.889198114736 -158.27676,19.894296264947 -157.95128,19.893337529016 -157.957,18.998726660343</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -158.16341440839605,
+                        19.436478731526414
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/5cf05efa-a879-52d9-94b3-0673162af2d1",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 5cf05efa-a879-52d9-94b3-0673162af2d1",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/5cf05efa-a879-52d9-94b3-0673162af2d1.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "ad1d6cc3-2552-54d5-8352-6c3684af78e6",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -155.31633,
+                            21.293729504269
+                        ],
+                        [
+                            -155.31628,
+                            21.293866673576
+                        ],
+                        [
+                            -155.31598,
+                            21.293786916808
+                        ],
+                        [
+                            -155.31595,
+                            21.293868780033
+                        ],
+                        [
+                            -155.3144,
+                            21.293478172725
+                        ],
+                        [
+                            -155.31396,
+                            21.295207295072
+                        ],
+                        [
+                            -155.069,
+                            21.228651496989
+                        ],
+                        [
+                            -155.10608,
+                            21.081551773126
+                        ],
+                        [
+                            -155.14339,
+                            20.933513275943
+                        ],
+                        [
+                            -155.18074,
+                            20.785402055054
+                        ],
+                        [
+                            -155.20322,
+                            20.696491965112
+                        ],
+                        [
+                            -155.87991,
+                            20.687244615789
+                        ],
+                        [
+                            -155.8945,
+                            21.437512556528
+                        ],
+                        [
+                            -155.86316,
+                            21.430166873047
+                        ],
+                        [
+                            -155.77463,
+                            21.409397696237
+                        ],
+                        [
+                            -155.77461,
+                            21.409417035827
+                        ],
+                        [
+                            -155.77443,
+                            21.409371663733
+                        ],
+                        [
+                            -155.77437,
+                            21.409599765261
+                        ],
+                        [
+                            -155.77254,
+                            21.409169364788
+                        ],
+                        [
+                            -155.77199,
+                            21.411373137206
+                        ],
+                        [
+                            -155.53372,
+                            21.351816944806
+                        ],
+                        [
+                            -155.53389,
+                            21.351141095512
+                        ],
+                        [
+                            -155.53368,
+                            21.351086540033
+                        ],
+                        [
+                            -155.53374,
+                            21.350851487864
+                        ],
+                        [
+                            -155.53362,
+                            21.350822258466
+                        ],
+                        [
+                            -155.53372,
+                            21.350444457779
+                        ],
+                        [
+                            -155.53346,
+                            21.350378657445
+                        ],
+                        [
+                            -155.53357,
+                            21.349937885641
+                        ],
+                        [
+                            -155.5334,
+                            21.349897004598
+                        ],
+                        [
+                            -155.53345,
+                            21.349729989196
+                        ],
+                        [
+                            -155.53336,
+                            21.349706241704
+                        ],
+                        [
+                            -155.53366,
+                            21.348483848842
+                        ],
+                        [
+                            -155.31633,
+                            21.293729504269
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T05QKD_20200101T221734.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T210921_N0208_R057_T05QKD_20200101T221734.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:09:21.024Z",
+                "completionDate": "2020-01-01T21:09:21.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T210921_N0208_R057_T05QKD_20200101T221734.SAFE/S2A_MSIL1C_20200101T210921_N0208_R057_T05QKD_20200101T221734-ql.jpg",
+                "updated": "2020-01-01T23:38:55.050Z",
+                "published": "2020-01-01T23:38:55.050Z",
+                "snowCover": 0,
+                "cloudCover": 2.504,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>-155.31633,21.293729504269 -155.31628,21.293866673576 -155.31598,21.293786916808 -155.31595,21.293868780033 -155.3144,21.293478172725 -155.31396,21.295207295072 -155.069,21.228651496989 -155.10608,21.081551773126 -155.14339,20.933513275943 -155.18074,20.785402055054 -155.20322,20.696491965112 -155.87991,20.687244615789 -155.8945,21.437512556528 -155.86316,21.430166873047 -155.77463,21.409397696237 -155.77461,21.409417035827 -155.77443,21.409371663733 -155.77437,21.409599765261 -155.77254,21.409169364788 -155.77199,21.411373137206 -155.53372,21.351816944806 -155.53389,21.351141095512 -155.53368,21.351086540033 -155.53374,21.350851487864 -155.53362,21.350822258466 -155.53372,21.350444457779 -155.53346,21.350378657445 -155.53357,21.349937885641 -155.5334,21.349897004598 -155.53345,21.349729989196 -155.53336,21.349706241704 -155.53366,21.348483848842 -155.31633,21.293729504269</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        -155.52958939235756,
+                        21.028496062037654
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T210921_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/ad1d6cc3-2552-54d5-8352-6c3684af78e6",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for ad1d6cc3-2552-54d5-8352-6c3684af78e6",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/ad1d6cc3-2552-54d5-8352-6c3684af78e6.json"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "id": "126f24b0-5c6c-564a-a98a-18accff970df",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            119.54952251282,
+                            -82.032015673693
+                        ],
+                        [
+                            119.54922011622,
+                            -82.031862144979
+                        ],
+                        [
+                            119.53732548005,
+                            -82.032362579117
+                        ],
+                        [
+                            119.53728189583,
+                            -82.032340302677
+                        ],
+                        [
+                            119.5338845428,
+                            -82.032483279221
+                        ],
+                        [
+                            119.53366183198,
+                            -82.032369200376
+                        ],
+                        [
+                            119.52929100158,
+                            -82.032553264941
+                        ],
+                        [
+                            119.52907189547,
+                            -82.032440773587
+                        ],
+                        [
+                            119.52296935485,
+                            -82.032697788216
+                        ],
+                        [
+                            119.52242095029,
+                            -82.032415086045
+                        ],
+                        [
+                            119.51880328166,
+                            -82.032567971426
+                        ],
+                        [
+                            119.51868087285,
+                            -82.032504728336
+                        ],
+                        [
+                            119.51544350984,
+                            -82.032641766314
+                        ],
+                        [
+                            119.51512273694,
+                            -82.032475662309
+                        ],
+                        [
+                            119.48904677511,
+                            -82.033576746787
+                        ],
+                        [
+                            119.30912629579,
+                            -81.936729606758
+                        ],
+                        [
+                            123.99281408615,
+                            -81.896890207677
+                        ],
+                        [
+                            124.38053698198,
+                            -82.292241902607
+                        ],
+                        [
+                            124.04721064782,
+                            -82.309878067456
+                        ],
+                        [
+                            123.0011083456,
+                            -82.362132495297
+                        ],
+                        [
+                            121.94135870009,
+                            -82.412079551646
+                        ],
+                        [
+                            120.86795091048,
+                            -82.459507270139
+                        ],
+                        [
+                            120.3525969398,
+                            -82.481193645612
+                        ],
+                        [
+                            119.89361076345,
+                            -82.244642754046
+                        ],
+                        [
+                            119.95818503478,
+                            -82.241929012718
+                        ],
+                        [
+                            119.95496217045,
+                            -82.240290232894
+                        ],
+                        [
+                            119.9650617753,
+                            -82.239865741354
+                        ],
+                        [
+                            119.5543266118,
+                            -82.031813579988
+                        ],
+                        [
+                            119.54952251282,
+                            -82.032015673693
+                        ]
+                    ]
+                ]
+            },
+            "properties": {
+                "collection": "SENTINEL-2",
+                "status": "ONLINE",
+                "license": {
+                    "licenseId": "unlicensed",
+                    "hasToBeSigned": "never",
+                    "grantedCountries": null,
+                    "grantedOrganizationCountries": null,
+                    "grantedFlags": null,
+                    "viewService": "public",
+                    "signatureQuota": -1,
+                    "description": {
+                        "shortName": "No license"
+                    }
+                },
+                "productIdentifier": "/eodata/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNP_20200101T221716.SAFE",
+                "parentIdentifier": null,
+                "title": "S2A_MSIL1C_20200101T213941_N0208_R057_T50CNP_20200101T221716.SAFE",
+                "description": null,
+                "organisationName": "ESA",
+                "startDate": "2020-01-01T21:39:41.024Z",
+                "completionDate": "2020-01-01T21:39:41.024Z",
+                "productType": "S2MSI1C",
+                "processingLevel": "S2MSI1C",
+                "platform": "S2A",
+                "instrument": "MSI",
+                "resolution": 60.0,
+                "sensorMode": "INS-NOBS",
+                "orbitNumber": 23649,
+                "quicklook": null,
+                "thumbnail": "https://finder.creodias.eu/files/Sentinel-2/MSI/L1C/2020/01/01/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNP_20200101T221716.SAFE/S2A_MSIL1C_20200101T213941_N0208_R057_T50CNP_20200101T221716-ql.jpg",
+                "updated": "2020-01-01T23:38:47.215Z",
+                "published": "2020-01-01T23:38:47.215Z",
+                "snowCover": 0,
+                "cloudCover": 99.9999,
+                "gmlgeometry": "<gml:Polygon srsName=\"EPSG:4326\"><gml:outerBoundaryIs><gml:LinearRing><gml:coordinates>119.54952251282,-82.032015673693 119.54922011622,-82.031862144979 119.53732548005,-82.032362579117 119.53728189583,-82.032340302677 119.5338845428,-82.032483279221 119.53366183198,-82.032369200376 119.52929100158,-82.032553264941 119.52907189547,-82.032440773587 119.52296935485,-82.032697788216 119.52242095029,-82.032415086045 119.51880328166,-82.032567971426 119.51868087285,-82.032504728336 119.51544350984,-82.032641766314 119.51512273694,-82.032475662309 119.48904677511,-82.033576746787 119.30912629579,-81.936729606758 123.99281408615,-81.896890207677 124.38053698198,-82.292241902607 124.04721064782,-82.309878067456 123.0011083456,-82.362132495297 121.94135870009,-82.412079551646 120.86795091048,-82.459507270139 120.3525969398,-82.481193645612 119.89361076345,-82.244642754046 119.95818503478,-82.241929012718 119.95496217045,-82.240290232894 119.9650617753,-82.239865741354 119.5543266118,-82.031813579988 119.54952251282,-82.032015673693</gml:coordinates></gml:LinearRing></gml:outerBoundaryIs></gml:Polygon>",
+                "centroid": {
+                    "type": "Point",
+                    "coordinates": [
+                        121.89681471820988,
+                        -82.15302931442791
+                    ]
+                },
+                "orbitDirection": "DESCENDING",
+                "timeliness": null,
+                "relativeOrbitNumber": 57,
+                "processingBaseline": 2.08,
+                "missionTakeId": "GS2A_20200101T213941_023649_N02.08",
+                "services": {
+                    "download": {
+                        "url": "https://zipper.creodias.eu/download/126f24b0-5c6c-564a-a98a-18accff970df",
+                        "mimeType": "application/octet-stream",
+                        "size": 0
+                    }
+                },
+                "links": [
+                    {
+                        "rel": "self",
+                        "type": "application/json",
+                        "title": "GeoJSON link for 126f24b0-5c6c-564a-a98a-18accff970df",
+                        "href": "https://catalogue.dataspace.copernicus.eu/resto/collections/SENTINEL-2/126f24b0-5c6c-564a-a98a-18accff970df.json"
+                    }
+                ]
+            }
+        }
+    ]
+}

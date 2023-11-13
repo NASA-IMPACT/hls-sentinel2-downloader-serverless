@@ -22,6 +22,8 @@ class IntegrationStack(core.Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # TODO remove this, along with other references to it, but leaving for
+        # now, just in case removing it would break the downloader lambda
         aws_secretsmanager.Secret(
             self,
             id=f"{identifier}-integration-scihub-credentials",
@@ -86,14 +88,16 @@ class IntegrationStack(core.Stack):
             parameter_name=f"/integration_tests/{identifier}/mock_scihub_url",
         )
 
-        dhus_resource = aws_apigateway.Resource(
+        search_resource = aws_apigateway.Resource(
             self,
-            id=f"{identifier}-mock-scihub-api-dhus-search",
+            id=f"{identifier}-mock-scihub-api-search-search",
             parent=mock_scihub_api.root,
-            path_part="dhus",
+            path_part="resto",
         )
 
-        dhus_resource.add_resource("search").add_method(
+        search_resource.add_resource("api").add_resource("collections").add_resource(
+            "Sentinel2"
+        ).add_resource("search.json").add_method(
             http_method="GET",
             method_responses=[
                 aws_apigateway.MethodResponse(
@@ -111,9 +115,14 @@ class IntegrationStack(core.Stack):
             ),
         )
 
-        dhus_resource.add_resource("odata").add_resource("v1").add_resource(
-            "{product+}"
-        ).add_method(
+        download_resource = aws_apigateway.Resource(
+            self,
+            id=f"{identifier}-mock-scihub-api-download-search",
+            parent=mock_scihub_api.root,
+            path_part="odata",
+        )
+
+        download_resource.add_resource("v1").add_resource("{product+}").add_method(
             http_method="GET",
             method_responses=[
                 aws_apigateway.MethodResponse(

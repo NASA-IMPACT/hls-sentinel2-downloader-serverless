@@ -1,0 +1,77 @@
+{
+  "StartAt": "Generate Dates",
+  "States": {
+    "Generate Dates": {
+      "Next": "Fetch Links Map",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${date_generator_function_arn}",
+        "Payload.$": "$"
+      }
+    },
+    "Fetch Links Map": {
+      "Type": "Map",
+      "End": true,
+      "InputPath": "$.Payload.query_dates",
+      "Parameters": {
+        "query_date.$": "$$.Map.Item.Value"
+      },
+      "Iterator": {
+        "StartAt": "Fetch Links for Date",
+        "States": {
+          "Fetch Links for Date": {
+            "Next": "Fetching completed?",
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "States.TaskFailed"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 7,
+                "BackoffRate": 2
+              }
+            ],
+            "Type": "Task",
+            "OutputPath": "$.Payload",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${link_fetcher_function_arn}",
+              "Payload.$": "$"
+            }
+          },
+          "Fetching completed?": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.completed",
+                "BooleanEquals": false,
+                "Next": "Fetch Links for Date"
+              }
+            ],
+            "Default": "Success"
+          },
+          "Success": {
+            "Type": "Succeed"
+          }
+        }
+      },
+      "MaxConcurrency": 3
+    }
+  }
+}

@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Tuple
+from typing import TYPE_CHECKING, TypedDict
 
 import boto3
 import requests
@@ -11,11 +11,9 @@ from botocore import client
 from db.models.granule import Granule
 from db.models.status import Status
 from db.session import get_session, get_session_maker
-from mypy_boto3_s3.client import S3Client
-from sqlalchemy.exc import SQLAlchemyError
-
 from exceptions import (
     ChecksumRetrievalException,
+    CopernicusTokenNotRetrievedException,
     FailedToDownloadFileException,
     FailedToRetrieveGranuleException,
     FailedToUpdateGranuleDownloadFinishException,
@@ -23,31 +21,51 @@ from exceptions import (
     GranuleAlreadyDownloadedException,
     GranuleNotFoundException,
     RetryLimitReachedException,
-    SciHubAuthenticationNotRetrievedException,
 )
+from sqlalchemy.exc import SQLAlchemyError
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client
+
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
 
-SCIHUB_URL = os.environ.get("SCIHUB_URL", "https://scihub.copernicus.eu")
-SCIHUB_CHECKSUM_URL_FMT = (
-    f"{SCIHUB_URL}/dhus/odata/v1/Products('{{}}')/?$format=json&$select=Checksum"
+COPERNICUS_ZIPPER_URL = os.environ.get(
+    "COPERNICUS_ZIPPER_URL",
+    "http://zipper.dataspace.copernicus.eu",
 )
+COPERNICUS_CHECKSUM_URL = os.environ.get(
+    "COPERNICUS_CHECKSUM_URL",
+    "https://catalogue.dataspace.copernicus.eu",
+)
+COPERNICUS_IDENTITY_URL = os.environ.get(
+    "COPERNICUS_IDENTITY_URL",
+    "https://identity.dataspace.copernicus.eu/auth/realms/"
+    "CDSE/protocol/openid-connect/token",
+)
+
+
+class CopernicusCredentials(TypedDict):
+    username: str
+    password: str
 
 
 def handler(event, context):
     image_message = json.loads(event["Records"][0]["body"])
     image_id = image_message["id"]
     image_filename = image_message["filename"]
-    download_url = get_download_url(image_message["download_url"])
+    download_url = get_download_url(image_message["id"])
 
     LOGGER.info(f"Received event to download image: {image_filename}")
 
     try:
         get_granule(image_id)
-    except GranuleNotFoundException:
+    except GranuleNotFoundException as e:
+        LOGGER.error(str(e))
         return
-    except GranuleAlreadyDownloadedException:
+    except GranuleAlreadyDownloadedException as e:
+        LOGGER.info(str(e))
         return
 
     try:
@@ -61,25 +79,19 @@ def handler(event, context):
         )
 
         LOGGER.info(f"Successfully downloaded image: {image_filename}")
-    except Exception as ex:
+    except Exception:
         increase_retry_count(image_id)
-        raise ex
+        raise
 
     update_last_file_downloaded_time()
 
 
-def get_download_url(image_message_download_url: str) -> str:
+def get_download_url(image_id: str) -> str:
     """
-    Takes the `download_url` value from `image_message` and returns a modified version
-    if the environment variable `USE_INTHUB2` is set to `YES`
-
-    By default, the `link_fetcher` handler will grab `scihub` urls, if we are using
-    `inthub2`, we just swap this into the url in the downloader.
+    Takes the `image_id` value from `image_message` and returns a
+    the zipper download url.
     """
-    if os.environ["USE_INTHUB2"] == "YES":
-        return image_message_download_url.replace("scihub", "inthub2", 1)
-    else:
-        return image_message_download_url
+    return f"{COPERNICUS_ZIPPER_URL}/odata/v1/Products({image_id})/$value"
 
 
 def get_granule(image_id: str) -> Granule:
@@ -93,61 +105,49 @@ def get_granule(image_id: str) -> Granule:
     :returns: Granule representing the row in the `granule` table
     """
     session_maker = get_session_maker()
+
     with get_session(session_maker) as db:
         try:
-            granule = db.query(Granule).filter(Granule.id == image_id).first()
+            if not (
+                granule := db.query(Granule).filter(Granule.id == image_id).first()
+            ):
+                raise GranuleNotFoundException(f"Granule with id: {image_id} not found")
+            if granule.downloaded:
+                raise GranuleAlreadyDownloadedException(
+                    f"Granule with id: {image_id} has already been downloaded"
+                )
+            if granule.download_retries > 10:
+                raise RetryLimitReachedException(
+                    f"Granule with id: {image_id} has reached its retry limit"
+                )
 
-            if granule:
-                if granule.downloaded:
-                    LOGGER.info(
-                        f"Granule with id: {image_id} has already been downloaded"
-                    )
-                    raise GranuleAlreadyDownloadedException()
-                elif granule.download_retries > 10:
-                    error_message = (
-                        f"Granule with id: {image_id} has reached its retry limit"
-                    )
-                    LOGGER.error(error_message)
-                    raise RetryLimitReachedException(error_message)
-                else:
-                    db.refresh(granule)
-                    return granule
-            else:
-                error_message = f"Granule with id: {image_id} not found"
-                LOGGER.error(error_message)
-                raise GranuleNotFoundException(error_message)
+            db.refresh(granule)
+
+            return granule
         except SQLAlchemyError as ex:
             db.rollback()
-            error_message = (
+
+            raise FailedToRetrieveGranuleException(
                 f"Failed to retrieve granule with id: {image_id}, exception was: {ex}"
-            )
-            LOGGER.error(error_message)
-            raise FailedToRetrieveGranuleException(error_message)
+            ) from None
 
 
-def get_scihub_auth(use_inthub2: bool = False) -> Tuple[str, str]:
+def get_copernicus_token() -> str:
     """
-    Retrieves the username and password for SciHub or IntHub, which are stored in
-    SecretsManager
-    :param use_inthub2: bool whether to use Inthub or not
-    :returns: Tuple[str, str] representing the username and password
+    Retrieves keycloak token from parameter store.
+    :returns: str of token
     """
     try:
         stage = os.environ["STAGE"]
-        destination = "inthub2" if use_inthub2 else "scihub"
-        secrets_manager_client = boto3.client("secretsmanager")
-        secret = json.loads(
-            secrets_manager_client.get_secret_value(
-                SecretId=(
-                    f"hls-s2-downloader-serverless/{stage}/{destination}-credentials"
-                )
-            )["SecretString"]
+        ssm_client = boto3.client("ssm")
+        token_parameter = ssm_client.get_parameter(
+            Name=f"/hls-s2-downloader-serverless/{stage}/copernicus-token",
         )
-        return (secret["username"], secret["password"])
+        return token_parameter["Parameter"]["Value"]
     except Exception as ex:
-        raise SciHubAuthenticationNotRetrievedException(
-            f"There was an error retrieving SciHub Credentials: {str(ex)}"
-        )
+        raise CopernicusTokenNotRetrievedException(
+            f"There was error retrieving the keycloak token {ex}"
+        ) from None
 
 
 def get_image_checksum(image_id: str) -> str:
@@ -158,18 +158,18 @@ def get_image_checksum(image_id: str) -> str:
     :returns: str representing the Checksum value returned from the SciHub API
     """
     try:
-        auth = get_scihub_auth()
-        response = requests.get(url=SCIHUB_CHECKSUM_URL_FMT.format(image_id), auth=auth)
-        response.raise_for_status()
-
-        return response.json()["d"]["Checksum"]["Value"]
-    except Exception as ex:
-        error_message = (
-            "There was an error retrieving the Checksum for Granule with id:"
-            f" {image_id}. {str(ex)}"
+        response = requests.get(
+            f"{COPERNICUS_CHECKSUM_URL}/odata/v1/Products?$filter=Id eq '{image_id}'"
         )
-        LOGGER.error(error_message)
-        raise ChecksumRetrievalException(error_message)
+        response.raise_for_status()
+        checksums = response.json()["value"][0]["Checksum"]
+        md5_object = [c for c in checksums if c["Algorithm"] == "MD5"][0]
+        return md5_object["Value"]
+    except Exception as ex:
+        raise ChecksumRetrievalException(
+            "There was an error retrieving the Checksum for Granule with id:"
+            f" {image_id}. {ex}"
+        ) from None
 
 
 def download_file(
@@ -192,10 +192,13 @@ def download_file(
         from
     """
     session_maker = get_session_maker()
+
     with get_session(session_maker) as db:
         try:
-            auth = get_scihub_auth(os.environ["USE_INTHUB2"] == "YES")
-            with requests.get(url=download_url, auth=auth, stream=True) as response:
+            token = get_copernicus_token()
+            session = requests.Session()
+            session.headers.update({"Authorization": f"Bearer {token}"})
+            with session.get(url=download_url, stream=True) as response:
                 response.raise_for_status()
 
                 aws_checksum = generate_aws_checksum(image_checksum)
@@ -216,30 +219,24 @@ def download_file(
                 granule.checksum = image_checksum
                 db.commit()
         except requests.RequestException as ex:
-            error_message = (
+            raise FailedToDownloadFileException(
                 "Requests exception thrown downloading granule with download_url:"
                 f" {download_url}, exception was: {ex}"
-            )
-            LOGGER.error(error_message)
-            raise FailedToDownloadFileException(error_message)
+            ) from None
         except client.ClientError as ex:
-            error_message = (
+            raise FailedToUploadFileException(
                 f"Boto3 Client Error raised when uploading file: {image_filename}"
                 f" for granule with id: {image_id}, error was: {ex}"
-            )
-            LOGGER.error(error_message)
-            raise FailedToUploadFileException(error_message)
+            ) from None
         except SQLAlchemyError as ex:
             db.rollback()
-            error_message = (
+            raise FailedToUpdateGranuleDownloadFinishException(
                 "SQLAlchemy Exception raised when updating download finish for"
                 f" granule with id: {image_id}, exception was: {ex}"
-            )
-            LOGGER.error(error_message)
-            raise FailedToUpdateGranuleDownloadFinishException(error_message)
+            ) from None
 
 
-def get_s3_client() -> S3Client:
+def get_s3_client() -> "S3Client":
     """
     Creates and returns a Boto3 Client for S3
     """
@@ -264,6 +261,7 @@ def increase_retry_count(image_id: str):
     :param image_id: str representing the id of the image in the `granule` table
     """
     session_maker = get_session_maker()
+
     with get_session(session_maker) as db:
         granule = db.query(Granule).filter(Granule.id == image_id).first()
         granule.download_retries += 1
@@ -275,22 +273,22 @@ def update_last_file_downloaded_time():
     Updates the key with name `last_file_downloaded_time` in the `status` table
     to the current datetime
     """
+    session_maker = get_session_maker()
+
     try:
-        session_maker = get_session_maker()
         with get_session(session_maker) as db:
-            status = (
+            if status := (
                 db.query(Status)
                 .filter(Status.key_name == "last_file_downloaded_time")
                 .first()
-            )
-            if status:
+            ):
                 status.value = datetime.now()
-                db.commit()
             else:
                 db.add(
                     Status(key_name="last_file_downloaded_time", value=datetime.now())
                 )
-                db.commit()
+
+            db.commit()
     except Exception as ex:
         LOGGER.error(
             (

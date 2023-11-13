@@ -5,87 +5,91 @@ on:
     branches: [ main ]
     types: [ published ]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   unit-tests:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.8.6
-        uses: actions/setup-python@v2
+      - name: Set up Python 3.8.18
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8.6
+          python-version: 3.8.18
 
       - name: Install Pipenv
-        uses: dschep/install-pipenv-action@v1
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
 
       - name: Get pipenv venv hashes
         id: hashes
         run: |
-          echo "##[set-output name=root;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)"
-          echo "##[set-output name=alembic;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/alembic_migration/Pipfile)"
-          echo "##[set-output name=dategenerator;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/date_generator/Pipfile)"
-          echo "##[set-output name=linkfetcher;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/link_fetcher/Pipfile)"
-          echo "##[set-output name=downloader;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/downloader/Pipfile)"
-          echo "##[set-output name=mockscihubproductapi;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_product_api/Pipfile)"
-          echo "##[set-output name=mockscihubsearchapi;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_search_api/Pipfile)"
-          echo "##[set-output name=db;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/layers/db/Pipfile)"
+          echo "root=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)" >> $GITHUB_OUTPUT
+          echo "alembic=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/alembic_migration/Pipfile)" >> $GITHUB_OUTPUT
+          echo "dategenerator=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/date_generator/Pipfile)" >> $GITHUB_OUTPUT
+          echo "linkfetcher=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/link_fetcher/Pipfile)" >> $GITHUB_OUTPUT
+          echo "downloader=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/downloader/Pipfile)" >> $GITHUB_OUTPUT
+          echo "mockscihubproductapi=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_product_api/Pipfile)" >> $GITHUB_OUTPUT
+          echo "mockscihubsearchapi=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_search_api/Pipfile)" >> $GITHUB_OUTPUT
+          # echo "db=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/layers/db/Pipfile)" >> $GITHUB_OUTPUT
 
       - name: Setup root cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: root-cache
         with:
           path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/Pipfile.lock') }}-2
 
       - name: Setup alembic_migration cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: alembic-cache
         with:
           path: /home/runner/.local/share/virtualenvs/alembic_migration-${{ steps.hashes.outputs.alembic }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/alembic_migration/Pipfile.lock') }}
 
       - name: Setup date_generator cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: date-generator-cache
         with:
           path: /home/runner/.local/share/virtualenvs/date_generator-${{ steps.hashes.outputs.dategenerator }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/date_generator/Pipfile.lock') }}
 
       - name: Setup link_fetcher cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: link-fetcher-cache
         with:
           path: /home/runner/.local/share/virtualenvs/link_fetcher-${{ steps.hashes.outputs.linkfetcher }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/link_fetcher/Pipfile.lock') }}
 
       - name: Setup downloader cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: downloader-cache
         with:
           path: /home/runner/.local/share/virtualenvs/downloader-${{ steps.hashes.outputs.downloader }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/downloader/Pipfile.lock') }}
 
       - name: Setup mock_scihub_product_api cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: mock-scihub-product-api-cache
         with:
           path: /home/runner/.local/share/virtualenvs/mock_scihub_product_api-${{ steps.hashes.outputs.mockscihubproductapi }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_product_api/Pipfile.lock') }}
 
       - name: Setup mock_scihub_search_api cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: mock-scihub-search-api-cache
         with:
           path: /home/runner/.local/share/virtualenvs/mock_scihub_search_api-${{ steps.hashes.outputs.mockscihubsearchapi }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_search_api/Pipfile.lock') }}
 
-      - name: Setup db cache
-        uses: actions/cache@v2
-        id: db-cache
-        with:
-          path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
-          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
+      # - name: Setup db cache
+      #   uses: actions/cache@v3
+      #   id: db-cache
+      #   with:
+      #     path: /home/runner/.local/share/virtualenvs/db-${{ steps.hashes.outputs.db }}
+      #     key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/layers/db/Pipfile.lock') }}
 
       - name: Install root dependencies
         if: steps.root-cache.outputs.cache-hit != 'true'
@@ -123,7 +127,7 @@ jobs:
           make -C lambdas/mock_scihub_search_api install
 
       - name: Install db dependencies
-        if: steps.db-cache.outputs.cache-hit != 'true'
+        # if: steps.db-cache.outputs.cache-hit != 'true'
         run: |
           make -C layers/db install
 
@@ -154,13 +158,14 @@ jobs:
       - name: Run unit tests
         run: |
           make unit-tests
+
   deploy:
     runs-on: ubuntu-20.04
     needs: [unit-tests]
     environment:
       name: prod
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Create .env
         run: |
@@ -174,30 +179,30 @@ jobs:
           UPLOAD_BUCKET="${{ secrets.UPLOAD_BUCKET }}"
           EOF
 
-      - name: Set up Python 3.8.6
-        uses: actions/setup-python@v2
+      - name: Set up Python 3.8.18
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8.6
+          python-version: 3.8.18
 
       - name: Setup up Node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: 12
+          node-version-file: ".nvmrc"
 
       - name: Install AWS CDK
         run: |
           npm install -g aws-cdk
 
       - name: Install Pipenv
-        uses: dschep/install-pipenv-action@v1
+        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
 
       - name: Get pipenv venv hashes
         id: hashes
         run: |
-          echo "##[set-output name=root;]$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)"
+          echo "root=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/Pipfile)" >> $GITHUB_OUTPUT
 
       - name: Setup root cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: root-cache
         with:
           path: /home/runner/.local/share/virtualenvs/hls-sentinel2-downloader-serverless-${{ steps.hashes.outputs.root }}
@@ -209,7 +214,7 @@ jobs:
           pipenv install --dev
 
       - name: Configure awscli
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -1,4 +1,7 @@
-.PHONEY: install lint format test
+.PHONEY: clean install lint format test
+
+clean:
+	pipenv --rm || true
 
 install:
 	pipenv install --dev

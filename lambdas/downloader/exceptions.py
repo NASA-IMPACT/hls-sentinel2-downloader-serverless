@@ -14,7 +14,11 @@ class RetryLimitReachedException(Exception):
     pass
 
 
-class SciHubAuthenticationNotRetrievedException(Exception):
+class CopernicusAuthenticationNotRetrievedException(Exception):
+    pass
+
+
+class CopernicusTokenNotRetrievedException(Exception):
     pass
 
 

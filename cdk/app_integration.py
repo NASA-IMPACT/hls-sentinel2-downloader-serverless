@@ -2,9 +2,11 @@
 import os
 
 from aws_cdk import core
+from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 from integration_stack import IntegrationStack
 
+load_dotenv(override=True)
 app = core.App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
@@ -18,7 +20,9 @@ downloader_stack = DownloaderStack(
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=integration_stack.upload_bucket.bucket_name,
-    scihub_url=integration_stack.scihub_url,
+    search_url=integration_stack.scihub_url,
+    zipper_url=integration_stack.scihub_url,
+    checksum_url=integration_stack.scihub_url,
 )
 
 integration_stack.upload_bucket.grant_put(downloader_stack.downloader)

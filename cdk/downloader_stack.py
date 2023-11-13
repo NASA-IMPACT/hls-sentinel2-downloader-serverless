@@ -1,3 +1,5 @@
+from typing import Optional
+
 from aws_cdk import (
     aws_cloudwatch,
     aws_ec2,
@@ -12,10 +14,10 @@ from aws_cdk import (
     aws_secretsmanager,
     aws_sqs,
     aws_ssm,
-    aws_stepfunctions,
-    aws_stepfunctions_tasks,
-    core,
 )
+from aws_cdk import aws_stepfunctions as sfn
+from aws_cdk import aws_stepfunctions_tasks as tasks
+from aws_cdk import core
 
 
 class DownloaderStack(core.Stack):
@@ -23,9 +25,12 @@ class DownloaderStack(core.Stack):
         self,
         scope: core.Construct,
         construct_id: str,
+        *,
         identifier: str,
         upload_bucket: str,
-        scihub_url: str = None,
+        search_url: Optional[str] = None,
+        zipper_url: Optional[str] = None,
+        checksum_url: Optional[str] = None,
         enable_downloading: bool = False,
         use_inthub2: bool = False,
         schedule_link_fetching: bool = False,
@@ -75,7 +80,7 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-downloader-rds",
             engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
-                version=aws_rds.AuroraPostgresEngineVersion.VER_10_12
+                version=aws_rds.AuroraPostgresEngineVersion.VER_11_15
             ),
             instance_props=aws_rds.InstanceProps(
                 vpc=vpc,
@@ -96,6 +101,34 @@ class DownloaderStack(core.Stack):
             string_value=downloader_rds.secret.secret_arn,
             parameter_name=f"/integration_tests/{identifier}/downloader_rds_secret_arn",
         )
+
+        token_parameter = aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-copernicus-token",
+            string_value="placeholder",
+            parameter_name=f"/hls-s2-downloader-serverless/{identifier}/copernicus-token",
+        )
+
+        self.token_rotator = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{identifier}-token-rotator",
+            entry="lambdas/token_rotator",
+            environment={"STAGE": identifier},
+            index="handler.py",
+            handler="handler",
+            memory_size=1200,
+            timeout=core.Duration.minutes(5),
+            runtime=aws_lambda.Runtime.PYTHON_3_8,
+        )
+
+        token_parameter.grant_write(self.token_rotator.role)
+
+        rule = aws_events.Rule(
+            self,
+            id=f"{identifier}-token-cron-rule",
+            schedule=aws_events.Schedule.expression("cron(0/5 * * * ? *)"),
+        )
+        rule.add_target(aws_events_targets.LambdaFunction(self.token_rotator))
 
         core.CfnOutput(
             self,
@@ -142,12 +175,21 @@ class DownloaderStack(core.Stack):
             service_token=migration_function.function_arn,
         )
 
+        queue_retention_period = core.Duration.days(14)
         to_download_queue = aws_sqs.Queue(
             self,
             id=f"{identifier}-to-download-queue",
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
-            retention_period=core.Duration.days(14),
+            retention_period=queue_retention_period,
             visibility_timeout=core.Duration.minutes(15),
+            dead_letter_queue=aws_sqs.DeadLetterQueue(
+                max_receive_count=10,
+                queue=aws_sqs.Queue(
+                    self,
+                    f"{identifier}-to-download-dlq",
+                    retention_period=queue_retention_period,
+                ),  # type: ignore
+            ),
         )
 
         aws_ssm.StringParameter(
@@ -184,10 +226,8 @@ class DownloaderStack(core.Stack):
             "STAGE": identifier,
             "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+            **({"SEARCH_URL": search_url} if search_url else {}),
         }
-
-        if scihub_url:
-            link_fetcher_environment_vars["SCIHUB_URL"] = scihub_url
 
         lambda_insights_policy = aws_iam.ManagedPolicy.from_managed_policy_arn(
             self,
@@ -244,10 +284,9 @@ class DownloaderStack(core.Stack):
             "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
             "USE_INTHUB2": "YES" if use_inthub2 else "NO",
+            **({"COPERNICUS_ZIPPER_URL": zipper_url} if zipper_url else {}),
+            **({"COPERNICUS_CHECKSUM_URL": checksum_url} if checksum_url else {}),
         }
-
-        if scihub_url:
-            downloader_environment_vars["SCIHUB_URL"] = scihub_url
 
         self.downloader = aws_lambda_python.PythonFunction(
             self,
@@ -260,7 +299,7 @@ class DownloaderStack(core.Stack):
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
-            reserved_concurrent_executions=24,
+            reserved_concurrent_executions=15,
         )
 
         aws_logs.LogGroup(
@@ -307,8 +346,17 @@ class DownloaderStack(core.Stack):
             id=f"{identifier}-scihub-credentials",
             secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
         )
-        scihub_credentials.grant_read(link_fetcher)
         scihub_credentials.grant_read(self.downloader)
+
+        copernicus_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
+            self,
+            id=f"{identifier}-copernicus-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/copernicus-credentials",
+        )
+        copernicus_credentials.grant_read(self.downloader)
+        copernicus_credentials.grant_read(self.token_rotator)
+
+        token_parameter.grant_read(self.downloader)
 
         if use_inthub2:
             inthub2_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
@@ -328,31 +376,51 @@ class DownloaderStack(core.Stack):
             )
         )
 
-        date_generator_task = aws_stepfunctions_tasks.LambdaInvoke(
+        date_generator_task = tasks.LambdaInvoke(
             self,
             id=f"{identifier}-date-generator-invoke",
             lambda_function=date_generator,
         )
 
-        link_fetcher_task = aws_stepfunctions_tasks.LambdaInvoke(
+        link_fetcher_task = tasks.LambdaInvoke(
             self,
             id=f"{identifier}-link-fetcher-invoke",
             lambda_function=link_fetcher,
+            output_path="$.Payload",
+        ).add_retry(
+            backoff_rate=2,
+            interval=core.Duration.seconds(2),
+            max_attempts=7,
+            errors=[
+                "Lambda.ServiceException",
+                "Lambda.AWSLambdaException",
+                "Lambda.SdkClientException",
+                "States.TaskFailed",
+            ],
         )
 
-        link_fetcher_map_task = aws_stepfunctions.Map(
+        link_fetcher_map_task = sfn.Map(
             self,
             id=f"{identifier}-link-fetcher-map",
             input_path="$.Payload.query_dates",
             parameters={"query_date.$": "$$.Map.Item.Value"},
             max_concurrency=3,
-        ).iterator(link_fetcher_task)
+        ).iterator(
+            link_fetcher_task.next(
+                sfn.Choice(self, "Fetching completed?")
+                .when(
+                    sfn.Condition.boolean_equals("$.completed", False),
+                    link_fetcher_task,
+                )
+                .otherwise(sfn.Succeed(self, "Success"))
+            )
+        )
 
         link_fetcher_step_function_definition = date_generator_task.next(
             link_fetcher_map_task
         )
 
-        link_fetcher_step_function = aws_stepfunctions.StateMachine(
+        link_fetcher_step_function = sfn.StateMachine(
             self,
             id=f"{identifier}-link-fetcher-step-function",
             definition=link_fetcher_step_function_definition,
@@ -368,7 +436,7 @@ class DownloaderStack(core.Stack):
         )
 
         if schedule_link_fetching:
-            _ = aws_events.Rule(
+            aws_events.Rule(
                 self,
                 id=f"{identifier}-link-fetch-rule",
                 schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),

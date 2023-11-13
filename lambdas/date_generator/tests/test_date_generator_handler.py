@@ -2,7 +2,6 @@ from datetime import datetime
 
 from assertpy import assert_that
 from freezegun import freeze_time
-
 from handler import get_dates, handler
 
 
