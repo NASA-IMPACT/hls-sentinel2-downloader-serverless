@@ -25,14 +25,14 @@ clean:
 	$(MAKE) -C alembic_migration clean
 
 install:
-	$(MAKE) -C layers/db install
 	pipenv install --dev
-	$(MAKE) -C lambdas/link_fetcher install
-	$(MAKE) -C lambdas/date_generator install
-	$(MAKE) -C lambdas/downloader install
-	$(MAKE) -C lambdas/mock_scihub_search_api install
-	$(MAKE) -C lambdas/mock_scihub_product_api install
 	$(MAKE) -C alembic_migration install
+	$(MAKE) -C lambdas/date_generator install
+	$(MAKE) -C lambdas/link_fetcher install
+	$(MAKE) -C lambdas/downloader install
+	$(MAKE) -C lambdas/mock_scihub_product_api install
+	$(MAKE) -C lambdas/mock_scihub_search_api install
+	$(MAKE) -C layers/db install
 
 lint:
 	pipenv run flake8 cdk/ integration_tests/

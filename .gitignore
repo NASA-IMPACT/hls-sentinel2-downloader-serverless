@@ -91,10 +91,6 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
-# Ignoring until migration away from pipenv is complete because layers/db/Makefile
-# still runs `pipenv` for the `test` rule, so it ends up generating this Pipfile.
-layers/db/Pipfile
-
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
