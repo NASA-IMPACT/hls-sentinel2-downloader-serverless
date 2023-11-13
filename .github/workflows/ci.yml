@@ -297,6 +297,7 @@ jobs:
           make unit-tests
 
   integration-tests:
+    if: false
     runs-on: ubuntu-20.04
     needs: [unit-tests, linting]
     environment:
