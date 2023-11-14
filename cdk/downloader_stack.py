@@ -299,7 +299,6 @@ class DownloaderStack(core.Stack):
             timeout=core.Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_8,
             environment=downloader_environment_vars,
-            reserved_concurrent_executions=15,
         )
 
         aws_logs.LogGroup(
@@ -370,10 +369,28 @@ class DownloaderStack(core.Stack):
 
         to_download_queue.grant_send_messages(link_fetcher)
         to_download_queue.grant_consume_messages(self.downloader)
-        self.downloader.add_event_source(
-            aws_lambda_event_sources.SqsEventSource(
-                queue=to_download_queue, batch_size=1, enabled=enable_downloading
-            )
+
+        # We must resort to using CfnEventSourceMapping to set the maximum concurrency
+        # for the downloader, as CDK v1 SqsEventSource does not support this.  In
+        # CDK v2, a `max_concurrency` parameter was added to SqsEventSource, so we can
+        # resort to the following commented-out code (and add a max_concurrency
+        # argument) once we migrate to CDK v2.
+        #
+        # self.downloader.add_event_source(
+        #     aws_lambda_event_sources.SqsEventSource(
+        #         queue=to_download_queue, batch_size=1, enabled=enable_downloading
+        #     )
+        # )
+        aws_lambda.CfnEventSourceMapping(
+            self,
+            id=f"{identifier}-downloader-event-source-mapping",
+            function_name=self.downloader.function_arn,
+            event_source_arn=to_download_queue.queue_arn,
+            batch_size=1,
+            enabled=enable_downloading,
+            scaling_config=aws_lambda.CfnEventSourceMapping.ScalingConfigProperty(
+                maximum_concurrency=14
+            ),
         )
 
         date_generator_task = tasks.LambdaInvoke(
