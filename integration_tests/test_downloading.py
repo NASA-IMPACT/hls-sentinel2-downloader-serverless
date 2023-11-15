@@ -59,8 +59,6 @@ def test_that_downloader_correctly_downloads_file_and_updates_database(
     granule = (
         db_session.query(Granule).filter(Granule.id == "integration-test-id").first()
     )
-    print(f"{granule=}")
-    print(db_session.query(Status).all())
     last_file_downloaded_time = datetime.strptime(
         db_session.query(Status)
         .filter(Status.key_name == "last_file_downloaded_time")
