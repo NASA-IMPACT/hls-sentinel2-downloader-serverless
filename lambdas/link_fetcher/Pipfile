@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 boto3 = "==1.16.60"
 humanfriendly = "==9.1"
-requests = "==2.25.1"
+requests = "==2.31.0"
 iso8601 = "==2.0.0"
 sqlalchemy = "==1.4.0"
 
@@ -26,7 +26,7 @@ psycopg2 = "==2.8.6"
 pytest-docker = "==0.10.1"
 pytest-cov = "==2.11.1"
 mypy = "==1.6.0"
-types-requests = "==2.25.1"
+types-requests = "==2.31.0"
 types-humanfriendly = "*"
 
 [requires]
