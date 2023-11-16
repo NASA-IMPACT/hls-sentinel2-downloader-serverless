@@ -7,7 +7,6 @@ from aws_cdk import (
     aws_events_targets,
     aws_iam,
     aws_lambda,
-    aws_lambda_event_sources,
     aws_lambda_python,
     aws_logs,
     aws_rds,
@@ -80,7 +79,7 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-downloader-rds",
             engine=aws_rds.DatabaseClusterEngine.aurora_postgres(
-                version=aws_rds.AuroraPostgresEngineVersion.VER_11_15
+                version=aws_rds.AuroraPostgresEngineVersion.of("11.21", "11")
             ),
             instance_props=aws_rds.InstanceProps(
                 vpc=vpc,
