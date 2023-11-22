@@ -11,7 +11,8 @@ def test_that_handler_returns_correct_checksum_response_for_known_product_id(
     scihub_response_mock_image_checksum,
 ):
     request = {
-        "pathParameters": {"product": "Products(integration-test-id)"},
+        "pathParameters": {"product": "Products"},
+        "queryStringParameters": {"$filter": "Id eq 'fake-test-id'"},
     }
     resp = handler(request, None)
     assert_that(resp["statusCode"]).is_equal_to(200)
@@ -22,7 +23,8 @@ def test_that_handler_returns_correct_checksum_response_for_known_product_id(
 
 def test_that_handler_returns_correct_image_response_for_known_product_id():
     request = {
-        "pathParameters": {"product": "Products(integration-test-id)/$value"},
+        "pathParameters": {"product": "Products(fake-test-id)/$value"},
+        "queryStringParameters": None,
     }
     expected_headers = {
         "Content-Type": "application/octet-stream",
