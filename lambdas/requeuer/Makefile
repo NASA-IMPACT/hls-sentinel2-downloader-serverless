@@ -1,0 +1,19 @@
+.PHONEY: clean install lint format test
+
+clean:
+	pipenv --rm || true
+
+install:
+	pipenv install --dev
+
+lint:
+	pipenv run flake8 .
+	pipenv run isort --check-only --profile black .
+	pipenv run black --check --diff .
+
+format:
+	pipenv run isort --profile black *.py tests/
+	pipenv run black *.py tests/
+
+test:
+	pipenv run pytest -v --cov=handler --cov-report term-missing tests/

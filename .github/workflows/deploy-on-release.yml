@@ -33,6 +33,7 @@ jobs:
           echo "downloader=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/downloader/Pipfile)" >> $GITHUB_OUTPUT
           echo "mockscihubproductapi=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_product_api/Pipfile)" >> $GITHUB_OUTPUT
           echo "mockscihubsearchapi=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/mock_scihub_search_api/Pipfile)" >> $GITHUB_OUTPUT
+          echo "requeuer=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/lambdas/requeuer/Pipfile)" >> $GITHUB_OUTPUT
           # echo "db=$(python -c 'import sys; import base64; import hashlib; print(base64.urlsafe_b64encode(hashlib.sha256(sys.argv[-1].encode()).digest()[:6]).decode()[:8])' $(pwd)/layers/db/Pipfile)" >> $GITHUB_OUTPUT
 
       - name: Setup root cache
@@ -84,6 +85,13 @@ jobs:
           path: /home/runner/.local/share/virtualenvs/mock_scihub_search_api-${{ steps.hashes.outputs.mockscihubsearchapi }}
           key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/mock_scihub_search_api/Pipfile.lock') }}
 
+      - name: Setup requeuer cache
+        uses: actions/cache@v3
+        id: requeuer-cache
+        with:
+          path: /home/runner/.local/share/virtualenvs/requeuer-${{ steps.hashes.outputs.requeuer }}
+          key: ${{ hashFiles('/home/runner/work/hls-sentinel2-downloader-serverless/hls-sentinel2-downloader-serverless/lambdas/requeuer/Pipfile.lock') }}
+
       # - name: Setup db cache
       #   uses: actions/cache@v3
       #   id: db-cache
@@ -126,6 +134,11 @@ jobs:
         run: |
           make -C lambdas/mock_scihub_search_api install
 
+      - name: Install requeuer dependencies
+        if: steps.requeuer-cache.outputs.cache-hit != 'true'
+        run: |
+          make -C lambdas/requeuer install
+
       - name: Install db dependencies
         # if: steps.db-cache.outputs.cache-hit != 'true'
         run: |
@@ -139,6 +152,12 @@ jobs:
           PG_DB="test-db"
           EOF
           cat <<EOF >> lambdas/downloader/.env
+          PG_PASSWORD="test-pass"
+          PG_USER="test-user"
+          PG_DB="test-db"
+          AWS_DEFAULT_REGION="us-east-1"
+          EOF
+          cat <<EOF >> lambdas/requeuer/.env
           PG_PASSWORD="test-pass"
           PG_USER="test-user"
           PG_DB="test-db"

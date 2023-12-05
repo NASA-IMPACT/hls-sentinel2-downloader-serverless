@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 from aws_cdk import (
     aws_cloudwatch,
@@ -93,11 +93,15 @@ class DownloaderStack(core.Stack):
             if removal_policy_destroy
             else core.RemovalPolicy.RETAIN,
         )
+        downloader_rds_secret = downloader_rds.secret
+
+        # Make static type checkers happy
+        assert downloader_rds_secret
 
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-downloader-rds-secret-arn",
-            string_value=downloader_rds.secret.secret_arn,
+            string_value=downloader_rds_secret.secret_arn,
             parameter_name=f"/integration_tests/{identifier}/downloader_rds_secret_arn",
         )
 
@@ -163,10 +167,10 @@ class DownloaderStack(core.Stack):
                 db_layer,
                 psycopg2_layer,
             ],
-            environment={"DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn},
+            environment={"DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn},
         )
 
-        downloader_rds.secret.grant_read(migration_function)
+        downloader_rds_secret.grant_read(migration_function)
 
         core.CustomResource(
             self,
@@ -224,7 +228,7 @@ class DownloaderStack(core.Stack):
         link_fetcher_environment_vars = {
             "STAGE": identifier,
             "TO_DOWNLOAD_SQS_QUEUE_URL": to_download_queue.queue_url,
-            "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+            "DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn,
             **({"SEARCH_URL": search_url} if search_url else {}),
         }
 
@@ -280,7 +284,7 @@ class DownloaderStack(core.Stack):
 
         downloader_environment_vars = {
             "STAGE": identifier,
-            "DB_CONNECTION_SECRET_ARN": downloader_rds.secret.secret_arn,
+            "DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
             "USE_INTHUB2": "YES" if use_inthub2 else "NO",
             **({"COPERNICUS_ZIPPER_URL": zipper_url} if zipper_url else {}),
@@ -336,8 +340,8 @@ class DownloaderStack(core.Stack):
 
         self.downloader.role.add_managed_policy(lambda_insights_policy)
 
-        downloader_rds.secret.grant_read(link_fetcher)
-        downloader_rds.secret.grant_read(self.downloader)
+        downloader_rds_secret.grant_read(link_fetcher)
+        downloader_rds_secret.grant_read(self.downloader)
 
         scihub_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
             self,
@@ -457,3 +461,63 @@ class DownloaderStack(core.Stack):
                 id=f"{identifier}-link-fetch-rule",
                 schedule=aws_events.Schedule.expression("cron(0 12 * * ? *)"),
             ).add_target(aws_events_targets.SfnStateMachine(link_fetcher_step_function))
+
+        add_requeuer(
+            self,
+            identifier=identifier,
+            secret=downloader_rds_secret,
+            layers=[db_layer, psycopg2_layer],
+            queue=to_download_queue,
+            removal_policy_destroy=removal_policy_destroy,
+        )
+
+
+def add_requeuer(
+    scope: core.Construct,
+    *,
+    identifier: str,
+    layers: Sequence[aws_lambda.ILayerVersion],
+    removal_policy_destroy: bool,
+    secret: aws_secretsmanager.ISecret,
+    queue: aws_sqs.Queue,
+) -> None:
+    # Requeuer Lambda function for manually requeuing undownloaded granules for
+    # a given date.
+    requeuer = aws_lambda_python.PythonFunction(
+        scope,
+        id=f"{identifier}-requeuer",
+        entry="lambdas/requeuer",
+        index="handler.py",
+        handler="handler",
+        layers=layers,
+        memory_size=200,
+        timeout=core.Duration.minutes(15),
+        runtime=aws_lambda.Runtime.PYTHON_3_8,
+        environment={
+            "STAGE": identifier,
+            "TO_DOWNLOAD_SQS_QUEUE_URL": queue.queue_url,
+            "DB_CONNECTION_SECRET_ARN": secret.secret_arn,
+        },
+    )
+
+    aws_logs.LogGroup(
+        scope,
+        id=f"{identifier}-requeuer-log-group",
+        log_group_name=f"/aws/lambda/{requeuer.function_name}",
+        removal_policy=core.RemovalPolicy.DESTROY
+        if removal_policy_destroy
+        else core.RemovalPolicy.RETAIN,
+        retention=aws_logs.RetentionDays.ONE_DAY
+        if removal_policy_destroy
+        else aws_logs.RetentionDays.TWO_WEEKS,
+    )
+
+    secret.grant_read(requeuer)
+    queue.grant_send_messages(requeuer)
+
+    core.CfnOutput(
+        scope,
+        id=f"{identifier}-requeuer-function-name",
+        value=requeuer.function_name,
+        export_name=f"{identifier}-requeuer-function-name",
+    )

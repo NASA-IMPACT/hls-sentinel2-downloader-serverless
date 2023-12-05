@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "*"
+iso8601 = "*"
+
+[dev-packages]
+alembic = "*"
+black = "*"
+boto3-stubs = {extras = ["lambda", "sqs", "secretsmanager"], version = "*"}
+db = {editable = true, path = "./../../layers/db"}
+flake8 = "*"
+isort = "*"
+moto = "*"
+mypy = "*"
+psycopg2 = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-docker = "*"
+
+[requires]
+python_version = "3.8"
