@@ -22,6 +22,7 @@ clean:
 	$(MAKE) -C lambdas/downloader clean
 	$(MAKE) -C lambdas/mock_scihub_search_api clean
 	$(MAKE) -C lambdas/mock_scihub_product_api clean
+	$(MAKE) -C lambdas/requeuer clean
 	$(MAKE) -C alembic_migration clean
 
 install:
@@ -32,6 +33,7 @@ install:
 	$(MAKE) -C lambdas/downloader install
 	$(MAKE) -C lambdas/mock_scihub_product_api install
 	$(MAKE) -C lambdas/mock_scihub_search_api install
+	$(MAKE) -C lambdas/requeuer install
 	$(MAKE) -C layers/db install
 
 lint:
@@ -43,6 +45,7 @@ lint:
 	$(MAKE) -C lambdas/downloader lint
 	$(MAKE) -C lambdas/mock_scihub_search_api lint
 	$(MAKE) -C lambdas/mock_scihub_product_api lint
+	$(MAKE) -C lambdas/requeuer lint
 	$(MAKE) -C layers/db lint
 	$(MAKE) -C alembic_migration lint
 
@@ -54,6 +57,7 @@ format:
 	$(MAKE) -C lambdas/downloader format
 	$(MAKE) -C lambdas/mock_scihub_search_api format
 	$(MAKE) -C lambdas/mock_scihub_product_api format
+	$(MAKE) -C lambdas/requeuer format
 	$(MAKE) -C layers/db format
 	$(MAKE) -C alembic_migration format
 
@@ -81,6 +85,7 @@ unit-tests:
 	$(MAKE) -C lambdas/downloader test
 	$(MAKE) -C lambdas/mock_scihub_search_api test
 	$(MAKE) -C lambdas/mock_scihub_product_api test
+	$(MAKE) -C lambdas/requeuer test
 	$(MAKE) -C layers/db test
 	$(MAKE) -C alembic_migration test
 

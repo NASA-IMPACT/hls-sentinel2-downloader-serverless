@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+# Source the .env file, if it exists, to get the IDENTIFIER environment variable.
+test -f "${PWD}/.env" && builtin source "$_"
+
+usage() {
+    echo "Usage: $0 --[no]-dry-run YYYY-MM-DD OUTFILE" 1>&2
+    echo "" 1>&2
+    echo "  --[no]-dry-run   Whether or not to run in dry run mode (i.e., list, but don't requeue, missing granules)." 1>&2
+    echo "  YYYY-MM-DD       Ingestion date of the undownloaded granules to requeue." 1>&2
+    echo "  OUTFILE          Where to write requeuer output (JSON)." 1>&2
+    echo "" 1>&2
+    exit 1
+}
+
+if [[ -z "${IDENTIFIER}" ]]; then
+    echo "ERROR: The IDENTIFIER environment variable must be set." 1>&2
+    echo "" 1>&2
+    usage
+fi
+
+n_args=3
+
+if [[ $# -ne $n_args ]]; then
+    if [[ $# -gt 0 ]]; then
+        echo "ERROR: You must specify exactly ${n_args} arguments." 1>&2
+        echo "" 1>&2
+    fi
+
+    usage
+fi
+
+if [[ "$1" != "--dry-run" && "$1" != "--no-dry-run" ]]; then
+    echo "ERROR: The first argument must be either --dry-run or --no-dry-run" 1>&2
+    echo "" 1>&2
+    usage
+fi
+
+if [[ "$1" == "--dry-run" ]]; then
+    dry_run="true"
+else
+    dry_run="false"
+fi
+
+if [[ ! "$2" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    echo "ERROR: Invalid ingestion date format (YYYY-MM-DD): $2" 1>&2
+    echo "" 1>&2
+    usage
+fi
+
+ingestion_date=$2
+outfile=$3
+
+function_name=$(
+    aws cloudformation describe-stacks \
+        --stack-name "hls-s2-downloader-serverless-${IDENTIFIER}" \
+        --query "Stacks[0].Outputs[?ExportName=='${IDENTIFIER}-requeuer-function-name'].OutputValue" \
+        --output text
+)
+
+if [[ ${dry_run} == "true" ]]; then
+    echo "----- DRY RUN -----" 1>&2
+fi
+
+echo "Invoking Lambda function ${function_name}" 1>&2
+
+response=$(
+    aws lambda invoke \
+        --function-name "${function_name}" \
+        --payload '{"dry_run": '"${dry_run}"', "date": "'"${ingestion_date}"'"}' \
+        --cli-binary-format raw-in-base64-out \
+        "${outfile}"
+)
+
+if [[ ${response} =~ "FunctionError" ]]; then
+    echo "ERROR: Lambda function failed: $(<"${outfile}")." 1>&2
+    echo "" 1>&2
+    exit 1
+elif [[ ${dry_run} == "false" ]]; then
+    echo "Requeued undownloaded granules with an ingestion date of ${ingestion_date}." 1>&2
+    echo "The list of granules was written to ${outfile}." 1>&2
+    echo "To see the logs for the requeuer, run the following command:" 1>&2
+    echo "" 1>&2
+    echo "  aws logs tail --follow /aws/lambda/${function_name}" 1>&2
+    echo "" 1>&2
+else
+    echo "Would requeue undownloaded granules with an ingestion date of ${ingestion_date}." 1>&2
+    echo "The list of granules that would be requeued was written to ${outfile}." 1>&2
+    echo "To requeue them, run the following command:" 1>&2
+    echo "" 1>&2
+    echo "  $0 --no-dry-run $ingestion_date ${outfile}" 1>&2
+    echo "" 1>&2
+    echo "Note that this will rerun the query for ${ingestion_date}, ignoring and" 1>&2
+    echo "overwriting the current contents of ${outfile}." 1>&2
+fi
