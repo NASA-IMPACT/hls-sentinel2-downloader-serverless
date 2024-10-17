@@ -41,7 +41,7 @@ class IntegrationStack(core.Stack):
             entry="lambdas/mock_scihub_search_api",
             index="handler.py",
             handler="handler",
-            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            runtime=aws_lambda.Runtime.PYTHON_3_12,
             timeout=core.Duration.minutes(1),
             memory_size=128,
         )
@@ -60,7 +60,7 @@ class IntegrationStack(core.Stack):
             entry="lambdas/mock_scihub_product_api",
             index="handler.py",
             handler="handler",
-            runtime=aws_lambda.Runtime.PYTHON_3_8,
+            runtime=aws_lambda.Runtime.PYTHON_3_12,
             timeout=core.Duration.minutes(1),
             memory_size=128,
         )
