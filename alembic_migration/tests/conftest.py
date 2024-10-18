@@ -4,7 +4,7 @@ import os
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from moto import mock_secretsmanager
+from moto import mock_aws
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError
@@ -53,7 +53,7 @@ def aws_credentials(monkeysession):
 
 @pytest.fixture(scope="session")
 def secrets_manager_client():
-    with mock_secretsmanager():
+    with mock_aws():
         yield boto3.client("secretsmanager", region_name="us-east-1")
 
 
