@@ -13,7 +13,7 @@ import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
 from handler import SEARCH_URL, SearchResult
-from moto import mock_secretsmanager, mock_sqs
+from moto import mock_aws
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
@@ -118,13 +118,13 @@ def aws_credentials(monkeysession):
 
 @pytest.fixture
 def sqs_resource():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.resource("sqs")
 
 
 @pytest.fixture
 def sqs_client():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.client("sqs")
 
 
@@ -137,7 +137,7 @@ def mock_sqs_queue(sqs_resource, monkeysession, sqs_client):
 
 @pytest.fixture(scope="session")
 def secrets_manager_client():
-    with mock_secretsmanager():
+    with mock_aws():
         yield boto3.client("secretsmanager")
 
 
