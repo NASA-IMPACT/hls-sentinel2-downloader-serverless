@@ -20,7 +20,7 @@ assertpy = "==1.1"
 pytest = "==7.4.3"
 responses = "==0.23.1"
 alembic = "==1.12.1"
-moto = "==4.1.11"
+moto = "==5.0.17"
 db = {editable = true, path = "./../../layers/db"}
 psycopg2 = "==2.9.10"
 pytest-docker = "==2.0.1"
