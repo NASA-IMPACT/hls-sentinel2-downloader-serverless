@@ -9,7 +9,7 @@ import alembic.config
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from moto import mock_secretsmanager, mock_sqs
+from moto import mock_aws
 from mypy_boto3_secretsmanager.client import SecretsManagerClient
 from mypy_boto3_sqs.service_resource import SQSServiceResource
 from sqlalchemy import create_engine  # type: ignore
@@ -70,13 +70,13 @@ def aws_credentials(monkeysession: MonkeyPatch):
 
 @pytest.fixture
 def sqs_resource():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.resource("sqs")
 
 
 @pytest.fixture
 def sqs_client():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.client("sqs")
 
 
@@ -87,7 +87,7 @@ def sqs_queue(sqs_resource: SQSServiceResource):
 
 @pytest.fixture(scope="session")
 def secrets_manager_client():
-    with mock_secretsmanager():
+    with mock_aws():
         yield boto3.client("secretsmanager")
 
 
