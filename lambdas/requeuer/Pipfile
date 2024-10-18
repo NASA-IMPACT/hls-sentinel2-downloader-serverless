@@ -12,8 +12,8 @@ alembic = "*"
 black = "*"
 boto3-stubs = {extras = ["lambda", "sqs", "secretsmanager"], version = "*"}
 db = {editable = true, path = "./../../layers/db"}
-flake8 = "*"
-isort = "*"
+flake8 = "==7.1.1"
+isort = "==5.13.2"
 moto = "*"
 mypy = "*"
 psycopg2 = "*"
