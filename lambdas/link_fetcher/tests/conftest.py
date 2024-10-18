@@ -129,8 +129,8 @@ def sqs_client():
 
 
 @pytest.fixture
-def mock_sqs_queue(sqs_resource, monkeysession, sqs_client):
-    queue = sqs_resource.create_queue(QueueName="mock-queue")
+def mock_sqs_queue(request, sqs_resource, monkeysession, sqs_client):
+    queue = sqs_resource.create_queue(QueueName=f"mock-queue-{request.node.name}"[:80])
     monkeysession.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
 
