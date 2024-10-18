@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-boto3 = "==1.16.60"
+boto3 = "==1.35.44"
 humanfriendly = "==9.1"
 requests = "==2.31.0"
 iso8601 = "==2.0.0"
@@ -22,7 +22,7 @@ responses = "==0.23.1"
 alembic = "==1.12.1"
 moto = "==4.1.11"
 db = {editable = true, path = "./../../layers/db"}
-psycopg2 = "==2.8.6"
+psycopg2 = "==2.9.10"
 pytest-docker = "==2.0.1"
 pytest-cov = "==4.1.0"
 mypy = "==1.6.0"

@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-boto3 = "*"
+boto3 = "==1.35.44"
 iso8601 = "*"
 
 [dev-packages]
@@ -16,7 +16,7 @@ flake8 = "==7.1.1"
 isort = "==5.13.2"
 moto = "*"
 mypy = "*"
-psycopg2 = "*"
+psycopg2 = "==2.9.10"
 pytest = "*"
 pytest-cov = "*"
 pytest-docker = "*"

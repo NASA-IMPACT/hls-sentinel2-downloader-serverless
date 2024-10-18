@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 alembic = "==1.12.1"
-boto3 = "==1.16.60"
-psycopg2-binary = "==2.8.6"
+boto3 = "==1.35.44"
+psycopg2-binary = "==2.9.10"
 sqlalchemy = "==1.4.0"
 
 [dev-packages]
