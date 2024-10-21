@@ -7,7 +7,7 @@ from aws_cdk import (
     aws_events_targets,
     aws_iam,
     aws_lambda,
-    aws_lambda_python,
+    aws_lambda_python_alpha as aws_lambda_python,
     aws_logs,
     aws_rds,
     aws_secretsmanager,
@@ -16,13 +16,20 @@ from aws_cdk import (
 )
 from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
-from aws_cdk import core
+from aws_cdk import (
+    CfnOutput,
+    CustomResource,
+    Duration,
+    RemovalPolicy,
+    Stack,
+)
+from constructs import Construct
 
 
-class DownloaderStack(core.Stack):
+class DownloaderStack(Stack):
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         construct_id: str,
         *,
         identifier: str,
@@ -89,9 +96,9 @@ class DownloaderStack(core.Stack):
             ),
             subnet_group=rds_subnet_group,
             default_database_name="hlss2downloader",
-            removal_policy=core.RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY
             if removal_policy_destroy
-            else core.RemovalPolicy.RETAIN,
+            else RemovalPolicy.RETAIN,
         )
         downloader_rds_secret = downloader_rds.secret
 
@@ -120,7 +127,7 @@ class DownloaderStack(core.Stack):
             index="handler.py",
             handler="handler",
             memory_size=1200,
-            timeout=core.Duration.minutes(5),
+            timeout=Duration.minutes(5),
             runtime=aws_lambda.Runtime.PYTHON_3_12,
         )
 
@@ -133,7 +140,7 @@ class DownloaderStack(core.Stack):
         )
         rule.add_target(aws_events_targets.LambdaFunction(self.token_rotator))
 
-        core.CfnOutput(
+        CfnOutput(
             self,
             id=f"{identifier}-downloader-ip",
             value=downloader_rds.cluster_endpoint.hostname,
@@ -162,7 +169,7 @@ class DownloaderStack(core.Stack):
             index="alembic_handler.py",
             runtime=aws_lambda.Runtime.PYTHON_3_12,
             memory_size=128,
-            timeout=core.Duration.minutes(5),
+            timeout=Duration.minutes(5),
             layers=[
                 db_layer,
                 psycopg2_layer,
@@ -172,19 +179,19 @@ class DownloaderStack(core.Stack):
 
         downloader_rds_secret.grant_read(migration_function)
 
-        core.CustomResource(
+        CustomResource(
             self,
             id=f"{identifier}-migration-function-resource",
             service_token=migration_function.function_arn,
         )
 
-        queue_retention_period = core.Duration.days(14)
+        queue_retention_period = Duration.days(14)
         to_download_queue = aws_sqs.Queue(
             self,
             id=f"{identifier}-to-download-queue",
             queue_name=f"hls-s2-downloader-serverless-{identifier}-to-download"[-80:],
             retention_period=queue_retention_period,
-            visibility_timeout=core.Duration.minutes(15),
+            visibility_timeout=Duration.minutes(15),
             dead_letter_queue=aws_sqs.DeadLetterQueue(
                 max_receive_count=10,
                 queue=aws_sqs.Queue(
@@ -209,7 +216,7 @@ class DownloaderStack(core.Stack):
             index="handler.py",
             handler="handler",
             memory_size=128,
-            timeout=core.Duration.seconds(15),
+            timeout=Duration.seconds(15),
             runtime=aws_lambda.Runtime.PYTHON_3_12,
         )
 
@@ -217,9 +224,9 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-date-generator-log-group",
             log_group_name=f"/aws/lambda/{date_generator.function_name}",
-            removal_policy=core.RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY
             if removal_policy_destroy
-            else core.RemovalPolicy.RETAIN,
+            else RemovalPolicy.RETAIN,
             retention=aws_logs.RetentionDays.ONE_DAY
             if removal_policy_destroy
             else aws_logs.RetentionDays.TWO_WEEKS,
@@ -257,7 +264,7 @@ class DownloaderStack(core.Stack):
             handler="handler",
             layers=[db_layer, psycopg2_layer],
             memory_size=200,
-            timeout=core.Duration.minutes(15),
+            timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_12,
             environment=link_fetcher_environment_vars,
         )
@@ -266,9 +273,9 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-link-fetcher-log-group",
             log_group_name=f"/aws/lambda/{link_fetcher.function_name}",
-            removal_policy=core.RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY
             if removal_policy_destroy
-            else core.RemovalPolicy.RETAIN,
+            else RemovalPolicy.RETAIN,
             retention=aws_logs.RetentionDays.ONE_DAY
             if removal_policy_destroy
             else aws_logs.RetentionDays.TWO_WEEKS,
@@ -299,7 +306,7 @@ class DownloaderStack(core.Stack):
             handler="handler",
             layers=[db_layer, psycopg2_layer, insights_layer],
             memory_size=1200,
-            timeout=core.Duration.minutes(15),
+            timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_12,
             environment=downloader_environment_vars,
         )
@@ -308,9 +315,9 @@ class DownloaderStack(core.Stack):
             self,
             id=f"{identifier}-downloader-log-group",
             log_group_name=f"/aws/lambda/{self.downloader.function_name}",
-            removal_policy=core.RemovalPolicy.DESTROY
+            removal_policy=RemovalPolicy.DESTROY
             if removal_policy_destroy
-            else core.RemovalPolicy.RETAIN,
+            else RemovalPolicy.RETAIN,
             retention=aws_logs.RetentionDays.ONE_DAY
             if removal_policy_destroy
             else aws_logs.RetentionDays.TWO_WEEKS,
@@ -409,7 +416,7 @@ class DownloaderStack(core.Stack):
             output_path="$.Payload",
         ).add_retry(
             backoff_rate=2,
-            interval=core.Duration.seconds(2),
+            interval=Duration.seconds(2),
             max_attempts=7,
             errors=[
                 "Lambda.ServiceException",
@@ -473,7 +480,7 @@ class DownloaderStack(core.Stack):
 
 
 def add_requeuer(
-    scope: core.Construct,
+    scope: Construct,
     *,
     identifier: str,
     layers: Sequence[aws_lambda.ILayerVersion],
@@ -491,7 +498,7 @@ def add_requeuer(
         handler="handler",
         layers=layers,
         memory_size=200,
-        timeout=core.Duration.minutes(15),
+        timeout=Duration.minutes(15),
         runtime=aws_lambda.Runtime.PYTHON_3_12,
         environment={
             "STAGE": identifier,
@@ -504,9 +511,9 @@ def add_requeuer(
         scope,
         id=f"{identifier}-requeuer-log-group",
         log_group_name=f"/aws/lambda/{requeuer.function_name}",
-        removal_policy=core.RemovalPolicy.DESTROY
+        removal_policy=RemovalPolicy.DESTROY
         if removal_policy_destroy
-        else core.RemovalPolicy.RETAIN,
+        else RemovalPolicy.RETAIN,
         retention=aws_logs.RetentionDays.ONE_DAY
         if removal_policy_destroy
         else aws_logs.RetentionDays.TWO_WEEKS,
@@ -515,7 +522,7 @@ def add_requeuer(
     secret.grant_read(requeuer)
     queue.grant_send_messages(requeuer)
 
-    core.CfnOutput(
+    CfnOutput(
         scope,
         id=f"{identifier}-requeuer-function-name",
         value=requeuer.function_name,
