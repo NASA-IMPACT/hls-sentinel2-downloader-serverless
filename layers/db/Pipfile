@@ -20,4 +20,4 @@ pytest-cov = "==4.1.0"
 pytest-docker = "==2.0.1"
 
 [requires]
-python_version = "3.12"
+python_version = "3.11"

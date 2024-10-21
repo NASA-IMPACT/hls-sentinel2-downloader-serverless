@@ -45,7 +45,7 @@ extra_reqs = {
 setup(
     name="hls-sentinel2-downloader-serverless",
     version="0.0.1",
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     author="Development Seed",
     packages=find_packages(),
     package_data={

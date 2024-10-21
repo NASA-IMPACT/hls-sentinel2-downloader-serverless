@@ -128,7 +128,7 @@ class DownloaderStack(Stack):
             handler="handler",
             memory_size=1200,
             timeout=Duration.minutes(5),
-            runtime=aws_lambda.Runtime.PYTHON_3_12,
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
         )
 
         token_parameter.grant_write(self.token_rotator.role)
@@ -158,7 +158,7 @@ class DownloaderStack(Stack):
             self,
             id=f"{identifier}-db-layer",
             entry="layers/db",
-            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_12],
+            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
         )
 
         migration_function = aws_lambda_python.PythonFunction(
@@ -167,7 +167,7 @@ class DownloaderStack(Stack):
             entry="alembic_migration",
             handler="handler",
             index="alembic_handler.py",
-            runtime=aws_lambda.Runtime.PYTHON_3_12,
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
             memory_size=128,
             timeout=Duration.minutes(5),
             layers=[
@@ -217,7 +217,7 @@ class DownloaderStack(Stack):
             handler="handler",
             memory_size=128,
             timeout=Duration.seconds(15),
-            runtime=aws_lambda.Runtime.PYTHON_3_12,
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
         )
 
         aws_logs.LogGroup(
@@ -265,7 +265,7 @@ class DownloaderStack(Stack):
             layers=[db_layer, psycopg2_layer],
             memory_size=200,
             timeout=Duration.minutes(15),
-            runtime=aws_lambda.Runtime.PYTHON_3_12,
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=link_fetcher_environment_vars,
         )
 
@@ -307,7 +307,7 @@ class DownloaderStack(Stack):
             layers=[db_layer, psycopg2_layer, insights_layer],
             memory_size=1200,
             timeout=Duration.minutes(15),
-            runtime=aws_lambda.Runtime.PYTHON_3_12,
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=downloader_environment_vars,
         )
 
@@ -499,7 +499,7 @@ def add_requeuer(
         layers=layers,
         memory_size=200,
         timeout=Duration.minutes(15),
-        runtime=aws_lambda.Runtime.PYTHON_3_12,
+        runtime=aws_lambda.Runtime.PYTHON_3_11,
         environment={
             "STAGE": identifier,
             "TO_DOWNLOAD_SQS_QUEUE_URL": queue.queue_url,
