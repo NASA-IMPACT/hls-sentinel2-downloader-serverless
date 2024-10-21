@@ -140,14 +140,6 @@ class DownloaderStack(Stack):
             value=downloader_rds.cluster_endpoint.hostname,
         )
 
-        psycopg2_layer = aws_lambda.LayerVersion.from_layer_version_arn(
-            self,
-            id=f"{identifier}-pyscopg2-layer",
-            layer_version_arn=(
-                "arn:aws:lambda:us-west-2:898466741470:layer:psycopg2-py38:1"
-            ),
-        )
-
         db_layer = aws_lambda_python.PythonLayerVersion(
             self,
             id=f"{identifier}-db-layer",
@@ -166,7 +158,6 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(5),
             layers=[
                 db_layer,
-                psycopg2_layer,
             ],
             environment={"DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn},
         )
@@ -256,7 +247,9 @@ class DownloaderStack(Stack):
             entry="lambdas/link_fetcher",
             index="handler.py",
             handler="handler",
-            layers=[db_layer, psycopg2_layer],
+            layers=[
+                db_layer,
+            ],
             memory_size=200,
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
@@ -298,7 +291,7 @@ class DownloaderStack(Stack):
             entry="lambdas/downloader",
             index="handler.py",
             handler="handler",
-            layers=[db_layer, psycopg2_layer, insights_layer],
+            layers=[db_layer, insights_layer],
             memory_size=1200,
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
@@ -467,7 +460,7 @@ class DownloaderStack(Stack):
             self,
             identifier=identifier,
             secret=downloader_rds_secret,
-            layers=[db_layer, psycopg2_layer],
+            layers=[db_layer],
             queue=to_download_queue,
             removal_policy_destroy=removal_policy_destroy,
         )
