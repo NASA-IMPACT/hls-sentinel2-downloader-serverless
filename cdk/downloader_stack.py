@@ -1,28 +1,22 @@
 from typing import Optional, Sequence
 
 from aws_cdk import (
+    CfnOutput,
+    CustomResource,
+    Duration,
+    RemovalPolicy,
+    Stack,
     aws_cloudwatch,
     aws_ec2,
     aws_events,
     aws_events_targets,
     aws_iam,
     aws_lambda,
-    aws_lambda_python_alpha as aws_lambda_python,
-    aws_logs,
-    aws_rds,
-    aws_secretsmanager,
-    aws_sqs,
-    aws_ssm,
 )
+from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
+from aws_cdk import aws_logs, aws_rds, aws_secretsmanager, aws_sqs, aws_ssm
 from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
-from aws_cdk import (
-    CfnOutput,
-    CustomResource,
-    Duration,
-    RemovalPolicy,
-    Stack,
-)
 from constructs import Construct
 
 
