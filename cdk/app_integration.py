@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
 
-from aws_cdk import core
+from aws_cdk import App, Tags
 from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 from integration_stack import IntegrationStack
 
 load_dotenv(override=True)
-app = core.App()
+app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 
@@ -34,6 +34,6 @@ for k, v in {
     "Owner": os.environ["OWNER"],
     "Commit": os.environ.get("COMMIT", "N/A"),
 }.items():
-    core.Tags.of(app).add(k, v, apply_to_launched_instances=True)
+    Tags.of(app).add(k, v, apply_to_launched_instances=True)
 
 app.synth()
