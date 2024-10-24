@@ -37,9 +37,8 @@ install:
 	$(MAKE) -C layers/db install
 
 lint:
-	pipenv run flake8 cdk/ integration_tests/
-	pipenv run isort --check-only --profile black cdk/ integration_tests/
-	pipenv run black --check --diff cdk/ integration_tests/
+	pipenv run ruff format --diff cdk/ integration_tests/
+	pipenv run ruff check cdk/ integration_tests/
 	$(MAKE) -C lambdas/link_fetcher lint
 	$(MAKE) -C lambdas/date_generator lint
 	$(MAKE) -C lambdas/downloader lint

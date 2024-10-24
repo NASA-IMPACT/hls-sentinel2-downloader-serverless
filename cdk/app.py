@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
 
-from aws_cdk import core
+from aws_cdk import App, Tags
 from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 
 load_dotenv(override=True)
-app = core.App()
+app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
@@ -32,6 +32,6 @@ for k, v in {
     "Client": "nasa-impact",
     "Owner": os.environ["OWNER"],
 }.items():
-    core.Tags.of(app).add(k, v, apply_to_launched_instances=True)
+    Tags.of(app).add(k, v, apply_to_launched_instances=True)
 
 app.synth()
