@@ -9,11 +9,6 @@ defaults:
   run:
     shell: bash
 
-# See https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services#updating-your-github-actions-workflow
-permissions:
-  id-token: write # required for requesting the JWT
-  contents: read  # required for actions/checkout
-
 jobs:
   unit-tests:
     runs-on: ubuntu-20.04
