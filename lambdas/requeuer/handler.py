@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import json
 import os
-from re import T
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence, TypedDict
 
 import iso8601

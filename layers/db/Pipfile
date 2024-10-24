@@ -11,13 +11,11 @@ sqlalchemy = "==1.4.0"
 
 [dev-packages]
 assertpy = "==1.1"
-black = "==23.11.0"
-flake8 = "==7.1.1"
-isort = "==5.13.2"
 moto = "==5.0.17"
 pytest = "==7.4.3"
 pytest-cov = "==4.1.0"
 pytest-docker = "==2.0.1"
+ruff = "==0.7.1"
 
 [requires]
 python_version = "3.11"

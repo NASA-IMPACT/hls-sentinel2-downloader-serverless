@@ -9,6 +9,9 @@ from assertpy import assert_that
 from botocore.client import ClientError
 from db.models.granule import Granule
 from db.models.status import Status
+from freezegun import freeze_time
+from responses import matchers
+
 from exceptions import (
     ChecksumRetrievalException,
     FailedToDownloadFileException,
@@ -19,7 +22,6 @@ from exceptions import (
     GranuleNotFoundException,
     RetryLimitReachedException,
 )
-from freezegun import freeze_time
 from handler import (
     download_file,
     generate_aws_checksum,
@@ -30,7 +32,6 @@ from handler import (
     increase_retry_count,
     update_last_file_downloaded_time,
 )
-from responses import matchers
 
 download_url = "http://zipper.dataspace.copernicus.eu/odata/v1/Products(test-id)/$value"
 checksum_url = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Id eq 'test-id'"

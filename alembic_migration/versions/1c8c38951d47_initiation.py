@@ -5,6 +5,7 @@ Revises:
 Create Date: 2021-01-14 12:30:09.347153
 
 """
+
 from alembic import op
 from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, SmallInteger, String
 

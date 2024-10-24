@@ -12,9 +12,6 @@ sqlalchemy = "==1.4.0"
 
 [dev-packages]
 boto3-stubs = {version = "==1.17.10.0", extras = ["sqs"]}
-flake8 = "==7.1.1"
-isort = "==5.13.2"
-black = "==23.11.0"
 freezegun = "==1.0.0"
 assertpy = "==1.1"
 pytest = "==7.4.3"
@@ -28,6 +25,7 @@ pytest-cov = "==4.1.0"
 mypy = "==1.6.0"
 types-requests = "==2.31.0"
 types-humanfriendly = "*"
+ruff = "==0.7.1"
 
 [requires]
 python_version = "3.11"

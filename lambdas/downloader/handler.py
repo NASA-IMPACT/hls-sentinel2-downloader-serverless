@@ -11,6 +11,8 @@ from botocore import client
 from db.models.granule import Granule
 from db.models.status import Status
 from db.session import get_session, get_session_maker
+from sqlalchemy.exc import SQLAlchemyError
+
 from exceptions import (
     ChecksumRetrievalException,
     CopernicusTokenNotRetrievedException,
@@ -22,7 +24,6 @@ from exceptions import (
     GranuleNotFoundException,
     RetryLimitReachedException,
 )
-from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client

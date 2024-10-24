@@ -12,12 +12,13 @@ import boto3
 import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
-from handler import SEARCH_URL, SearchResult
 from moto import mock_aws
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+
+from handler import SEARCH_URL, SearchResult
 
 UNIT_TEST_DIR = pathlib.Path(__file__).parent
 

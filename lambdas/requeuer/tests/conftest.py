@@ -1,7 +1,6 @@
 import json
 import os
 import pathlib
-from contextlib import contextmanager
 from typing import cast
 
 import alembic.command

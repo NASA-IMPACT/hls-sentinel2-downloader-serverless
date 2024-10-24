@@ -7,13 +7,13 @@ install:
 	pipenv install --dev
 
 lint:
-	pipenv run flake8 .
-	pipenv run isort --check-only --profile black .
-	pipenv run black --check --diff .
+	pipenv run ruff format --diff
+	pipenv run ruff check
 
 format:
-	pipenv run isort --profile black .
-	pipenv run black .
+	pipenv run ruff check --fix
+	pipenv run ruff check --select I --fix
+	pipenv run ruff format
 
 test:
 	pipenv run pytest -s --cov=db --cov-report term-missing db/tests/
