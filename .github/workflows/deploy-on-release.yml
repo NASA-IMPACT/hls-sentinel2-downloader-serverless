@@ -210,7 +210,7 @@ jobs:
 
       - name: Install AWS CDK
         run: |
-          npm install -g aws-cdk
+          npm install
 
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
