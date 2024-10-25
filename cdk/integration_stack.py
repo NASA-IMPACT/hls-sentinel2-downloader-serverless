@@ -1,8 +1,9 @@
 import json
+from typing import Optional
 
 from aws_cdk import Duration, RemovalPolicy, Stack, aws_apigateway, aws_lambda
 from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
-from aws_cdk import aws_logs, aws_s3, aws_secretsmanager, aws_ssm
+from aws_cdk import aws_iam, aws_logs, aws_s3, aws_secretsmanager, aws_ssm
 from constructs import Construct
 
 
@@ -12,9 +13,20 @@ class IntegrationStack(Stack):
         scope: Construct,
         construct_id: str,
         identifier: str,
+        managed_policy_name: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        if managed_policy_name:
+            account_id = aws_iam.AccountRootPrincipal().account_id
+            aws_iam.PermissionsBoundary.of(self).apply(
+                aws_iam.ManagedPolicy.from_managed_policy_arn(
+                    self,
+                    "PermissionsBoundary",
+                    f"arn:aws:iam::{account_id}:policy/{managed_policy_name}",
+                )
+            )
 
         # TODO remove this, along with other references to it, but leaving for
         # now, just in case removing it would break the downloader lambda

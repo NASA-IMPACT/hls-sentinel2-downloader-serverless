@@ -10,9 +10,13 @@ load_dotenv(override=True)
 app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
+managed_policy_name = os.getenv("HLS_LPDAAC_MANAGED_POLICY_NAME", "mcp-tenantOperator")
 
 integration_stack = IntegrationStack(
-    app, f"hls-s2-downloader-serverless-integration-{identifier}", identifier=identifier
+    app,
+    f"hls-s2-downloader-serverless-integration-{identifier}",
+    identifier=identifier,
+    managed_policy_name=managed_policy_name,
 )
 
 downloader_stack = DownloaderStack(

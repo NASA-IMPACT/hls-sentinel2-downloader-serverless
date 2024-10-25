@@ -9,17 +9,21 @@ load_dotenv(override=True)
 app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
+managed_policy_name = os.getenv("HLS_LPDAAC_MANAGED_POLICY_NAME", "mcp-tenantOperator")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
 enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
 schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
 use_inthub2 = os.environ["USE_INTHUB2"] == "TRUE"
 removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
 print(identifier)
+
+
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=upload_bucket,
+    managed_policy_name=managed_policy_name,
     enable_downloading=enable_downloading,
     use_inthub2=use_inthub2,
     schedule_link_fetching=schedule_link_fetching,
