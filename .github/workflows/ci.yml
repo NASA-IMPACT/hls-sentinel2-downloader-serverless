@@ -347,6 +347,7 @@ jobs:
           touch .env
           echo OWNER="ci-developmentseed" >> .env
           echo IDENTIFIER=${{ steps.vars.outputs.branch }}-${{ steps.vars.outputs.commit }} >> .env
+          echo PERMISSIONS_BOUNDARY_ARN=${{ vars.PERMISSIONS_BOUNDARY_ARN }} >> .env
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
