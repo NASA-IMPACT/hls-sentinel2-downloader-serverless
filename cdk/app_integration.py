@@ -11,7 +11,6 @@ app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 permissions_boundary_arn = os.getenv("PERMISSIONS_BOUNDARY_ARN")
-print(f"<=====> PERMISSIONS_BOUNDARY_ARN ==> {permissions_boundary_arn}")
 
 integration_stack = IntegrationStack(
     app,

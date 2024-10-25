@@ -101,11 +101,11 @@ A `Makefile` is available in the root of the repository to abstract away commonl
 
 **`make lint`**
 
-> This will perform a dry run of `flake8`, `isort`, and `black` and let you know what issues were found
+> This will perform a dry run of `ruff` and let you know what issues were found
 
 **`make format`**
 
-> This will perform a run of `isort` and `black`, this **will** modify files if issues were found
+> This will perform a run of `ruff`, this **will** modify files if issues were found
 
 **`make diff`**
 
