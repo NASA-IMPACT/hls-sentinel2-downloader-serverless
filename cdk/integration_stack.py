@@ -13,18 +13,17 @@ class IntegrationStack(Stack):
         scope: Construct,
         construct_id: str,
         identifier: str,
-        managed_policy_name: Optional[str] = None,
+        permissions_boundary_arn: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        if managed_policy_name:
-            account_id = aws_iam.AccountRootPrincipal().account_id
+        if permissions_boundary_arn:
             aws_iam.PermissionsBoundary.of(self).apply(
                 aws_iam.ManagedPolicy.from_managed_policy_arn(
                     self,
                     "PermissionsBoundary",
-                    f"arn:aws:iam::{account_id}:policy/{managed_policy_name}",
+                    permissions_boundary_arn,
                 )
             )
 
