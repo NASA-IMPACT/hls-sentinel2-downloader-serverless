@@ -38,7 +38,7 @@ while there_is_still_imagery_to_process:
 
 ## Development
 
-This Lambda makes use of `pipenv` for managing depedencies and for building the function when deploying it.
+This Lambda makes use of `pipenv` for managing dependencies and for building the function when deploying it.
 
 To get setup for developing this project, run:
 
@@ -76,11 +76,11 @@ A `Makefile` is provided to abstract commonly used commands away:
 
 **`make lint`**
 
-> This will perform a dry run of `flake8`, `isort`, and `black` and let you know what issues were found
+> This will perform a dry run of `ruff` and let you know what issues were found
 
 **`make format`**
 
-> This will peform a run of `isort` and `black`, this **will** modify files if issues were found
+> This will perform a run of `ruff`, this **will** modify files if issues were found
 
 **`make test`**
 
