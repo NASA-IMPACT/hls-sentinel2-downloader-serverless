@@ -255,7 +255,7 @@ class DownloaderStack(Stack):
             self,
             id=f"{identifier}-link-fetcher",
             entry="lambdas/link_fetcher",
-            index="handler.py",
+            index="app/search_handler.py",
             handler="handler",
             layers=[
                 db_layer,

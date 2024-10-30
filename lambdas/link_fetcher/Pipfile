@@ -9,9 +9,12 @@ humanfriendly = "==9.1"
 requests = "==2.31.0"
 iso8601 = "==2.0.0"
 sqlalchemy = "==1.4.0"
+fastapi = "*"
+starlette = "*"
+mangum = "*"
 
 [dev-packages]
-boto3-stubs = {version = "==1.17.10.0", extras = ["sqs"]}
+boto3-stubs = {version = "==1.17.10.0", extras = ["sqs", "ssm"]}
 freezegun = "==1.0.0"
 assertpy = "==1.1"
 pytest = "==7.4.3"
@@ -26,6 +29,7 @@ mypy = "==1.6.0"
 types-requests = "==2.31.0"
 types-humanfriendly = "*"
 ruff = "==0.7.1"
+uvicorn = "*"
 
 [requires]
 python_version = "3.11"

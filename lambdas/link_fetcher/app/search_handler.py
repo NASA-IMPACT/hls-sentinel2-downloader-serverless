@@ -1,58 +1,39 @@
-import json
 import os
 import re
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import (
-    TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     Literal,
     Mapping,
     Protocol,
     Sequence,
-    Set,
     Tuple,
     TypedDict,
 )
 
-import boto3
 import humanfriendly
 import iso8601
 import requests
-from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from db.session import get_session_maker
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
-from typing_extensions import TypeAlias
 
-if TYPE_CHECKING:
-    from mypy_boto3_sqs.client import SQSClient
+from app.common import (
+    SearchResult,
+    SessionMaker,
+    add_search_results_to_db_and_sqs,
+    filter_search_results,
+    get_accepted_tile_ids,
+    parse_tile_id_from_title,
+)
 
-SessionMaker: TypeAlias = Callable[[], Session]
-
-ACCEPTED_TILE_IDS_FILENAME: Final = "allowed_tiles.txt"
 MIN_REMAINING_MILLIS: Final = 60_000
 SEARCH_URL: Final = os.environ.get(
     "SEARCH_URL",
     "https://catalogue.dataspace.copernicus.eu",
 )
 Platform = Literal["S2A", "S2B"]
-
-
-@dataclass(frozen=True)
-class SearchResult:
-    image_id: str
-    filename: str
-    tileid: str
-    size: int
-    beginposition: datetime
-    endposition: datetime
-    ingestiondate: datetime
-    download_url: str
 
 
 class Context(Protocol):
@@ -114,6 +95,7 @@ def _handler(
     }
 
 
+<<<<<<< HEAD:lambdas/link_fetcher/handler.py
 def add_search_results_to_db_and_sqs(
     session_maker: SessionMaker, search_results: Sequence[SearchResult]
 ):
@@ -278,6 +260,7 @@ def update_fetched_links(
             session.commit()
 
 
+<<<<<<< HEAD:lambdas/link_fetcher/handler.py
 def get_accepted_tile_ids() -> Set[str]:
     """
     Return MGRS square IDs acceptable for processing within the downloader.
@@ -355,12 +338,7 @@ def create_search_result(search_item: Mapping[str, Any]) -> SearchResult:
     download = properties["services"]["download"]
     size = humanfriendly.parse_size(str(download["size"]), binary=True)
     title = properties["title"]
-
-    # The tile ID is encoded into the filename (title).  It is embedded as
-    # `_TXXXXX_`, where `XXXXX` is the 5-character alphanumeric tile ID.
-    # https://sentinels.copernicus.eu/ca/web/sentinel/user-guides/sentinel-2-msi/naming-convention
-    match = re.search("_T(?P<tile_id>[0-9A-Z]{5})_", title)
-    tile_id = match["tile_id"] if match else ""
+    tile_id = parse_tile_id_from_title(title)
 
     return SearchResult(
         image_id=search_item["id"],

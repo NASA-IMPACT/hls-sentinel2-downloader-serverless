@@ -18,7 +18,7 @@ from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from handler import SEARCH_URL, SearchResult
+from app.search_handler import SEARCH_URL, SearchResult
 
 UNIT_TEST_DIR = pathlib.Path(__file__).parent
 
@@ -30,7 +30,7 @@ def mock_search_response():
 
 @pytest.fixture
 def accepted_tile_ids() -> Set[str]:
-    with open(UNIT_TEST_DIR.parent / "allowed_tiles.txt") as lines:
+    with open(UNIT_TEST_DIR.parent / "app" / "allowed_tiles.txt") as lines:
         return set(map(str.strip, lines))
 
 

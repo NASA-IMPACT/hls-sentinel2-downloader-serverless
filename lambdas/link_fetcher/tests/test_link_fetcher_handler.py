@@ -13,16 +13,18 @@ from db.models.status import Status
 from freezegun import freeze_time
 from sqlalchemy.orm import Session
 
-from handler import (
-    MIN_REMAINING_MILLIS,
-    SEARCH_URL,
+from app.common import (
     SearchResult,
-    _handler,
     add_search_result_to_sqs,
     add_search_results_to_db_and_sqs,
+    get_accepted_tile_ids,
+)
+from app.search_handler import (
+    MIN_REMAINING_MILLIS,
+    SEARCH_URL,
+    _handler,
     create_search_result,
     filter_search_results,
-    get_accepted_tile_ids,
     get_fetched_links,
     get_page_for_query_and_total_results,
     get_query_parameters,
@@ -266,7 +268,7 @@ def test_that_link_fetcher_handler_correctly_adds_search_results_to_db(
     search_result_id_base = search_results[0].image_id[:-3]
     search_result_url_base = search_results[0].download_url[:-3]
 
-    with patch("handler.add_search_result_to_sqs") as mock_add_to_sqs:
+    with patch("app.common.add_search_result_to_sqs") as mock_add_to_sqs:
         mock_add_to_sqs.return_value = None
         add_search_results_to_db_and_sqs(lambda: db_session, search_results)
         mock_add_to_sqs.assert_called()
