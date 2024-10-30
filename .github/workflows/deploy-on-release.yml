@@ -23,6 +23,10 @@ jobs:
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
 
+      - name: Install tox
+        run: |
+          pip install "tox>=3.18.0"
+
       - name: Get pipenv venv hashes
         id: hashes
         run: |
