@@ -3,10 +3,11 @@ from datetime import date, datetime
 
 import pytest
 from db.models.granule import Granule
-from handler import Response, _handler
 from mypy_boto3_sqs.client import SQSClient
 from mypy_boto3_sqs.service_resource import Queue
 from sqlalchemy.orm import Session  # type: ignore
+
+from handler import Response, _handler
 
 
 def test_missing_dry_run_raises(

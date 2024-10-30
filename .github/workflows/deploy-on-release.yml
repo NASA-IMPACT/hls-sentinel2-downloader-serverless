@@ -15,10 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.8.18
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.18
+          python-version: 3.11
 
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
@@ -196,12 +196,13 @@ jobs:
           USE_INTHUB2="TRUE"
           REMOVAL_POLICY_DESTROY="FALSE"
           UPLOAD_BUCKET="${{ secrets.UPLOAD_BUCKET }}"
+          PERMISSIONS_BOUNDARY_ARN="${{ vars.PERMISSIONS_BOUNDARY_ARN }}"
           EOF
 
-      - name: Set up Python 3.8.18
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8.18
+          python-version: 3.11
 
       - name: Setup up Node
         uses: actions/setup-node@v4
@@ -210,7 +211,7 @@ jobs:
 
       - name: Install AWS CDK
         run: |
-          npm install -g aws-cdk
+          npm install
 
       - name: Install Pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python

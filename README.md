@@ -21,9 +21,9 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 
 To develop on this project, you should install:
 
-* NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node 12
+* NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node 18
 * [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) - There is a `package.json` in the repository, it's recommended to run `npm install` in the repository root and make use of `npx <command>` rather than globally installing AWS CDK
-* [pyenv](https://github.com/pyenv/pyenv) / Python 3.8.6
+* [pyenv](https://github.com/pyenv/pyenv) / Python 3.11
 * [pipenv](https://github.com/pypa/pipenv)
 * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html)
 * [OpenSSL](https://github.com/openssl/openssl) (For Postgres/DB work)
@@ -101,11 +101,11 @@ A `Makefile` is available in the root of the repository to abstract away commonl
 
 **`make lint`**
 
-> This will perform a dry run of `flake8`, `isort`, and `black` and let you know what issues were found
+> This will perform a dry run of `ruff` and let you know what issues were found
 
 **`make format`**
 
-> This will peform a run of `isort` and `black`, this **will** modify files if issues were found
+> This will perform a run of `ruff`, this **will** modify files if issues were found
 
 **`make diff`**
 

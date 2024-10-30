@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
 import os
 
-from aws_cdk import core
+from aws_cdk import App, Tags
 from dotenv import load_dotenv
 from downloader_stack import DownloaderStack
 
 load_dotenv(override=True)
-app = core.App()
+app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
+permissions_boundary_arn = os.getenv("PERMISSIONS_BOUNDARY_ARN")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
 enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
 schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
 use_inthub2 = os.environ["USE_INTHUB2"] == "TRUE"
 removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
 print(identifier)
+
+
 DownloaderStack(
     app,
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=upload_bucket,
+    permissions_boundary_arn=permissions_boundary_arn,
     enable_downloading=enable_downloading,
     use_inthub2=use_inthub2,
     schedule_link_fetching=schedule_link_fetching,
@@ -32,6 +36,6 @@ for k, v in {
     "Client": "nasa-impact",
     "Owner": os.environ["OWNER"],
 }.items():
-    core.Tags.of(app).add(k, v, apply_to_launched_instances=True)
+    Tags.of(app).add(k, v, apply_to_launched_instances=True)
 
 app.synth()

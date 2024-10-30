@@ -29,7 +29,7 @@ with get_session(session_maker) as db:
 
 ## Development
 
-This Layer makes use of `pipenv` for managing depedencies and for building the function when deploying it.
+This Layer makes use of `pipenv` for managing dependencies and for building the function when deploying it.
 
 To get setup for developing this project, run:
 

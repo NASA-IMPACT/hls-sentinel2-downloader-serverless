@@ -12,12 +12,13 @@ import boto3
 import pytest
 import responses
 from _pytest.monkeypatch import MonkeyPatch
-from handler import SEARCH_URL, SearchResult
-from moto import mock_secretsmanager, mock_sqs
+from moto import mock_aws
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+
+from handler import SEARCH_URL, SearchResult
 
 UNIT_TEST_DIR = pathlib.Path(__file__).parent
 
@@ -118,26 +119,26 @@ def aws_credentials(monkeysession):
 
 @pytest.fixture
 def sqs_resource():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.resource("sqs")
 
 
 @pytest.fixture
 def sqs_client():
-    with mock_sqs():
+    with mock_aws():
         yield boto3.client("sqs")
 
 
 @pytest.fixture
-def mock_sqs_queue(sqs_resource, monkeysession, sqs_client):
-    queue = sqs_resource.create_queue(QueueName="mock-queue")
+def mock_sqs_queue(request, sqs_resource, monkeysession, sqs_client):
+    queue = sqs_resource.create_queue(QueueName=f"mock-queue-{request.node.name}"[:80])
     monkeysession.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
 
 
 @pytest.fixture(scope="session")
 def secrets_manager_client():
-    with mock_secretsmanager():
+    with mock_aws():
         yield boto3.client("secretsmanager")
 
 

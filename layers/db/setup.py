@@ -15,6 +15,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     packages=setuptools.find_packages(),
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=["sqlalchemy==1.4.0"],
 )

@@ -1,26 +1,31 @@
 import json
+from typing import Optional
 
-from aws_cdk import (
-    aws_apigateway,
-    aws_lambda,
-    aws_lambda_python,
-    aws_logs,
-    aws_s3,
-    aws_secretsmanager,
-    aws_ssm,
-    core,
-)
+from aws_cdk import Duration, RemovalPolicy, Stack, aws_apigateway, aws_lambda
+from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
+from aws_cdk import aws_iam, aws_logs, aws_s3, aws_secretsmanager, aws_ssm
+from constructs import Construct
 
 
-class IntegrationStack(core.Stack):
+class IntegrationStack(Stack):
     def __init__(
         self,
-        scope: core.Construct,
+        scope: Construct,
         construct_id: str,
         identifier: str,
+        permissions_boundary_arn: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        if permissions_boundary_arn:
+            aws_iam.PermissionsBoundary.of(self).apply(
+                aws_iam.ManagedPolicy.from_managed_policy_arn(
+                    self,
+                    "PermissionsBoundary",
+                    permissions_boundary_arn,
+                )
+            )
 
         # TODO remove this, along with other references to it, but leaving for
         # now, just in case removing it would break the downloader lambda
@@ -41,8 +46,8 @@ class IntegrationStack(core.Stack):
             entry="lambdas/mock_scihub_search_api",
             index="handler.py",
             handler="handler",
-            runtime=aws_lambda.Runtime.PYTHON_3_8,
-            timeout=core.Duration.minutes(1),
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            timeout=Duration.minutes(1),
             memory_size=128,
         )
 
@@ -50,7 +55,7 @@ class IntegrationStack(core.Stack):
             self,
             id=f"{identifier}-mock-scihub-search-api-log-group",
             log_group_name=f"/aws/lambda/{mock_scihub_search_api_lambda.function_name}",
-            removal_policy=core.RemovalPolicy.DESTROY,
+            removal_policy=RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.ONE_DAY,
         )
 
@@ -60,8 +65,8 @@ class IntegrationStack(core.Stack):
             entry="lambdas/mock_scihub_product_api",
             index="handler.py",
             handler="handler",
-            runtime=aws_lambda.Runtime.PYTHON_3_8,
-            timeout=core.Duration.minutes(1),
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            timeout=Duration.minutes(1),
             memory_size=128,
         )
 
@@ -71,7 +76,7 @@ class IntegrationStack(core.Stack):
             log_group_name=(
                 f"/aws/lambda/{mock_scihub_product_api_lambda.function_name}"
             ),
-            removal_policy=core.RemovalPolicy.DESTROY,
+            removal_policy=RemovalPolicy.DESTROY,
             retention=aws_logs.RetentionDays.ONE_DAY,
         )
 
@@ -146,7 +151,7 @@ class IntegrationStack(core.Stack):
             self,
             id=f"{identifier}-upload-bucket",
             access_control=aws_s3.BucketAccessControl.PRIVATE,
-            removal_policy=core.RemovalPolicy.DESTROY,
+            removal_policy=RemovalPolicy.DESTROY,
         )
 
         aws_ssm.StringParameter(

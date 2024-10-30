@@ -54,8 +54,7 @@ class SearchResult:
 
 
 class Context(Protocol):
-    def get_remaining_time_in_millis(self) -> int:
-        ...
+    def get_remaining_time_in_millis(self) -> int: ...
 
 
 class HandlerResult(TypedDict):
@@ -341,7 +340,7 @@ def create_search_result(search_item: Mapping[str, Any]) -> SearchResult:
 
 
 def get_page_for_query_and_total_results(
-    query_params: Mapping[str, Any]
+    query_params: Mapping[str, Any],
 ) -> Tuple[Sequence[SearchResult], int]:
     """
     Takes a set of query parameters and retrieves the search results that match that

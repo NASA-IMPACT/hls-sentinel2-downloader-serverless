@@ -9,7 +9,7 @@ import alembic.config
 import boto3
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from moto import mock_s3, mock_secretsmanager, mock_ssm
+from moto import mock_aws
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, url
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -80,7 +80,7 @@ def db_session(postgres_engine):
 
 @pytest.fixture
 def s3_resource():
-    with mock_s3():
+    with mock_aws():
         yield boto3.resource("s3")
 
 
@@ -94,13 +94,13 @@ def mock_s3_bucket(s3_resource, monkeysession):
 
 @pytest.fixture(scope="session")
 def secrets_manager_client():
-    with mock_secretsmanager():
+    with mock_aws():
         yield boto3.client("secretsmanager")
 
 
 @pytest.fixture(scope="session")
 def ssm_client():
-    with mock_ssm():
+    with mock_aws():
         yield boto3.client("ssm")
 
 

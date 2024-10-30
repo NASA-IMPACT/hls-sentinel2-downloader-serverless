@@ -11,6 +11,8 @@ from db.models.granule import Granule
 from db.models.granule_count import GranuleCount
 from db.models.status import Status
 from freezegun import freeze_time
+from sqlalchemy.orm import Session
+
 from handler import (
     MIN_REMAINING_MILLIS,
     SEARCH_URL,
@@ -28,7 +30,6 @@ from handler import (
     update_last_fetched_link_time,
     update_total_results,
 )
-from sqlalchemy.orm import Session
 
 
 def test_that_link_fetcher_handler_correctly_loads_allowed_tiles():

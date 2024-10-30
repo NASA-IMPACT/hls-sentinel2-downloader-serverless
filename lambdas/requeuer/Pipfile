@@ -4,22 +4,20 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-boto3 = "*"
+boto3 = "==1.35.44"
 iso8601 = "*"
 
 [dev-packages]
 alembic = "*"
-black = "*"
 boto3-stubs = {extras = ["lambda", "sqs", "secretsmanager"], version = "*"}
 db = {editable = true, path = "./../../layers/db"}
-flake8 = "*"
-isort = "*"
-moto = "*"
+moto = "==5.0.17"
 mypy = "*"
-psycopg2 = "*"
+psycopg2 = "==2.9.10"
 pytest = "*"
 pytest-cov = "*"
 pytest-docker = "*"
+ruff = "==0.7.1"
 
 [requires]
-python_version = "3.8"
+python_version = "3.11"

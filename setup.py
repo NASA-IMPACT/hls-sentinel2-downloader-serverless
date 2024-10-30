@@ -1,28 +1,10 @@
 from setuptools import find_packages, setup
 
 # Runtime requirements.
-aws_cdk_version = "1.203.0"
-aws_cdk_reqs = [
-    "core",
-    "aws-lambda",
-    "aws-lambda-python",
-    "aws-secretsmanager",
-    "aws-sqs",
-    "aws-ec2",
-    "aws-rds",
-    "aws-stepfunctions",
-    "aws-stepfunctions-tasks",
-    "aws-events",
-    "aws-events-targets",
-    "aws-apigateway",
-    "aws-ssm",
-    "aws-s3",
-    "aws-lambda-event-sources",
-    "aws-logs",
-]
-
+aws_cdk_version = "2.162.1"
 inst_reqs = [
-    *[f"aws_cdk.{x}=={aws_cdk_version}" for x in aws_cdk_reqs],
+    f"aws-cdk-lib=={aws_cdk_version}",
+    f"aws-cdk.aws-lambda-python-alpha=={aws_cdk_version}a0",
     "boto3",
     "polling2",
     "psycopg2",
@@ -63,7 +45,7 @@ extra_reqs = {
 setup(
     name="hls-sentinel2-downloader-serverless",
     version="0.0.1",
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     author="Development Seed",
     packages=find_packages(),
     package_data={
