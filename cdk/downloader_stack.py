@@ -12,6 +12,7 @@ from aws_cdk import (
     aws_events_targets,
     aws_iam,
     aws_lambda,
+    aws_s3,
 )
 from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
 from aws_cdk import aws_logs, aws_rds, aws_secretsmanager, aws_sqs, aws_ssm
@@ -343,6 +344,13 @@ class DownloaderStack(Stack):
         )
 
         self.downloader.role.add_managed_policy(lambda_insights_policy)
+
+        downloader_bucket = aws_s3.Bucket.from_bucket_name(
+            self,
+            "UploadBucket",
+            bucket_name=upload_bucket,
+        )
+        downloader_bucket.grant_write(self.downloader)
 
         downloader_rds_secret.grant_read(link_fetcher)
         downloader_rds_secret.grant_read(self.downloader)
