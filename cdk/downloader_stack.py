@@ -34,7 +34,6 @@ class DownloaderStack(Stack):
         zipper_url: Optional[str] = None,
         checksum_url: Optional[str] = None,
         enable_downloading: bool = False,
-        use_inthub2: bool = False,
         schedule_link_fetching: bool = False,
         removal_policy_destroy: bool = True,
         **kwargs,
@@ -291,7 +290,6 @@ class DownloaderStack(Stack):
             "STAGE": identifier,
             "DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn,
             "UPLOAD_BUCKET": upload_bucket,
-            "USE_INTHUB2": "YES" if use_inthub2 else "NO",
             **({"COPERNICUS_ZIPPER_URL": zipper_url} if zipper_url else {}),
             **({"COPERNICUS_CHECKSUM_URL": checksum_url} if checksum_url else {}),
         }
@@ -371,16 +369,6 @@ class DownloaderStack(Stack):
         copernicus_credentials.grant_read(self.token_rotator)
 
         token_parameter.grant_read(self.downloader)
-
-        if use_inthub2:
-            inthub2_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
-                self,
-                id=f"{identifier}-inthub2-credentials",
-                secret_name=(
-                    f"hls-s2-downloader-serverless/{identifier}/inthub2-credentials"
-                ),
-            )
-            inthub2_credentials.grant_read(self.downloader)
 
         to_download_queue.grant_send_messages(link_fetcher)
         to_download_queue.grant_consume_messages(self.downloader)

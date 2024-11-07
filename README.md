@@ -52,7 +52,6 @@ AWS_DEFAULT_PROFILE="<your named AWS CLI profile to use for deployment>"
 PIPENV_NO_INHERIT=TRUE # This is used to ensure our Lambdas/Layers get separate Pipenv environments
 ENABLE_DOWNLOADING="TRUE" # Or "FALSE" - If TRUE then the TO_UPLOAD queue is set as an enabled source to the Downloader
 SCHEDULE_LINK_FETCHING="TRUE" # Or "FALSE" - If TRUE then link fetching will happen every day at midday.
-USE_INTHUB2="TRUE" # Or "FALSE" - If TRUE then the Downloader will use IntHub2 credentials when downloading
 REMOVAL_POLICY_DESTROY="TRUE" # Or "FALSE" - See below for what is deleted if TRUE
 UPLOAD_BUCKET="<name-of-aws-s3-bucket-to-upload-images-to>"
 ```

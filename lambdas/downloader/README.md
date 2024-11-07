@@ -4,9 +4,9 @@
 
 ![Downloader in S2 Downloader diagram](../../images/hls-s2-downloader-downloader.png)
 
-The Downloaders purpose is download Sentinel 2 Images from Sci/IntHub. It is invoked via SQS messages being available within the `TO_DOWNLOAD` SQS queue; this handler will be limited to a concurrency limit of 15, due to the nature of the dedicated connection we have to IntHub. Images are downloaded and uploaded to S3 in one step, they are stored under a key in the format `<YYYY-MM-DD>/<image_filename>` where the date is the `beginposition` of the image.
+The Downloaders purpose is download Sentinel 2 Images from Copernicus Data Space Ecosystem. It is invoked via SQS messages being available within the `TO_DOWNLOAD` SQS queue; this handler will be limited to a concurrency limit of 15, due to the nature of the dedicated connection we have to Copernicus Data Space Ecosystem. Images are downloaded and uploaded to S3 in one step, they are stored under a key in the format `<YYYY-MM-DD>/<image_filename>` where the date is the `beginposition` of the image.
 
-S3 performs a MD5 checksum comparison on upload, this way we ensure that we only store images that match the MD5 that Sci/IntHub provided us for the image.
+S3 performs a MD5 checksum comparison on upload, this way we ensure that we only store images that match the MD5 that Copernicus Data Space Ecosystem provided us for the image.
 
 Interactions with the `granule` table include marking the download as having started, updating the checksum of the image, and marking that the download is complete.
 
@@ -27,7 +27,7 @@ except AlreadyDownloaded:
     return # End gracefully - We received a duplicate from SQS, this is OK
 
 try:
-    checksum = get_checksum_from_scihub()
+    checksum = get_checksum_from_esa_copernicus()
     download_file()
 except Exception as ex:
     increase_retry_count()
@@ -39,10 +39,6 @@ update_status()
 ### Notes:
 
 Due to the nature of how Lambda is invoked by SQS, a non-failed invocation of a Lambda will result in the SQS message being deleted. Because of this, if we need to gracefully handle an error, we tidy up (namely database rollbacks), then raise the error to the handler, this then results in the Lambda failing and the SQS message being re-added to the Queue.
-
-We use the flag `USE_INTHUB2` with possible values of `YES` and `NO` to determine whether we:
-* A - Replace `scihub` in the fetched links download urls with `inthub2`
-* B - Retrieve `inthub2` credentials when downloading files
 
 ---
 
