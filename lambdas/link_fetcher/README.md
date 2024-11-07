@@ -4,7 +4,7 @@
 
 ![Link fetcher in S2 Downloader diagram](../../images/hls-s2-downloader-link-fetcher.png)
 
-The Link Fetchers purpose is to query IntHub/SciHub for new imagery links to download. It is invoked within the `Link Fetching` Step Function; every invocation is performed on one day in the form `YYYY-MM-DD`. Images to download are stored as records in the `granule` table, the `granule_count` table is also updated with available and fetched link counts. The `To Download` queue is also populated with the images IDs and download URLs.
+The Link Fetchers purpose is to query Copernicus Data Space Ecosystem for new imagery links to download. It is invoked within the `Link Fetching` Step Function; every invocation is performed on one day in the form `YYYY-MM-DD`. Images to download are stored as records in the `granule` table, the `granule_count` table is also updated with available and fetched link counts. The `To Download` queue is also populated with the images IDs and download URLs.
 
 ---
 
@@ -14,7 +14,7 @@ Provided below is some pseudo-code to explain the process happening each time th
 
 ```python
 available, processed = get_how_many_links_are_available_and_have_been_processed()
-query = generate_the_query_for_inthub_for_a_day(day)
+query = generate_the_query_for_esa_for_a_day(day)
 
 while there_is_still_imagery_to_process:
 

@@ -13,7 +13,6 @@ permissions_boundary_arn = os.getenv("PERMISSIONS_BOUNDARY_ARN")
 upload_bucket = os.environ["UPLOAD_BUCKET"]
 enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
 schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
-use_inthub2 = os.environ["USE_INTHUB2"] == "TRUE"
 removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
 print(identifier)
 
@@ -25,7 +24,6 @@ DownloaderStack(
     upload_bucket=upload_bucket,
     permissions_boundary_arn=permissions_boundary_arn,
     enable_downloading=enable_downloading,
-    use_inthub2=use_inthub2,
     schedule_link_fetching=schedule_link_fetching,
     removal_policy_destroy=removal_policy_destroy,
 )

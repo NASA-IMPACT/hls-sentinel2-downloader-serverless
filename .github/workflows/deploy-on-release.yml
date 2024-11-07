@@ -193,7 +193,6 @@ jobs:
           IDENTIFIER="esa-prod"
           ENABLE_DOWNLOADING="TRUE"
           SCHEDULE_LINK_FETCHING="TRUE"
-          USE_INTHUB2="TRUE"
           REMOVAL_POLICY_DESTROY="FALSE"
           UPLOAD_BUCKET="${{ secrets.UPLOAD_BUCKET }}"
           PERMISSIONS_BOUNDARY_ARN="${{ vars.PERMISSIONS_BOUNDARY_ARN }}"

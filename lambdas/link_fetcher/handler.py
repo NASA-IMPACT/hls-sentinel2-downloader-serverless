@@ -284,7 +284,8 @@ def filter_search_results(
 def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
     """
     Returns the query parameters that are needed for getting new imagery from
-    search/IntHub
+    search (Copernicus Data Space Ecosystem)
+
     :param start: An int representing the offset to get results from a query
     :param day: A date object representing the date to query for imagery
     :returns: mapping of query parameters
