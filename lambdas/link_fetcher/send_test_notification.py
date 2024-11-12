@@ -1,3 +1,4 @@
+import boto3
 import requests
 
 from app.subscription_endpoint import EndpointConfig
@@ -414,7 +415,7 @@ if __name__ == "__main__":
     # send request to endpoint with Basic Authorization
     response = requests.post(
         # url="http://localhost:8000/events",
-        url=f"https://0xsl74lwq8.execute-api.us-west-2.amazonaws.com/prod/events",
+        url=config.get_endpoint_url(boto3.client("ssm")),
         json=s2_notification_data,
         auth=(
             config.notification_username,
