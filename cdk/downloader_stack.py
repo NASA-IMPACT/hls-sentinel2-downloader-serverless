@@ -392,7 +392,7 @@ class DownloaderStack(Stack):
             self,
             id=f"{identifier}-downloader-role-arn",
             string_value=self.downloader.role.role_arn,
-            parameter_name=(f"/integration_tests/{identifier}/downloader_role_arn"),
+            parameter_name=f"/integration_tests/{identifier}/downloader_role_arn",
         )
 
         self.downloader.role.add_managed_policy(lambda_insights_policy)
@@ -407,13 +407,6 @@ class DownloaderStack(Stack):
         downloader_rds_secret.grant_read(link_fetcher)
         downloader_rds_secret.grant_read(link_subscription)
         downloader_rds_secret.grant_read(self.downloader)
-
-        scihub_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
-            self,
-            id=f"{identifier}-scihub-credentials",
-            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
-        )
-        scihub_credentials.grant_read(self.downloader)
 
         copernicus_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
             self,
