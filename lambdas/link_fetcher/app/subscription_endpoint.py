@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import secrets
@@ -23,12 +24,14 @@ from starlette.requests import Request
 if TYPE_CHECKING:
     from mypy_boto3_ssm.client import SSMClient
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class EndpointConfig:
     """Configuration settings for subscription 'push' endpoint"""
 
-    identifier: str = os.getenv("IDENTIFIER")
+    stage: str = os.getenv("STAGE")
 
     # user auth
     notification_username: str = os.getenv("NOTIFICATION_USERNAME")
@@ -40,15 +43,14 @@ class EndpointConfig:
                 raise ValueError(f"EndpointConfig attribute '{attr}' must be defined (got None)")
 
     @classmethod
-    def load_from_secrets_manager(cls, identifier: str) -> "EndpointConfig":
-        """Load from AWS Secret Manager"""
+    def load_from_secrets_manager(cls, stage: str) -> "EndpointConfig":
+        """Load from AWS Secret Manager for some `stage`"""
         try:
-            identifier = os.environ["IDENTIFIER"]
             secrets_manager_client = boto3.client("secretsmanager")
             secret = json.loads(
                 secrets_manager_client.get_secret_value(
                     SecretId=(
-                        f"hls-s2-downloader-serverless/{identifier}/esa-subscription-credentials"
+                        f"hls-s2-downloader-serverless/{stage}/esa-subscription-credentials"
                     )
                 )["SecretString"]
             )
@@ -62,11 +64,10 @@ class EndpointConfig:
     def get_endpoint_url(
         self,
         ssm_client: "SSMClient",
-        param_name_template: str = "/integration_tests/{identifier}/link_subscription_endpoint_url",
+        param_name_template: str = "/integration_tests/{stage}/link_subscription_endpoint_url",
     ) -> str:
         """Return the endpoint URL stored in SSM parameter store"""
-        breakpoint()
-        param_name = param_name_template.format(identifier=self.identifier)
+        param_name = param_name_template.format(stage=self.stage)
         result = ssm_client.get_parameter(Name=param_name)
         if (value := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
@@ -101,15 +102,20 @@ def process_notification(
         ingestiondate=iso8601.parse_date(payload["PublicationDate"]),
         download_url=extracted["DownloadLink"],
     )
+
     filtered_search_result = filter_search_results(
         [search_result],
         accepted_tile_ids,
     )
 
-    add_search_results_to_db_and_sqs(
-        session_maker,
-        filtered_search_result,
-    )
+    if filter_search_results:
+        logger.info(f"Adding {search_result=} to granule download queue")
+        add_search_results_to_db_and_sqs(
+            session_maker,
+            filtered_search_result,
+        )
+    else:
+        logger.info(f"Rejected {search_result=} (unacceptable tile)")
 
 
 def build_app(config: EndpointConfig) -> FastAPI:
