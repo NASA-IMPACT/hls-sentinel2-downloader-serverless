@@ -71,7 +71,7 @@ class EndpointConfig:
         result = ssm_client.get_parameter(Name=param_name)
         if (value := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
-        return value
+        return f"{value}events"
 
 
 def process_notification(
@@ -152,6 +152,7 @@ def build_app(config: EndpointConfig) -> FastAPI:
                 config.notification_password.encode("utf-8"),
             )
         ):
+            logging.error("Unauthorized")
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         # process notification
