@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
 import boto3
@@ -103,11 +104,17 @@ def process_notification(
         download_url=extracted["DownloadLink"],
     )
 
+    # Only consider imagery acquired in the last 30 days to avoid reprocessing of older imagery
+    oldest_acquisition_date = datetime.now(tz=timezone.utc) - timedelta(days=30)
+    if search_result.beginposition < oldest_acquisition_date:
+        logger.info(f"Rejected {search_result=} (acquisition date too old)")
+        return
+
+    # Check tile ID
     filtered_search_result = filter_search_results(
         [search_result],
         accepted_tile_ids,
     )
-
     if filter_search_results:
         logger.info(f"Adding {search_result=} to granule download queue")
         add_search_results_to_db_and_sqs(
