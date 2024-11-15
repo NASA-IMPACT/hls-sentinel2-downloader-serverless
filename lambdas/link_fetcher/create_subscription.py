@@ -210,7 +210,7 @@ class SubscriptionAPI:
 
 
 if __name__ == "__main__":
-    endpoint_cfg = EndpointConfig.load_from_secrets_manager(os.environ["IDENTIFIER"])
+    endpoint_cfg = EndpointConfig.load_from_secrets_manager(os.environ["STAGE"])
     subscription_cfg = SubscriptionAPIConfig()
 
     token_api = TokenAPI(subscription_cfg)
