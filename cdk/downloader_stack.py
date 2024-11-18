@@ -13,10 +13,9 @@ from aws_cdk import (
     aws_events_targets,
     aws_iam,
     aws_lambda,
-    aws_s3,
 )
 from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
-from aws_cdk import aws_logs, aws_rds, aws_secretsmanager, aws_sqs, aws_ssm
+from aws_cdk import aws_logs, aws_rds, aws_s3, aws_secretsmanager, aws_sqs, aws_ssm
 from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
 from constructs import Construct
