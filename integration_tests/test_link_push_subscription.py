@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 from pathlib import Path
+from typing import Callable
 from uuid import uuid4
 
 import boto3
@@ -91,7 +92,7 @@ def test_link_push_subscription_handles_event(
 ):
     """Test that we handle a new granule created notification
 
-    We have ocassionally observed duplicate granule IDs being
+    We have occasionally observed duplicate granule IDs being
     sent to our API endpoint and we want to only process one,
     so this test includes a parametrized "notification_count"
     to replicate this reality.
