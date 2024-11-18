@@ -1,9 +1,9 @@
 import json
 from typing import Optional
 
-from aws_cdk import Duration, RemovalPolicy, Stack, aws_apigateway, aws_lambda
+from aws_cdk import Duration, RemovalPolicy, Stack, aws_apigateway, aws_iam, aws_lambda
 from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
-from aws_cdk import aws_iam, aws_logs, aws_s3, aws_secretsmanager, aws_ssm
+from aws_cdk import aws_logs, aws_s3, aws_secretsmanager, aws_ssm
 from constructs import Construct
 
 

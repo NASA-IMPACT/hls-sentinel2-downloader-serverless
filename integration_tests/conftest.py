@@ -78,6 +78,11 @@ def db_session(monkeypatch, ssm_parameter: Callable[[str], str]) -> Iterable[Ses
 
 
 @pytest.fixture
+def link_subscription_endpoint_url(ssm_parameter: Callable[[str], str]):
+    return ssm_parameter("link_subscription_endpoint_url")
+
+
+@pytest.fixture
 def step_function_arn(ssm_parameter: Callable[[str], str]):
     return ssm_parameter("link_fetcher_step_function_arn")
 

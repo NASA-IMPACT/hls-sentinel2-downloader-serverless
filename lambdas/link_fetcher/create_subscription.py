@@ -10,7 +10,6 @@ import requests
 
 from app.subscription_endpoint import EndpointConfig
 
-
 ACCESS_TOKEN_REQUEST_DATA: str = (
     "client_id={client_id}&"
     "username={user_email}&"
@@ -37,7 +36,7 @@ class SubscriptionAPIConfig:
     )
     subscriptions_api_base_url: str = os.getenv(
         "ESA_CDSE_SUBSCRIPTION_API_BASE_URL",
-        "https://catalogue.dataspace.copernicus.eu/odata/v1/Subscriptions"
+        "https://catalogue.dataspace.copernicus.eu/odata/v1/Subscriptions",
     )
 
     def __post_init__(self):
@@ -67,7 +66,6 @@ class Token:
 
 @dataclass
 class TokenAPI:
-
     config: SubscriptionAPIConfig
 
     def get_access_token(self) -> Token:
@@ -100,7 +98,8 @@ class TokenAPI:
             access_token=response_json["access_token"],
             refresh_token=response_json["refresh_token"],
             expires_at=now + dt.timedelta(seconds=response_json["expires_in"]),
-            refresh_expires_at=now + dt.timedelta(seconds=response_json["refresh_expires_in"]),
+            refresh_expires_at=now
+            + dt.timedelta(seconds=response_json["refresh_expires_in"]),
         )
 
     def refresh_token(self, token: Token) -> Token:
@@ -132,7 +131,8 @@ class TokenAPI:
             access_token=response_json["access_token"],
             refresh_token=response_json["refresh_token"],
             expires_at=now + dt.timedelta(seconds=response_json["expires_in"]),
-            refresh_expires_at=now + dt.timedelta(seconds=response_json["refresh_expires_in"]),
+            refresh_expires_at=now
+            + dt.timedelta(seconds=response_json["refresh_expires_in"]),
         )
 
 
@@ -148,7 +148,9 @@ class SubscriptionAPI:
         Create example subscription, returning subscription ID
         """
         token = self.token_api.get_access_token()
-        endpoint_url = self.endpoint_config.get_endpoint_url(ssm_client=boto3.client("ssm"))
+        endpoint_url = self.endpoint_config.get_endpoint_url(
+            ssm_client=boto3.client("ssm")
+        )
         subscription_data = {
             "StageOrder": True,
             # example filter - You can adjust value to Your desired product type, collection etc.
@@ -202,7 +204,8 @@ class SubscriptionAPI:
             "Authorization": f"Bearer {token.access_token}",
         }
         response = requests.delete(
-            url=self.token_api.config.subscriptions_api_base_url + f"({subscription_id})",
+            url=self.token_api.config.subscriptions_api_base_url
+            + f"({subscription_id})",
             headers=headers,
         )
         response.raise_for_status()
@@ -224,7 +227,7 @@ if __name__ == "__main__":
         print(sub)
     else:
         subscription_id = subscriptions[0]["Id"]
-        print(f"Creating new subscription id={subscription_id}")
+        print(f"Terminating subscription id={subscription_id}")
         subscription_api.terminate_subscription(subscription_id)
 
     print("DONE")

@@ -27,6 +27,7 @@ extra_reqs = {
         "mypy",
         "pytest",
         "pytest-cov",
+        "requests",
     ],
     "dev": [
         "assertpy",
