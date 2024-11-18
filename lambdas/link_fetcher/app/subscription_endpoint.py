@@ -1,13 +1,19 @@
-import logging
 import json
+import logging
 import os
 import secrets
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
 import boto3
 import iso8601
+from db.session import get_session_maker
+from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from starlette.requests import Request
+
 from app.common import (
     SearchResult,
     SessionMaker,
@@ -16,11 +22,6 @@ from app.common import (
     get_accepted_tile_ids,
     parse_tile_id_from_title,
 )
-from db.session import get_session_maker
-from fastapi import Depends, FastAPI, HTTPException, Response
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from starlette.requests import Request
 
 if TYPE_CHECKING:
     from mypy_boto3_ssm.client import SSMClient
@@ -32,16 +33,22 @@ logger = logging.getLogger(__name__)
 class EndpointConfig:
     """Configuration settings for subscription 'push' endpoint"""
 
-    stage: str = os.getenv("STAGE")
+    stage: str = field(default_factory=lambda: os.getenv("STAGE"))
 
     # user auth
-    notification_username: str = os.getenv("NOTIFICATION_USERNAME")
-    notification_password: str = os.getenv("NOTIFICATION_PASSWORD")
+    notification_username: str = field(
+        default_factory=lambda: os.getenv("NOTIFICATION_USERNAME")
+    )
+    notification_password: str = field(
+        default_factory=lambda: os.getenv("NOTIFICATION_PASSWORD")
+    )
 
     def __post_init__(self):
         for attr, value in asdict(self).items():
             if value is None:
-                raise ValueError(f"EndpointConfig attribute '{attr}' must be defined (got None)")
+                raise ValueError(
+                    f"EndpointConfig attribute '{attr}' must be defined (got None)"
+                )
 
     @classmethod
     def load_from_secrets_manager(cls, stage: str) -> "EndpointConfig":
@@ -56,7 +63,9 @@ class EndpointConfig:
                 )["SecretString"]
             )
         except Exception as ex:
-            raise RuntimeError("Could not retrieve ESA subscription credentials from Secrets Manager") from ex
+            raise RuntimeError(
+                "Could not retrieve ESA subscription credentials from Secrets Manager"
+            ) from ex
         return cls(
             notification_username=secret["notification_username"],
             notification_password=secret["notification_password"],
@@ -75,13 +84,11 @@ class EndpointConfig:
         return f"{value}events"
 
 
-def process_notification(
-    notification: dict[str, Any],
-    accepted_tile_ids: set[str],
-    session_maker: SessionMaker,
-):
-    payload = notification["value"]
-
+def parse_search_result(
+    payload: dict,
+) -> SearchResult:
+    """Parse a subscription event payload to a SearchResult"""
+    # Require 1 link to "extracted" data file
     extracted_links = [
         location
         for location in payload["Locations"]
@@ -103,6 +110,16 @@ def process_notification(
         ingestiondate=iso8601.parse_date(payload["PublicationDate"]),
         download_url=extracted["DownloadLink"],
     )
+    return search_result
+
+
+def process_notification(
+    notification: dict[str, Any],
+    accepted_tile_ids: set[str],
+    session_maker: SessionMaker,
+):
+    # Parse subscription notification to SearchResult
+    search_result = parse_search_result(notification["value"])
 
     # Only consider imagery acquired in the last 30 days to avoid reprocessing of older imagery
     oldest_acquisition_date = datetime.now(tz=timezone.utc) - timedelta(days=30)
