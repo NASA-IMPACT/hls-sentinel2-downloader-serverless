@@ -45,7 +45,6 @@ while there_is_still_imagery_to_process:
 
 ---
 
-
 ## High level overview (Event Based)
 
 ![Link Subscription Handler](../../images/hls-s2-downloader-link-subscription.png)
@@ -70,6 +69,7 @@ if not user_password_correct():
 new_granule = parse_event_payload()
 
 # bail if newly published granule was acquired too long ago to consider
+# (this helps us avoid newly reprocessed images acquired years ago)
 if not granule_is_recently_acquired(new_granule):
     return
 
@@ -81,7 +81,6 @@ if not granule_is_for_desired_mgrs_tile(new_granule):
 # granule ID before (i.e., exactly once processing)
 add_results_to_db_and_sqs_queue(filtered_results)
 ```
-
 
 ---
 
