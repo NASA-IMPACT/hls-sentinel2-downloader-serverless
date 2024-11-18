@@ -7,7 +7,7 @@ links to downloadable Sentinel products,
 * Subscriptions API ("event based")
 
 We wish to migrate from a polling to an event driven method of link
-fetching. During the transition period, this subdirectory handles both
+fetchiung. During the transition period, this subdirectory handles both
 of these methods and deploys them as two separate Lambda functions. This
 README describes both forms of link fetching.
 
@@ -17,6 +17,7 @@ README describes both forms of link fetching.
 
 The Link Fetchers purpose is to query Copernicus Data Space Ecosystem for new imagery links to download. It is invoked within the `Link Fetching` Step Function; every invocation is performed on one day in the form `YYYY-MM-DD`. Images to download are stored as records in the `granule` table, the `granule_count` table is also updated with available and fetched link counts. The `To Download` queue is also populated with the images IDs and download URLs.
 
+## Handler breakdown (Polling)
 ## Handler breakdown (Polling)
 
 Provided below is some pseudo-code to explain the process happening each time the lambda is invoked:
@@ -45,6 +46,7 @@ while there_is_still_imagery_to_process:
 
 ---
 
+
 ## High level overview (Event Based)
 
 ![Link Subscription Handler](../../images/hls-s2-downloader-link-subscription.png)
@@ -53,11 +55,6 @@ The link subscription handler's purpose is to handle "push" events from Copernic
 Subscriptions API for new imagery links to download. It uses API Gateway to provide a publicly accessible endpoint
 that triggers the Lambda function. Images to download are stored as records in the `granule` table.
 The `To Download` queue is also populated with the images IDs and download URLs.
-
-ESA has provided documentation and an example application for handling the "push" subscriptions,
-
-* https://documentation.dataspace.copernicus.eu/APIs/Subscriptions.html#push-subscriptions
-* https://gitlab.cloudferro.com/cat_public/push_subscription_endpoint_example
 
 ## Handler breakdown (Event Based)
 
@@ -74,7 +71,6 @@ if not user_password_correct():
 new_granule = parse_event_payload()
 
 # bail if newly published granule was acquired too long ago to consider
-# (this helps us avoid newly reprocessed images acquired years ago)
 if not granule_is_recently_acquired(new_granule):
     return
 
@@ -86,6 +82,7 @@ if not granule_is_for_desired_mgrs_tile(new_granule):
 # granule ID before (i.e., exactly once processing)
 add_results_to_db_and_sqs_queue(filtered_results)
 ```
+
 
 ---
 
@@ -140,4 +137,3 @@ A `Makefile` is provided to abstract commonly used commands away:
 > This will run the unit tests of the project with `pytest` using the contents of your `.env` file
 
 ---
-
