@@ -78,12 +78,8 @@ def db_session(monkeypatch, ssm_parameter: Callable[[str], str]) -> Iterable[Ses
 
 
 @pytest.fixture
-def link_subscription_endpoint_url(ssm_client: SSMClient, identifier: str):
-    qname = f"/hls-s2-downloader-serverless/{identifier}/link_subscription_endpoint_url"
-    result = ssm_client.get_parameter(Name=qname)
-    value = result["Parameter"].get("Value")
-    assert value is not None, f"No such SSM parameter: {qname}"
-    return value
+def link_subscription_endpoint_url(ssm_parameter: Callable[[str], str]):
+    return ssm_parameter("link_subscription_endpoint_url")
 
 
 @pytest.fixture

@@ -1,23 +1,14 @@
 import datetime as dt
 import json
 from pathlib import Path
-from typing import Callable
 from uuid import uuid4
 
 import boto3
-import polling2
 import pytest
 import requests
 from db.models.granule import Granule
 from mypy_boto3_sqs import SQSClient
 from sqlalchemy.orm import Session
-
-
-def check_sqs_message_count(sqs_client, queue_url, count):
-    queue_attributes = sqs_client.get_queue_attributes(
-        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
-    )
-    return int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"]) == count
 
 
 def _format_dt(datetime: dt.datetime) -> str:
@@ -35,14 +26,15 @@ def recent_event_s2_created() -> dict:
     """
     # Reusing example from ESA as a template
     data = (
-        Path(__file__).parents[1]
+        Path(__file__).parent
         / "lambdas"
         / "link_fetcher"
         / "tests"
         / "data"
         / "push-granule-created-s2-n1.json"
     )
-    payload = json.loads(data.read_text())
+    with data.open() as src:
+        payload = json.load(src)
 
     # Update relevant parts of message payload to be "recent"
     # where recent is <30 days from today as we're not currently
@@ -50,7 +42,7 @@ def recent_event_s2_created() -> dict:
     now = dt.datetime.now(tz=dt.timezone.utc)
 
     payload["NotificationDate"] = _format_dt(now)
-    payload["value"]["OriginDate"] = _format_dt(now - dt.timedelta(seconds=7))
+    payload["value"]["OriginDate"] = _format_dt(now - dt.timedelta(minus=7))
     payload["value"]["PublicationDate"] = _format_dt(now - dt.timedelta(seconds=37))
     payload["value"]["ModificationDate"] = _format_dt(now - dt.timedelta(seconds=1))
     payload["value"]["ContentDate"] = {
@@ -99,14 +91,14 @@ def test_link_push_subscription_handles_event(
 ):
     """Test that we handle a new granule created notification
 
-    We have occasionally observed duplicate granule IDs being
+    We have ocassionally observed duplicate granule IDs being
     sent to our API endpoint and we want to only process one,
     so this test includes a parametrized "notification_count"
     to replicate this reality.
     """
     for _ in range(notification_count):
         resp = requests.post(
-            f"{link_subscription_endpoint_url}events",
+            f"{link_subscription_endpoint_url}/events",
             auth=link_subscription_credentials,
             json=recent_event_s2_created,
         )
@@ -115,18 +107,16 @@ def test_link_push_subscription_handles_event(
         assert resp.status_code == 204
 
     # ensure we have SQS message
-    polling2.poll(
-        check_sqs_message_count,
-        args=(sqs_client, queue_url, 1),
-        step=5,
-        timeout=120,
+    queue_attributes = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
     )
+    assert int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"]) == 1
 
     # ensure we have 1 granule for this ID
     granules = (
         db_session.query(Granule).filter(
             Granule.id == recent_event_s2_created["value"]["Id"]
-        )
+        ),
     ).all()
     assert len(granules) == 1
 
@@ -135,9 +125,8 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
     link_subscription_endpoint_url: str,
 ):
     """Test that we reject incorrect authentication"""
-    url = f"{link_subscription_endpoint_url}events"
     resp = requests.post(
-        url,
+        f"{link_subscription_endpoint_url}/events",
         auth=(
             "foo",
             "bar",
@@ -145,5 +134,5 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
         json={},
     )
 
-    # ensure correct response (401 Unauthorized)
+    # ensure correct response (204)
     assert resp.status_code == 401

@@ -2,6 +2,7 @@ import logging
 import os
 
 from mangum import Mangum
+
 from app.subscription_endpoint import (
     EndpointConfig,
     build_app,

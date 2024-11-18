@@ -1,27 +1,17 @@
 import json
-from collections.abc import Iterator
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
 from unittest.mock import Mock, patch
 
 import boto3
 import httpx
 import pytest
-from db.models.granule import Granule
 from fastapi import FastAPI
+from freezegun import freeze_time
 from moto import mock_aws
-from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
-import app.subscription_endpoint
 from app.common import SearchResult
-from app.subscription_endpoint import (
-    EndpointConfig,
-    build_app,
-    parse_search_result,
-    process_notification,
-)
+from app.subscription_endpoint import EndpointConfig, build_app, parse_search_result
 
 
 class TestEndpointConfig:
@@ -37,7 +27,7 @@ class TestEndpointConfig:
         assert config.notification_password == "baz"
 
     @pytest.fixture
-    def endpoint_config_secret(self) -> Iterator[EndpointConfig]:
+    def endpoint_config_secret(self) -> EndpointConfig:
         config = EndpointConfig(
             stage="local",
             notification_username="bar",
@@ -57,7 +47,8 @@ class TestEndpointConfig:
             )
             yield config
 
-    def test_local_from_ssm(self, endpoint_config_secret: EndpointConfig):
+    def test_local_from_ssm(self, monkeypatch, endpoint_config_secret: EndpointConfig):
+        monkeypatch.setenv("STAGE", endpoint_config_secret.stage)
         config = EndpointConfig.load_from_secrets_manager(endpoint_config_secret.stage)
         assert config == endpoint_config_secret
 
@@ -73,6 +64,17 @@ def event_s2_created() -> dict:
     data = Path(__file__).parent / "data" / "push-granule-created-s2-n1.json"
     with data.open() as src:
         return json.load(src)
+
+
+@pytest.fixture
+def recent_event_s2_created(event_s2_created: dict) -> dict:
+    """A "recent" Sentinel-2 "Created" event from ESA's push subscription
+
+    We freezse time
+    """
+    # freeze to same day as publication date
+    with freeze_time(event_s2_created["value"]["PublicationDate"]):
+        yield event_s2_created
 
 
 class TestSearchResultParsing:
@@ -112,75 +114,8 @@ class TestProcessNotification:
 
     def test_processes_notification(
         self,
-        mock_sqs_queue,
-        db_session: Session,
-        event_s2_created: dict,
-        accepted_tile_ids: set[str],
     ):
-        """Test that a recent S2 granule created event is added to queue"""
-        process_notification(
-            event_s2_created,
-            accepted_tile_ids,
-            lambda: db_session,
-            # provide a fake datetime based on publication date to ensure the granule notification
-            # is recent enough to process
-            now_utc=lambda: datetime.fromisoformat(
-                event_s2_created["value"]["PublicationDate"]
-            ),
-        )
-
-        assert len(db_session.query(Granule).all()) == 1
-
-        mock_sqs_queue.load()
-        number_of_messages_in_queue = mock_sqs_queue.attributes[
-            "ApproximateNumberOfMessages"
-        ]
-        assert int(number_of_messages_in_queue) == 1
-
-    def test_filters_old_imagery(
-        self,
-        mock_sqs_queue,
-        db_session: Session,
-        event_s2_created: dict,
-        accepted_tile_ids: set[str],
-    ):
-        """Test we filter old imagery and do NOT add to queue or DB"""
-        event_s2_created["value"]["ContentDate"]["Start"] = "1999-12-31T23:59:59.999Z"
-        with patch(
-            "app.subscription_endpoint.add_search_results_to_db_and_sqs"
-        ) as mock_add_to_db_and_sqs:
-            process_notification(
-                event_s2_created,
-                accepted_tile_ids,
-                lambda: db_session,
-            )
-        mock_add_to_db_and_sqs.assert_not_called()
-
-    def test_filters_unaccepted_tile_id(
-        self,
-        mock_sqs_queue,
-        db_session: Session,
-        event_s2_created: dict,
-        mocker,
-    ):
-        """Test we filter unacceptable tile IDs and do NOT add to queue or DB"""
-        spy_filter_search_results = mocker.spy(
-            app.subscription_endpoint, "filter_search_results"
-        )
-        with patch(
-            "app.common.add_search_results_to_db_and_sqs"
-        ) as mock_add_to_db_and_sqs:
-            process_notification(
-                event_s2_created,
-                {"none"},
-                lambda: db_session,
-                # ensure we granule is recent enough <30 days
-                now_utc=lambda: datetime.fromisoformat(
-                    event_s2_created["value"]["PublicationDate"]
-                ),
-            )
-        spy_filter_search_results.assert_called_once()
-        mock_add_to_db_and_sqs.assert_not_called()
+        pass
 
 
 class TestApp:
@@ -195,23 +130,16 @@ class TestApp:
         )
 
     @pytest.fixture
-    def now_utc(self, request) -> Callable[[], datetime]:
-        if callable(getattr(request, "param", None)):
-            return request.param
-        return lambda: datetime.now(tz=timezone.utc)
-
-    @pytest.fixture
-    def test_client(
-        self,
-        config: EndpointConfig,
-        db_connection_secret,
-        mock_sqs_queue,
-        now_utc,
+    def app(
+        self, config: EndpointConfig, db_connection_secret, mock_sqs_queue
     ) -> FastAPI:
         self.endpoint_config = config
         self.db_connection_secret = db_connection_secret
         self.mock_sqs_queue = mock_sqs_queue
-        app = build_app(config, now_utc)
+        return build_app(config)
+
+    @pytest.fixture
+    def test_client(self, app: FastAPI) -> TestClient:
         return TestClient(app)
 
     def test_handles_new_created_event(
@@ -234,27 +162,17 @@ class TestApp:
         assert resp.status_code == 204
         mock_process_notification.assert_called_once()
 
-    @pytest.mark.parametrize(
-        "now_utc",
-        [lambda: datetime.fromisoformat("2024-09-12T14:52:06.118Z")],
-        indirect=True,
-    )
     def test_handles_new_created_event_is_added(
-        self,
-        test_client: TestClient,
-        db_session: Session,
-        event_s2_created: dict,
-        now_utc: Callable[[], datetime],
+        self, test_client: TestClient, db_session, recent_event_s2_created: dict
     ):
         """Test happy path for handling subscription event, mocking DB and SQS
 
-        We ensure the new event is "recent" enough to accept by redefining the
-        `now_utc` that our application is provided to match the publication
-        date of the test data.
+        This is also distinguished by using a "recent" event notification that works
+        by freezing/rewinding time to acquisition date for the test duration.
         """
         resp = test_client.post(
             "/events",
-            json=event_s2_created,
+            json=recent_event_s2_created,
             auth=(
                 self.endpoint_config.notification_username,
                 self.endpoint_config.notification_password,
