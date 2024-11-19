@@ -9,6 +9,7 @@ from db.models.granule import Granule
 from fastapi import FastAPI
 from freezegun import freeze_time
 from moto import mock_aws
+from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 import app.subscription_endpoint
@@ -122,7 +123,7 @@ class TestProcessNotification:
     def test_processes_notification(
         self,
         mock_sqs_queue,
-        db_session,
+        db_session: Session,
         recent_event_s2_created: dict,
         accepted_tile_ids: set[str],
     ):
@@ -144,7 +145,7 @@ class TestProcessNotification:
     def test_filters_old_imagery(
         self,
         mock_sqs_queue,
-        db_session,
+        db_session: Session,
         event_s2_created: dict,
         accepted_tile_ids: set[str],
     ):
@@ -163,7 +164,7 @@ class TestProcessNotification:
     def test_filters_unaccepted_tile_id(
         self,
         mock_sqs_queue,
-        db_session,
+        db_session: Session,
         recent_event_s2_created: dict,
         mocker,
     ):
@@ -228,7 +229,10 @@ class TestApp:
         mock_process_notification.assert_called_once()
 
     def test_handles_new_created_event_is_added(
-        self, test_client: TestClient, db_session, recent_event_s2_created: dict
+        self,
+        test_client: TestClient,
+        db_session: Session,
+        recent_event_s2_created: dict,
     ):
         """Test happy path for handling subscription event, mocking DB and SQS
 
