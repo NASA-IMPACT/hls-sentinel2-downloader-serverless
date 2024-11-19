@@ -76,7 +76,9 @@ class EndpointConfig:
         ssm_client: "SSMClient",
     ) -> str:
         """Return the endpoint URL stored in SSM parameter store"""
-        param_name "/integration_tests/{stage}/link_subscription_endpoint_url".format(stage=self.stage)
+        param_name = "/integration_tests/{stage}/link_subscription_endpoint_url".format(
+            stage=self.stage
+        )
         result = ssm_client.get_parameter(Name=param_name)
         if (value := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
