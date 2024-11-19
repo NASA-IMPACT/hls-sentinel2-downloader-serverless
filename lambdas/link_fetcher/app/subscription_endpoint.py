@@ -66,6 +66,7 @@ class EndpointConfig:
             raise RuntimeError(
                 "Could not retrieve ESA subscription credentials from Secrets Manager"
             ) from ex
+
         return cls(
             notification_username=secret["notification_username"],
             notification_password=secret["notification_password"],
