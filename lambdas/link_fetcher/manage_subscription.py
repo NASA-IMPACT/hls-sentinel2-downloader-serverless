@@ -206,7 +206,7 @@ class SubscriptionAPI:
         response.raise_for_status()
         subscription_information = response.json()
         subscription_id = subscription_information["Id"]
-        print(f"Subscription created {subscription_id=}")
+        print("Subscription created. Its ID is " + subscription_id + ".")
         print("Below is full response:")
         print(subscription_information)
         return subscription_id
@@ -236,11 +236,12 @@ class SubscriptionAPI:
             "Authorization": f"Bearer {token.access_token}",
         }
         response = requests.delete(
-            url=f"{self.token_api.config.subscriptions_api_base_url}({subscription_id})",
+            url=self.token_api.config.subscriptions_api_base_url
+            + f"({subscription_id})",
             headers=headers,
         )
         response.raise_for_status()
-        print(f"Subscription terminated {subscription_id=}.")
+        print("Subscription terminated. Its ID was " + subscription_id + ".")
 
 
 @click.command()
@@ -275,7 +276,9 @@ def main(
 
     if command == "create":
         if subscriptions:
-            click.echo("Cannot create a second subscription (only 1 active is allowed)")
+            click.echo(
+                "Cannot create a second subscriptions (only 1 active is allowed)"
+            )
             raise click.Abort()
         subscription = subscription_api.create_subscription()
         click.echo(f"Created subscription id={subscription}")
