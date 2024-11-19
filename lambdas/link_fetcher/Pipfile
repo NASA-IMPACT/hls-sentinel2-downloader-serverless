@@ -31,12 +31,10 @@ types-humanfriendly = "*"
 ruff = "==0.7.1"
 uvicorn = "*"
 httpx = "*"
+click = "*"
 
 [requires]
 python_version = "3.11"
 
 [pipenv]
 allow_prereleases = false
-
-[tool.ruff.lint.isort]
-known-first-party = ["app", "db"]
