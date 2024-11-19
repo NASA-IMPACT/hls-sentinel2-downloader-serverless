@@ -150,7 +150,9 @@ class TestProcessNotification:
     ):
         """Test we filter old imagery and do NOT add to queue or DB"""
         event_s2_created["value"]["ContentDate"]["Start"] = "1999-12-31T23:59:59.999Z"
-        with patch("app.subscription_endpoint.add_search_results_to_db_and_sqs") as mock_add_to_db_and_sqs:
+        with patch(
+            "app.subscription_endpoint.add_search_results_to_db_and_sqs"
+        ) as mock_add_to_db_and_sqs:
             process_notification(
                 event_s2_created,
                 accepted_tile_ids,
@@ -166,8 +168,12 @@ class TestProcessNotification:
         mocker,
     ):
         """Test we filter old imagery and do NOT add to queue or DB"""
-        spy_filter_search_results = mocker.spy(app.subscription_endpoint, "filter_search_results")
-        with patch("app.common.add_search_results_to_db_and_sqs") as mock_add_to_db_and_sqs:
+        spy_filter_search_results = mocker.spy(
+            app.subscription_endpoint, "filter_search_results"
+        )
+        with patch(
+            "app.common.add_search_results_to_db_and_sqs"
+        ) as mock_add_to_db_and_sqs:
             process_notification(
                 recent_event_s2_created,
                 {"none"},
