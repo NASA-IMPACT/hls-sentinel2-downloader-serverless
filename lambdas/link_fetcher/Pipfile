@@ -32,6 +32,7 @@ ruff = "==0.7.1"
 uvicorn = "*"
 httpx = "*"
 click = "*"
+pytest-mock = "*"
 
 [requires]
 python_version = "3.11"

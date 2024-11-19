@@ -119,6 +119,7 @@ def process_notification(
     accepted_tile_ids: set[str],
     session_maker: SessionMaker,
 ):
+    """Parse, filter, and potentially add new granule results to download queue"""
     # Parse subscription notification to SearchResult
     search_result = parse_search_result(notification["value"])
 
@@ -129,15 +130,15 @@ def process_notification(
         return
 
     # Check tile ID
-    filtered_search_result = filter_search_results(
+    accepted_search_results = filter_search_results(
         [search_result],
         accepted_tile_ids,
     )
-    if filter_search_results:
+    if accepted_search_results:
         logger.info(f"Adding {search_result=} to granule download queue")
         add_search_results_to_db_and_sqs(
             session_maker,
-            filtered_search_result,
+            accepted_search_results,
         )
     else:
         logger.info(f"Rejected {search_result=} (unacceptable tile)")
