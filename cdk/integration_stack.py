@@ -27,13 +27,11 @@ class IntegrationStack(Stack):
                 )
             )
 
-        # TODO remove this, along with other references to it, but leaving for
-        # now, just in case removing it would break the downloader lambda
         aws_secretsmanager.Secret(
             self,
-            id=f"{identifier}-integration-scihub-credentials",
-            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
-            description="Dummy values for the Mock SciHub API credentials",
+            id=f"{identifier}-integration-esa-subscription-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/esa-subscription-credentials",
+            description="Dummy values for the ESA 'push' subscription authentication",
             generate_secret_string=aws_secretsmanager.SecretStringGenerator(
                 secret_string_template=json.dumps({"username": "test-user"}),
                 generate_string_key="password",
