@@ -5,13 +5,20 @@ from unittest.mock import Mock, patch
 import boto3
 import httpx
 import pytest
+from db.models.granule import Granule
 from fastapi import FastAPI
 from freezegun import freeze_time
 from moto import mock_aws
 from starlette.testclient import TestClient
 
+import app.subscription_endpoint
 from app.common import SearchResult
-from app.subscription_endpoint import EndpointConfig, build_app, parse_search_result
+from app.subscription_endpoint import (
+    EndpointConfig,
+    build_app,
+    parse_search_result,
+    process_notification,
+)
 
 
 class TestEndpointConfig:
@@ -114,8 +121,60 @@ class TestProcessNotification:
 
     def test_processes_notification(
         self,
+        mock_sqs_queue,
+        db_session,
+        recent_event_s2_created: dict,
+        accepted_tile_ids: set[str],
     ):
-        pass
+        """Test that a recent S2 granule created event is added to queue"""
+        process_notification(
+            recent_event_s2_created,
+            accepted_tile_ids,
+            lambda: db_session,
+        )
+
+        assert len(db_session.query(Granule).all()) == 1
+
+        mock_sqs_queue.load()
+        number_of_messages_in_queue = mock_sqs_queue.attributes[
+            "ApproximateNumberOfMessages"
+        ]
+        assert int(number_of_messages_in_queue) == 1
+
+    def test_filters_old_imagery(
+        self,
+        mock_sqs_queue,
+        db_session,
+        event_s2_created: dict,
+        accepted_tile_ids: set[str],
+    ):
+        """Test we filter old imagery and do NOT add to queue or DB"""
+        event_s2_created["value"]["ContentDate"]["Start"] = "1999-12-31T23:59:59.999Z"
+        with patch("app.subscription_endpoint.add_search_results_to_db_and_sqs") as mock_add_to_db_and_sqs:
+            process_notification(
+                event_s2_created,
+                accepted_tile_ids,
+                lambda: db_session,
+            )
+        mock_add_to_db_and_sqs.assert_not_called()
+
+    def test_filters_unaccepted_tile_id(
+        self,
+        mock_sqs_queue,
+        db_session,
+        recent_event_s2_created: dict,
+        mocker,
+    ):
+        """Test we filter old imagery and do NOT add to queue or DB"""
+        spy_filter_search_results = mocker.spy(app.subscription_endpoint, "filter_search_results")
+        with patch("app.common.add_search_results_to_db_and_sqs") as mock_add_to_db_and_sqs:
+            process_notification(
+                recent_event_s2_created,
+                {"none"},
+                lambda: db_session,
+            )
+        spy_filter_search_results.assert_called_once()
+        mock_add_to_db_and_sqs.assert_not_called()
 
 
 class TestApp:
