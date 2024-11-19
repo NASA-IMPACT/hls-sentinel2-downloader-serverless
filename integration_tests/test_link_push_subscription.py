@@ -5,11 +5,19 @@ from typing import Callable
 from uuid import uuid4
 
 import boto3
+import polling2
 import pytest
 import requests
 from db.models.granule import Granule
 from mypy_boto3_sqs import SQSClient
 from sqlalchemy.orm import Session
+
+
+def check_sqs_message_count(sqs_client, queue_url, count):
+    queue_attributes = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
+    )
+    return int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"]) == count
 
 
 def _format_dt(datetime: dt.datetime) -> str:
@@ -108,10 +116,12 @@ def test_link_push_subscription_handles_event(
         assert resp.status_code == 204
 
     # ensure we have SQS message
-    queue_attributes = sqs_client.get_queue_attributes(
-        QueueUrl=queue_url, AttributeNames=["ApproximateNumberOfMessages"]
+    polling2.poll(
+        check_sqs_message_count,
+        args=(sqs_client, queue_url, 1),
+        step=5,
+        timeout=120,
     )
-    assert int(queue_attributes["Attributes"]["ApproximateNumberOfMessages"]) == 1
 
     # ensure we have 1 granule for this ID
     granules = (
