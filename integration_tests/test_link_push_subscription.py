@@ -27,7 +27,7 @@ def recent_event_s2_created() -> dict:
     """
     # Reusing example from ESA as a template
     data = (
-        Path(__file__).parent
+        Path(__file__).parents[1]
         / "lambdas"
         / "link_fetcher"
         / "tests"
@@ -43,7 +43,7 @@ def recent_event_s2_created() -> dict:
     now = dt.datetime.now(tz=dt.timezone.utc)
 
     payload["NotificationDate"] = _format_dt(now)
-    payload["value"]["OriginDate"] = _format_dt(now - dt.timedelta(minus=7))
+    payload["value"]["OriginDate"] = _format_dt(now - dt.timedelta(seconds=7))
     payload["value"]["PublicationDate"] = _format_dt(now - dt.timedelta(seconds=37))
     payload["value"]["ModificationDate"] = _format_dt(now - dt.timedelta(seconds=1))
     payload["value"]["ContentDate"] = {
@@ -117,7 +117,7 @@ def test_link_push_subscription_handles_event(
     granules = (
         db_session.query(Granule).filter(
             Granule.id == recent_event_s2_created["value"]["Id"]
-        ),
+        )
     ).all()
     assert len(granules) == 1
 
@@ -127,7 +127,7 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
 ):
     """Test that we reject incorrect authentication"""
     resp = requests.post(
-        f"{link_subscription_endpoint_url}/events",
+        f"{link_subscription_endpoint_url}events",
         auth=(
             "foo",
             "bar",
@@ -135,5 +135,5 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
         json={},
     )
 
-    # ensure correct response (204)
+    # ensure correct response (401 Unauthorized)
     assert resp.status_code == 401
