@@ -53,13 +53,13 @@ class EndpointConfig:
     @classmethod
     def load_from_secrets_manager(cls, stage: str) -> "EndpointConfig":
         """Load from AWS Secret Manager for some `stage`"""
+        secret_id = f"hls-s2-downloader-serverless/{stage}/esa-subscription-credentials"
+        print(f"LOADING ESA SUBSCRIPTION CREDENTIALS FROM {secret_id=}")
         try:
             secrets_manager_client = boto3.client("secretsmanager")
             secret = json.loads(
                 secrets_manager_client.get_secret_value(
-                    SecretId=(
-                        f"hls-s2-downloader-serverless/{stage}/esa-subscription-credentials"
-                    )
+                    SecretId=secret_id,
                 )["SecretString"]
             )
         except Exception as ex:
