@@ -89,7 +89,7 @@ def parse_search_result(
     payload: dict,
 ) -> SearchResult:
     """Parse a subscription event payload to a SearchResult"""
-    # Require 1 link to "extracted" data file
+    # There should only be 1 link to "extracted" data file
     extracted_links = [
         location
         for location in payload["Locations"]
@@ -99,13 +99,20 @@ def parse_search_result(
         raise ValueError(
             f"Got {len(extracted_links)} 'Extracted' links, expected just 1"
         )
+
+    # The "extracted" data information looks like,
+    # * FormatType: "Extracted"
+    # * DownloadLink: str
+    # * ContentLength: int
+    # * Checksum: { "Value": str, "Algorithm": "MD5" | "BLAKE3", "ChecksumDate": datetime}
+    # * S3Path: str
     extracted = extracted_links[0]
 
     search_result = SearchResult(
         image_id=payload["Id"],
         filename=payload["Name"],
         tileid=parse_tile_id_from_title(payload["Name"]),
-        size=payload["ContentLength"],
+        size=extracted["ContentLength"],
         beginposition=iso8601.parse_date(payload["ContentDate"]["Start"]),
         endposition=iso8601.parse_date(payload["ContentDate"]["End"]),
         ingestiondate=iso8601.parse_date(payload["PublicationDate"]),
