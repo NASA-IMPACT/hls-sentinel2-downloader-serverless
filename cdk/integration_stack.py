@@ -33,7 +33,9 @@ class IntegrationStack(Stack):
             secret_name=f"hls-s2-downloader-serverless/{identifier}/esa-subscription-credentials",
             description="Dummy values for the ESA 'push' subscription authentication",
             generate_secret_string=aws_secretsmanager.SecretStringGenerator(
-                secret_string_template=json.dumps({"notification_username": "test-user"}),
+                secret_string_template=json.dumps(
+                    {"notification_username": "test-user"}
+                ),
                 generate_string_key="notification_password",
             ),
         )
