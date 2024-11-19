@@ -54,6 +54,11 @@ Subscriptions API for new imagery links to download. It uses API Gateway to prov
 that triggers the Lambda function. Images to download are stored as records in the `granule` table.
 The `To Download` queue is also populated with the images IDs and download URLs.
 
+ESA has provided documentation and an example application for handling the "push" subscriptions,
+
+* https://documentation.dataspace.copernicus.eu/APIs/Subscriptions.html#push-subscriptions
+* https://gitlab.cloudferro.com/cat_public/push_subscription_endpoint_example
+
 ## Handler breakdown (Event Based)
 
 The "push" subscription endpoint handles "granule created" events that ESA sends to our endpoint.
