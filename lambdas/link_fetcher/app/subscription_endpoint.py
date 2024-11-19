@@ -155,11 +155,12 @@ def build_app(config: EndpointConfig) -> FastAPI:
     )
     security = HTTPBasic()
 
+    accepted_tile_ids = get_accepted_tile_ids()
+
     @app.post("/events", status_code=204)
     def post_notification(
         request: Request,
         notification: dict[str, Any],
-        accepted_tile_ids: set[str] = Depends(get_accepted_tile_ids),
         credentials: HTTPBasicCredentials = Depends(security),
         session_maker: SessionMaker = Depends(get_session_maker),
     ) -> Response:
