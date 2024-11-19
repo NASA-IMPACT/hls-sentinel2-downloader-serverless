@@ -99,7 +99,7 @@ def test_link_push_subscription_handles_event(
     """
     for _ in range(notification_count):
         resp = requests.post(
-            f"{link_subscription_endpoint_url}/events",
+            f"{link_subscription_endpoint_url}events",
             auth=link_subscription_credentials,
             json=recent_event_s2_created,
         )
@@ -126,8 +126,10 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
     link_subscription_endpoint_url: str,
 ):
     """Test that we reject incorrect authentication"""
+    url = f"{link_subscription_endpoint_url}events"
+    print(f"Sending POST request to {url=}")
     resp = requests.post(
-        f"{link_subscription_endpoint_url}events",
+        url,
         auth=(
             "foo",
             "bar",

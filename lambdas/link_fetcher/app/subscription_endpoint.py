@@ -79,6 +79,7 @@ class EndpointConfig:
     ) -> str:
         """Return the endpoint URL stored in SSM parameter store"""
         param_name = param_name_template.format(stage=self.stage)
+        print(f"Reading endpoint url from {param_name}")
         result = ssm_client.get_parameter(Name=param_name)
         if (value := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
