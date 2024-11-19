@@ -137,7 +137,6 @@ def test_link_push_subscription_user_auth_rejects_incorrect(
 ):
     """Test that we reject incorrect authentication"""
     url = f"{link_subscription_endpoint_url}events"
-    print(f"Sending POST request to {url=}")
     resp = requests.post(
         url,
         auth=(
