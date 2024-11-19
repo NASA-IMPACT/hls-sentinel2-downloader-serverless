@@ -26,7 +26,8 @@ This script is originally MIT licensed by CloudFerro,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
-Modifications are largely replacing Pydantic with "dataclasses" from stdlib.
+Modifications are largely replacing Pydantic with "dataclasses" from stdlib and
+adding a CLI to run list/create/terminate subscriptions.
 """
 
 import datetime as dt
@@ -34,8 +35,10 @@ import json
 import os
 import urllib.parse
 from dataclasses import dataclass
+from typing import Literal
 
 import boto3
+import click
 import requests
 
 from app.subscription_endpoint import EndpointConfig
@@ -183,7 +186,6 @@ class SubscriptionAPI:
         )
         subscription_data = {
             "StageOrder": True,
-            # example filter - You can adjust value to Your desired product type, collection etc.
             "FilterParam": "Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'productType' and att/OData.CSC.StringAttribute/Value eq 'S2MSI1C')",
             "Priority": 1,
             "NotificationEndpoint": endpoint_url,
@@ -242,22 +244,57 @@ class SubscriptionAPI:
         print("Subscription terminated. Its ID was " + subscription_id + ".")
 
 
-if __name__ == "__main__":
+@click.command()
+@click.argument("command", type=click.Choice(["create", "list", "terminate"]))
+@click.option(
+    "--email",
+    default=lambda: os.getenv("ESA_CDSE_EMAIL", ""),
+    help="CDSE user email for subscription",
+)
+@click.option(
+    "--password",
+    default=lambda: os.getenv("ESA_CDSE_PASSWORD", ""),
+    prompt=True,
+    help="CDSE user password for subscription",
+)
+def main(
+    command: Literal["create", "list", "terminate"],
+    email: str,
+    password: str,
+):
+    """Manage ESA 'push' subscriptions"""
     endpoint_cfg = EndpointConfig.load_from_secrets_manager(os.environ["STAGE"])
-    subscription_cfg = SubscriptionAPIConfig()
+    subscription_cfg = SubscriptionAPIConfig(
+        user_email=email,
+        user_password=password,
+    )
 
     token_api = TokenAPI(subscription_cfg)
 
     subscription_api = SubscriptionAPI(token_api, endpoint_cfg)
     subscriptions = subscription_api.list_subscriptions()
 
-    if not subscriptions:
-        print("Creating new subscription")
-        sub = subscription_api.create_subscription()
-        print(sub)
-    else:
+    if command == "create":
+        if subscriptions:
+            click.echo(
+                "Cannot create a second subscriptions (only 1 active is allowed)"
+            )
+            raise click.Abort()
+        subscription = subscription_api.create_subscription()
+        click.echo(f"Created subscription id={subscription}")
+
+    elif command == "list":
+        click.echo("Listing subscriptions:")
+        for subscription in subscriptions:
+            click.echo(subscription)
+
+    elif command == "terminate":
         subscription_id = subscriptions[0]["Id"]
-        print(f"Terminating subscription id={subscription_id}")
+        click.echo("Terminating first listed subscription id={subscription_id}")
         subscription_api.terminate_subscription(subscription_id)
 
-    print("DONE")
+    click.echo("Complete")
+
+
+if __name__ == "__main__":
+    main()
