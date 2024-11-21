@@ -300,7 +300,7 @@ def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
         "startDate": f"{oldest_acquisition_date.strftime('%Y-%m-%d')}T00:00:00Z",
         "sortParam": "published",
         "sortOrder": "desc",
-        "maxRecords": 100,
+        "maxRecords": 2000,
         # `start` is 0-based, but `index` is 1-based, so we must add 1
         "index": start + 1,
         # Fix for issue #28, due to breaking change in the OpenSearch API
