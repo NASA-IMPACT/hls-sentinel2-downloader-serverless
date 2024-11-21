@@ -78,7 +78,7 @@ def event_s2_created() -> dict:
 def recent_event_s2_created(event_s2_created: dict) -> dict:
     """A "recent" Sentinel-2 "Created" event from ESA's push subscription
 
-    We freezse time
+    We freeze time
     """
     # freeze to same day as publication date
     with freeze_time(event_s2_created["value"]["PublicationDate"]):

@@ -277,7 +277,7 @@ def main(
     if command == "create":
         if subscriptions:
             click.echo(
-                "Cannot create a second subscriptions (only 1 active is allowed)"
+                "Cannot create a second subscription (only 1 active is allowed)"
             )
             raise click.Abort()
         subscription = subscription_api.create_subscription()
