@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -6,8 +7,8 @@ import boto3
 import httpx
 import pytest
 from db.models.granule import Granule
-from fastapi import FastAPI
 from freezegun import freeze_time
+from fastapi import FastAPI
 from moto import mock_aws
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
@@ -55,8 +56,7 @@ class TestEndpointConfig:
             )
             yield config
 
-    def test_local_from_ssm(self, monkeypatch, endpoint_config_secret: EndpointConfig):
-        monkeypatch.setenv("STAGE", endpoint_config_secret.stage)
+    def test_local_from_ssm(self, endpoint_config_secret: EndpointConfig):
         config = EndpointConfig.load_from_secrets_manager(endpoint_config_secret.stage)
         assert config == endpoint_config_secret
 
@@ -72,17 +72,6 @@ def event_s2_created() -> dict:
     data = Path(__file__).parent / "data" / "push-granule-created-s2-n1.json"
     with data.open() as src:
         return json.load(src)
-
-
-@pytest.fixture
-def recent_event_s2_created(event_s2_created: dict) -> dict:
-    """A "recent" Sentinel-2 "Created" event from ESA's push subscription
-
-    We freeze time
-    """
-    # freeze to same day as publication date
-    with freeze_time(event_s2_created["value"]["PublicationDate"]):
-        yield event_s2_created
 
 
 class TestSearchResultParsing:
@@ -124,14 +113,17 @@ class TestProcessNotification:
         self,
         mock_sqs_queue,
         db_session: Session,
-        recent_event_s2_created: dict,
+        event_s2_created: dict,
         accepted_tile_ids: set[str],
     ):
         """Test that a recent S2 granule created event is added to queue"""
         process_notification(
-            recent_event_s2_created,
+            event_s2_created,
             accepted_tile_ids,
             lambda: db_session,
+            # provide a fake datetime based on publication date to ensure the granule notification
+            # is recent enough to process
+            now_utc=lambda: datetime.fromisoformat(event_s2_created["value"]["PublicationDate"]),
         )
 
         assert len(db_session.query(Granule).all()) == 1
@@ -165,10 +157,10 @@ class TestProcessNotification:
         self,
         mock_sqs_queue,
         db_session: Session,
-        recent_event_s2_created: dict,
+        event_s2_created: dict,
         mocker,
     ):
-        """Test we filter old imagery and do NOT add to queue or DB"""
+        """Test we filter unacceptable tile IDs and do NOT add to queue or DB"""
         spy_filter_search_results = mocker.spy(
             app.subscription_endpoint, "filter_search_results"
         )
@@ -176,9 +168,11 @@ class TestProcessNotification:
             "app.common.add_search_results_to_db_and_sqs"
         ) as mock_add_to_db_and_sqs:
             process_notification(
-                recent_event_s2_created,
+                event_s2_created,
                 {"none"},
                 lambda: db_session,
+                # ensure we granule is recent enough <30 days
+                now_utc=lambda: datetime.fromisoformat(event_s2_created["value"]["PublicationDate"]),
             )
         spy_filter_search_results.assert_called_once()
         mock_add_to_db_and_sqs.assert_not_called()
@@ -232,21 +226,24 @@ class TestApp:
         self,
         test_client: TestClient,
         db_session: Session,
-        recent_event_s2_created: dict,
+        event_s2_created: dict,
     ):
         """Test happy path for handling subscription event, mocking DB and SQS
 
         This is also distinguished by using a "recent" event notification that works
         by freezing/rewinding time to acquisition date for the test duration.
         """
-        resp = test_client.post(
-            "/events",
-            json=recent_event_s2_created,
-            auth=(
-                self.endpoint_config.notification_username,
-                self.endpoint_config.notification_password,
-            ),
-        )
+        # we can't inject an older "utc_now" into `process_notification` so we have to
+        # patch `datetime.now()` with freezegun
+        with freeze_time(event_s2_created["value"]["PublicationDate"]):
+            resp = test_client.post(
+                "/events",
+                json=event_s2_created,
+                auth=(
+                    self.endpoint_config.notification_username,
+                    self.endpoint_config.notification_password,
+                ),
+            )
 
         # processed successfully but no content
         resp.raise_for_status()

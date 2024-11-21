@@ -4,7 +4,7 @@ import os
 import secrets
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import boto3
 import iso8601
@@ -67,6 +67,7 @@ class EndpointConfig:
             ) from ex
 
         return cls(
+            stage=stage,
             notification_username=secret["notification_username"],
             notification_password=secret["notification_password"],
         )
@@ -125,13 +126,14 @@ def process_notification(
     notification: dict[str, Any],
     accepted_tile_ids: set[str],
     session_maker: SessionMaker,
+    now_utc: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
 ):
     """Parse, filter, and potentially add new granule results to download queue"""
     # Parse subscription notification to SearchResult
     search_result = parse_search_result(notification["value"])
 
     # Only consider imagery acquired in the last 30 days to avoid reprocessing of older imagery
-    oldest_acquisition_date = datetime.now(tz=timezone.utc) - timedelta(days=30)
+    oldest_acquisition_date = now_utc() - timedelta(days=30)
     if search_result.beginposition < oldest_acquisition_date:
         logger.info(f"Rejected {search_result=} (acquisition date too old)")
         return
