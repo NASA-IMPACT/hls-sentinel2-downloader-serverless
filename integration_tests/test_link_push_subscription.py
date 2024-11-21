@@ -42,8 +42,7 @@ def recent_event_s2_created() -> dict:
         / "data"
         / "push-granule-created-s2-n1.json"
     )
-    with data.open() as src:
-        payload = json.load(src)
+    payload = json.loads(data.read_text())
 
     # Update relevant parts of message payload to be "recent"
     # where recent is <30 days from today as we're not currently
