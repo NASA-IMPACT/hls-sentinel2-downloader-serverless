@@ -7,8 +7,8 @@ import boto3
 import httpx
 import pytest
 from db.models.granule import Granule
-from freezegun import freeze_time
 from fastapi import FastAPI
+from freezegun import freeze_time
 from moto import mock_aws
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
@@ -123,7 +123,9 @@ class TestProcessNotification:
             lambda: db_session,
             # provide a fake datetime based on publication date to ensure the granule notification
             # is recent enough to process
-            now_utc=lambda: datetime.fromisoformat(event_s2_created["value"]["PublicationDate"]),
+            now_utc=lambda: datetime.fromisoformat(
+                event_s2_created["value"]["PublicationDate"]
+            ),
         )
 
         assert len(db_session.query(Granule).all()) == 1
@@ -172,7 +174,9 @@ class TestProcessNotification:
                 {"none"},
                 lambda: db_session,
                 # ensure we granule is recent enough <30 days
-                now_utc=lambda: datetime.fromisoformat(event_s2_created["value"]["PublicationDate"]),
+                now_utc=lambda: datetime.fromisoformat(
+                    event_s2_created["value"]["PublicationDate"]
+                ),
             )
         spy_filter_search_results.assert_called_once()
         mock_add_to_db_and_sqs.assert_not_called()
