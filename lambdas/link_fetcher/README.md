@@ -7,7 +7,7 @@ links to downloadable Sentinel products,
 * Subscriptions API ("event based")
 
 We wish to migrate from a polling to an event driven method of link
-fetchiung. During the transition period, this subdirectory handles both
+fetching. During the transition period, this subdirectory handles both
 of these methods and deploys them as two separate Lambda functions. This
 README describes both forms of link fetching.
 
