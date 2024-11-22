@@ -91,11 +91,18 @@ def _handler(
         update_last_fetched_link_time(session_maker)
         update_fetched_links(session_maker, day, number_of_fetched_links)
 
+        fetched_links += number_of_fetched_links
         params = {**params, "index": params["index"] + number_of_fetched_links}
-        print(f"Fetched links for {query_date}: {params['index'] - 1}/{total_results}")
+        print(f"Fetched links for {query_date}: {fetched_links}/{total_results}")
 
         if bail_early := context.get_remaining_time_in_millis() < MIN_REMAINING_MILLIS:
             print("Bailing early to avoid Lambda timeout")
+            break
+
+        # Don't search again if we've fetched all of the totalResults to help prevent
+        # queries that exceed maximum offset (10,000)
+        if fetched_links == total_results:
+            print(f"Completed fetching {fetched_links}/{total_results} links for {query_date}. Exiting.")
             break
 
         search_results, _ = get_page_for_query_and_total_results(params)
