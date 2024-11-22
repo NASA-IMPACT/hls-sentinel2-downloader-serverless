@@ -185,9 +185,9 @@ def generate_mock_responses_for_one_day(mock_search_response):
 
     # Set totalResults to the number we're going to mock
     total_results = (
-        len(search_response_2020_page1["features"]) +
-        len(search_response_2020_page2["features"]) +
-        len(search_response_2020_empty["features"])
+        len(search_response_2020_page1["features"])
+        + len(search_response_2020_page2["features"])
+        + len(search_response_2020_empty["features"])
     )
     search_response_2020_page1["properties"]["totalResults"] = total_results
     search_response_2020_page2["properties"]["totalResults"] = total_results

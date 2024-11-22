@@ -102,7 +102,9 @@ def _handler(
         # Don't search again if we've fetched all of the totalResults to help prevent
         # queries that exceed maximum offset (10,000)
         if fetched_links == total_results:
-            print(f"Completed fetching {fetched_links}/{total_results} links for {query_date}. Exiting.")
+            print(
+                f"Completed fetching {fetched_links}/{total_results} links for {query_date}. Exiting."
+            )
             break
 
         search_results, _ = get_page_for_query_and_total_results(params)

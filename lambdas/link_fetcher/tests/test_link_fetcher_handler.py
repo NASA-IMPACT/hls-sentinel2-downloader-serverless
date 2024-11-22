@@ -577,11 +577,14 @@ def test_that_link_fetcher_handler_doesnt_query_after_fetching_total_results(
     search offset (10,000). See,
     https://github.com/NASA-IMPACT/hls-sentinel2-downloader-serverless/issues/45
     """
+
     class MockContext:
         def get_remaining_time_in_millis(self) -> int:
             return MIN_REMAINING_MILLIS
 
-    spy_get_page_for_query_and_total_results = mocker.spy(handler, "get_page_for_query_and_total_results")
+    spy_get_page_for_query_and_total_results = mocker.spy(
+        handler, "get_page_for_query_and_total_results"
+    )
 
     result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
 
@@ -591,6 +594,7 @@ def test_that_link_fetcher_handler_doesnt_query_after_fetching_total_results(
     # Check our spy on get_page_for_query_and_total_results -> it should not have been
     # called with index={totalResults} where `totalResults=10` from our mocked response
     index_call_args = [
-        call.args[0]["index"] for call in spy_get_page_for_query_and_total_results.call_args_list
+        call.args[0]["index"]
+        for call in spy_get_page_for_query_and_total_results.call_args_list
     ]
     assert 10 not in index_call_args
