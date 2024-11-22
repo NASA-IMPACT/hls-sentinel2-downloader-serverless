@@ -167,7 +167,7 @@ def generate_mock_responses_for_one_day(mock_search_response):
         "&startDate=2019-12-02T00:00:00Z"
         "&sortParam=published"
         "&sortOrder=desc"
-        "&maxRecords=100"
+        "&maxRecords=2000"
         "&index={1}"
         "&exactCount=1"
     )

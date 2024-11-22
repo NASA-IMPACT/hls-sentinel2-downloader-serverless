@@ -47,7 +47,7 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         "startDate": "2019-12-02T00:00:00Z",
         "sortParam": "published",
         "sortOrder": "desc",
-        "maxRecords": 100,
+        "maxRecords": 2000,
         # `start` is 0-based, but `index` is 1-based, so we must add 1 when
         # computing the page number from the `start` index.
         "index": 1,
@@ -92,7 +92,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
             "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
-            "&maxRecords=100"
+            "&maxRecords=2000"
             "&index=1"
             "&exactCount=1"
         ),
@@ -124,7 +124,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_missing(
             "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
-            "&maxRecords=100"
+            "&maxRecords=2000"
             "&index=1"
             "&exactCount=1"
         ),
@@ -155,7 +155,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_null(
             "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
-            "&maxRecords=100"
+            "&maxRecords=2000"
             "&index=1"
             "&exactCount=1"
         ),
@@ -186,7 +186,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
             "&startDate=2019-12-02T00:00:00Z"
             "&sortParam=published"
             "&sortOrder=desc"
-            "&maxRecords=100"
+            "&maxRecords=2000"
             "&index=1"
             "&exactCount=1"
         ),
