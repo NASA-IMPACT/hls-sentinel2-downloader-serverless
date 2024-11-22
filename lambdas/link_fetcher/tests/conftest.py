@@ -183,6 +183,16 @@ def generate_mock_responses_for_one_day(mock_search_response):
     search_response_2020_empty = deepcopy(search_response_2020)
     search_response_2020_empty["features"] = []
 
+    # Set totalResults to the number we're going to mock
+    total_results = (
+        len(search_response_2020_page1["features"]) +
+        len(search_response_2020_page2["features"]) +
+        len(search_response_2020_empty["features"])
+    )
+    search_response_2020_page1["properties"]["totalResults"] = total_results
+    search_response_2020_page2["properties"]["totalResults"] = total_results
+    search_response_2020_empty["properties"]["totalResults"] = total_results
+
     # Create responses for sentinel query based on year and start point
     responses.add(
         responses.GET,

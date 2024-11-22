@@ -488,7 +488,7 @@ def test_that_link_fetcher_handler_correctly_functions(
         .first()
     )
     assert granule_count is not None
-    assert_that(granule_count.available_links).is_equal_to(6786)
+    assert_that(granule_count.available_links).is_equal_to(10)
     assert_that(granule_count.fetched_links).is_equal_to(10)
     assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
 
@@ -539,7 +539,7 @@ def test_that_link_fetcher_handler_bails_early(
         .first()
     )
     assert granule_count is not None
-    assert_that(granule_count.available_links).is_equal_to(6786)
+    assert_that(granule_count.available_links).is_equal_to(10)
     assert_that(granule_count.fetched_links).is_equal_to(5)
     assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
 
