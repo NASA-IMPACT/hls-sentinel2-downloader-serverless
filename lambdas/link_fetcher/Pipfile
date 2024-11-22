@@ -26,6 +26,7 @@ mypy = "==1.6.0"
 types-requests = "==2.31.0"
 types-humanfriendly = "*"
 ruff = "==0.7.1"
+pytest-mock = "*"
 
 [requires]
 python_version = "3.11"

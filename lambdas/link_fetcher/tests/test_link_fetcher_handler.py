@@ -13,6 +13,7 @@ from db.models.status import Status
 from freezegun import freeze_time
 from sqlalchemy.orm import Session
 
+import handler
 from handler import (
     MIN_REMAINING_MILLIS,
     SEARCH_URL,
@@ -558,3 +559,38 @@ def test_that_link_fetcher_handler_bails_early(
         "ApproximateNumberOfMessages"
     ]
     assert_that(int(number_of_messages_in_queue)).is_equal_to(4)
+
+
+@responses.activate
+@freeze_time("2020-01-01")
+@pytest.mark.usefixtures("generate_mock_responses_for_one_day")
+def test_that_link_fetcher_handler_doesnt_query_after_fetching_total_results(
+    db_session: Session,
+    db_session_context,
+    db_connection_secret,
+    mock_sqs_queue,
+    mocker,
+):
+    """
+    Test to ensure that the link fetcher doesn't make a final query if we've found
+    everything already. This is to help mitigate an issue where we exceed ESA's maximum
+    search offset (10,000). See,
+    https://github.com/NASA-IMPACT/hls-sentinel2-downloader-serverless/issues/45
+    """
+    class MockContext:
+        def get_remaining_time_in_millis(self) -> int:
+            return MIN_REMAINING_MILLIS
+
+    spy_get_page_for_query_and_total_results = mocker.spy(handler, "get_page_for_query_and_total_results")
+
+    result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
+
+    # Assert we completed correctly
+    assert result == {"query_date": "2020-01-01", "completed": True}
+
+    # Check our spy on get_page_for_query_and_total_results -> it should not have been
+    # called with index={totalResults} where `totalResults=10` from our mocked response
+    index_call_args = [
+        call.args[0]["index"] for call in spy_get_page_for_query_and_total_results.call_args_list
+    ]
+    assert 10 not in index_call_args
