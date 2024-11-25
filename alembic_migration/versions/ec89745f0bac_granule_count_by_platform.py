@@ -5,13 +5,13 @@ Revises: 1c8c38951d47
 Create Date: 2024-11-25 18:13:36.964410
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+import sqlalchemy as sa
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = 'ec89745f0bac'
-down_revision = '1c8c38951d47'
+revision = "ec89745f0bac"
+down_revision = "1c8c38951d47"
 branch_labels = None
 depends_on = None
 
@@ -30,7 +30,7 @@ def upgrade():
             sa.String(),
             nullable=False,
             server_default="S2A",
-        )
+        ),
     )
     op.create_primary_key(
         "granule_count_pkey",
@@ -47,7 +47,7 @@ def downgrade():
         "granule_count",
         "primary",
     )
-    op.drop_column('granule_count', 'platform')
+    op.drop_column("granule_count", "platform")
     op.create_primary_key(
         "granule_count_pkey",
         "granule_count",
