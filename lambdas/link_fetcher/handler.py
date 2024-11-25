@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Final,
+    Literal,
     Mapping,
     Protocol,
     Sequence,
@@ -39,6 +40,7 @@ SEARCH_URL: Final = os.environ.get(
     "SEARCH_URL",
     "https://catalogue.dataspace.copernicus.eu",
 )
+Platforms = Literal["S2A", "S2B"]
 
 
 @dataclass(frozen=True)
@@ -73,9 +75,10 @@ def _handler(
 ) -> HandlerResult:
     accepted_tile_ids = get_accepted_tile_ids()
     query_date = event["query_date"]
+    query_platform = event["query_platform"]
     day = datetime.strptime(query_date, "%Y-%m-%d").date()
 
-    fetched_links = get_fetched_links(session_maker, day)
+    fetched_links = get_fetched_links(session_maker, day, query_platform)
     params = get_query_parameters(fetched_links, day)
     search_results, total_results = get_page_for_query_and_total_results(params)
     print(f"Previously fetched links for {query_date}: {fetched_links}/{total_results}")
@@ -163,7 +166,7 @@ def add_search_result_to_sqs(
     )
 
 
-def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
+def get_fetched_links(session_maker: SessionMaker, day: date, query_platform: Platforms) -> int:
     """
     For a given day, return the total
     `fetched_links`, where `fetched_links` is the total number of granules that have
@@ -173,10 +176,11 @@ def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
         for database interactions
     :param day: date representing the day to return results for
+    :param platform: Sentinel-2 platform to search for (S2A, S2B, etc)
     :returns: int representing `fetched_links`
     """
     with session_maker() as session:
-        granule_count = session.query(GranuleCount).filter_by(date=day).first()
+        granule_count = session.query(GranuleCount).filter_by(date=day, platform=platform).first()
 
         if granule_count:
             return granule_count.fetched_links
@@ -193,7 +197,7 @@ def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
         return 0
 
 
-def update_total_results(session_maker: SessionMaker, day: date, total_results: int):
+def update_total_results(session_maker: SessionMaker, day: date, platform: total_results: int):
     """
     For a given day and number of results, update the `available_links` value
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use

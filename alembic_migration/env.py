@@ -19,7 +19,11 @@ fileConfig(config.config_file_name)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+from db.models.base import Base
+from db.models.granule import Granule
+from db.models.granule_count import GranuleCount
+from db.models.status import Status
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
