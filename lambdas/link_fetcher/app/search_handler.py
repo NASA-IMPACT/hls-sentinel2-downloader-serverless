@@ -120,6 +120,7 @@ def get_fetched_links(
 
         granule_count = GranuleCount(
             date=day,
+            platform=platform,
             available_links=0,
             fetched_links=0,
             last_fetched_time=datetime.now(),

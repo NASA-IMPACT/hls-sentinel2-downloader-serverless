@@ -29,7 +29,7 @@ def upgrade():
             "platform",
             sa.String(),
             nullable=False,
-            server_default="S2A",
+            server_default="S2A+S2B",
         ),
     )
     op.create_primary_key(
