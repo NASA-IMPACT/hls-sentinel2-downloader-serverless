@@ -109,8 +109,7 @@ def _handler(
         search_results, _ = get_page_for_query_and_total_results(params)
 
     return {
-        "query_date": query_date,
-        "query_platform": query_platform,
+        "query_date_platform": [query_date, query_platform],
         "completed": not bail_early,
     }
 
@@ -200,6 +199,7 @@ def get_fetched_links(
 
         granule_count = GranuleCount(
             date=day,
+            platform=platform,
             available_links=0,
             fetched_links=0,
             last_fetched_time=datetime.now(),
@@ -254,18 +254,25 @@ def update_last_fetched_link_time(session_maker: SessionMaker):
         session.commit()
 
 
-def update_fetched_links(session_maker: SessionMaker, day: date, fetched_links: int):
+def update_fetched_links(
+    session_maker: SessionMaker, day: date, platform: Platform, fetched_links: int
+):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
     `fetched_links` value and update the `last_fetched_time` value to `datetime.now()`
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
         for database interactions
     :param day: date representing the day to update in `granule_count`
+    :param platform: Sentinel-2 platform to search for (S2A, S2B, etc)
     :param fetched_links: int representing the total number of links fetched in this run
         it is not the total number of Granules created
     """
     with session_maker() as session:
-        if granule_count := session.query(GranuleCount).filter_by(date=day).first():
+        if (
+            granule_count := session.query(GranuleCount)
+            .filter_by(date=day, platform=platform)
+            .first()
+        ):
             granule_count.fetched_links += fetched_links
             granule_count.last_fetched_time = datetime.now()
             session.commit()

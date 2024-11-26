@@ -45,6 +45,7 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         "publishedAfter": "2020-01-01T00:00:00Z",
         "publishedBefore": "2020-01-01T23:59:59Z",
         "startDate": "2019-12-02T00:00:00Z",
+        "platform": "S2A",
         "sortParam": "published",
         "sortOrder": "desc",
         "maxRecords": 2000,
@@ -54,7 +55,9 @@ def test_that_link_fetcher_handler_generates_correct_query_parameters():
         "exactCount": 1,
     }
 
-    actual_query_parameters = get_query_parameters(start=0, day=date(2020, 1, 1))
+    actual_query_parameters = get_query_parameters(
+        start=0, day=date(2020, 1, 1), platform="S2A"
+    )
 
     assert_that(actual_query_parameters).is_equal_to(expected_query_parameters)
 
@@ -70,9 +73,9 @@ def test_that_link_fetcher_handler_generates_a_search_result_correctly(
         size=0,
         beginposition=datetime(2020, 1, 1, 21, 9, 21, 24000, tzinfo=timezone.utc),
         endposition=datetime(2020, 1, 1, 21, 9, 21, 24000, tzinfo=timezone.utc),
-        ingestiondate=datetime(2020, 1, 1, 23, 39, 20, 33000, tzinfo=timezone.utc),
+        ingestiondate=datetime(2020, 1, 1, 23, 39, 20, 33183, tzinfo=timezone.utc),
         download_url=(
-            "https://zipper.creodias.eu/download/483cab2e-06f1-5944-a06b-ef7026cc6fd0"
+            "https://catalogue.dataspace.copernicus.eu/download/483cab2e-06f1-5944-a06b-ef7026cc6fd0"
         ),
     )
 
@@ -90,6 +93,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"
+            "&platform=S2A"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=2000"
@@ -101,11 +105,13 @@ def test_that_link_fetcher_handler_gets_correct_query_results(mock_search_respon
     )
 
     search_results, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+        query_params=get_query_parameters(
+            start=0, day=date(2020, 1, 1), platform="S2A"
+        ),
     )
 
     assert_that(search_results).is_length(10)
-    assert_that(total_results).is_equal_to(6786)
+    assert_that(total_results).is_equal_to(2020)
 
 
 @responses.activate
@@ -122,6 +128,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_missing(
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"
+            "&platform=S2A"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=2000"
@@ -133,7 +140,9 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_missing(
     )
 
     _, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+        query_params=get_query_parameters(
+            start=0, day=date(2020, 1, 1), platform="S2A"
+        ),
     )
 
     assert total_results == -1
@@ -153,6 +162,7 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_null(
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"
+            "&platform=S2B"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=2000"
@@ -164,7 +174,9 @@ def test_that_link_fetcher_handler_defaults_total_results_to_neg1_when_null(
     )
 
     _, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+        query_params=get_query_parameters(
+            start=0, day=date(2020, 1, 1), platform="S2B"
+        ),
     )
 
     assert total_results == -1
@@ -184,6 +196,7 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
             "&publishedAfter=2020-01-01T00:00:00Z"
             "&publishedBefore=2020-01-01T23:59:59Z"
             "&startDate=2019-12-02T00:00:00Z"
+            "&platform=S2A"
             "&sortParam=published"
             "&sortOrder=desc"
             "&maxRecords=2000"
@@ -195,11 +208,13 @@ def test_that_link_fetcher_handler_gets_correct_query_results_when_no_imagery_le
     )
 
     search_results, total_results = get_page_for_query_and_total_results(
-        query_params=get_query_parameters(start=0, day=date(2020, 1, 1)),
+        query_params=get_query_parameters(
+            start=0, day=date(2020, 1, 1), platform="S2A"
+        ),
     )
 
     assert_that(search_results).is_length(0)
-    assert_that(total_results).is_equal_to(6786)
+    assert_that(total_results).is_equal_to(2020)
 
 
 def test_that_link_fetcher_handler_correctly_filters_search_results(accepted_tile_ids):
@@ -330,6 +345,7 @@ def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_in_db(
     db_session.add(
         GranuleCount(
             date=datetime(2020, 1, 1),
+            platform="S2A",
             available_links=0,
             fetched_links=expected_fetched_links,
             last_fetched_time=datetime(2020, 1, 1, 0, 0, 0),
@@ -337,7 +353,9 @@ def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_in_db(
     )
     db_session.commit()
 
-    actual_fetched_links = get_fetched_links(lambda: db_session, datetime(2020, 1, 1))
+    actual_fetched_links = get_fetched_links(
+        lambda: db_session, datetime(2020, 1, 1), "S2A"
+    )
     assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
 
 
@@ -348,12 +366,16 @@ def test_that_link_fetcher_handler_correctly_retrieves_fetched_links_if_not_in_d
     expected_fetched_links = 0
     expected_last_fetched_time = datetime.now()
 
-    actual_fetched_links = get_fetched_links(lambda: db_session, datetime(2020, 12, 31))
+    actual_fetched_links = get_fetched_links(
+        lambda: db_session, datetime(2020, 12, 31), platform="S2B"
+    )
     assert_that(expected_fetched_links).is_equal_to(actual_fetched_links)
 
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime(2020, 12, 31))  # type: ignore
+        .filter(
+            GranuleCount.date == datetime(2020, 12, 31), GranuleCount.platform == "S2B"
+        )  # type: ignore
         .first()
     )
 
@@ -368,6 +390,7 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     db_session.add(
         GranuleCount(
             date=datetime(2020, 1, 1),
+            platform="S2B",
             available_links=250,
             fetched_links=0,
             last_fetched_time=datetime(2020, 1, 1, 0, 0, 0),
@@ -375,11 +398,13 @@ def test_that_link_fetcher_handler_correctly_updates_available_links_in_db(
     )
     db_session.commit()
 
-    update_total_results(lambda: db_session, datetime(2020, 1, 1), 500)
+    update_total_results(lambda: db_session, datetime(2020, 1, 1), "S2B", 500)
 
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime(2020, 1, 1))  # type: ignore
+        .filter(
+            GranuleCount.date == datetime(2020, 1, 1), GranuleCount.platform == "S2B"
+        )  # type: ignore
         .first()
     )
 
@@ -433,6 +458,7 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(db_session: S
     db_session.add(
         GranuleCount(
             date=datetime.now().date(),
+            platform="S2B",
             available_links=10000,
             fetched_links=1000,
             last_fetched_time=datetime.now(),
@@ -442,15 +468,19 @@ def test_that_link_fetcher_handler_correctly_updates_granule_count(db_session: S
 
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime.now().date())  # type: ignore
+        .filter(
+            GranuleCount.date == datetime.now().date(), GranuleCount.platform == "S2B"
+        )  # type: ignore
         .first()
     )
 
-    update_fetched_links(lambda: db_session, datetime.now().date(), 1000)
+    update_fetched_links(lambda: db_session, datetime.now().date(), "S2B", 1000)
 
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == datetime.now().date())  # type: ignore
+        .filter(
+            GranuleCount.date == datetime.now().date(), GranuleCount.platform == "S2B"
+        )  # type: ignore
         .first()
     )
 
@@ -472,9 +502,13 @@ def test_that_link_fetcher_handler_correctly_functions(
         def get_remaining_time_in_millis(self) -> int:
             return MIN_REMAINING_MILLIS
 
-    result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
+    result = _handler(
+        {"query_date_platform": ["2020-01-01", "S2A"]},
+        MockContext(),
+        lambda: db_session,
+    )
 
-    assert result == {"query_date": "2020-01-01", "completed": True}
+    assert result == {"query_date_platform": ["2020-01-01", "S2A"], "completed": True}
 
     # Assert all filtered granules present
     granules = db_session.query(Granule).all()
@@ -488,7 +522,7 @@ def test_that_link_fetcher_handler_correctly_functions(
         .first()
     )
     assert granule_count is not None
-    assert_that(granule_count.available_links).is_equal_to(6786)
+    assert_that(granule_count.available_links).is_equal_to(2020)
     assert_that(granule_count.fetched_links).is_equal_to(10)
     assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
 
@@ -522,10 +556,14 @@ def test_that_link_fetcher_handler_bails_early(
         def get_remaining_time_in_millis(self) -> int:
             return MIN_REMAINING_MILLIS - 1
 
-    result = _handler({"query_date": "2020-01-01"}, MockContext(), lambda: db_session)
+    result = _handler(
+        {"query_date_platform": ["2020-01-01", "S2A"]},
+        MockContext(),
+        lambda: db_session,
+    )
 
     # Assert that we bailed early
-    assert result == {"query_date": "2020-01-01", "completed": False}
+    assert result == {"query_date_platform": ["2020-01-01", "S2A"], "completed": False}
 
     # Assert all filtered granules present
     granules = db_session.query(Granule).all()
@@ -535,11 +573,11 @@ def test_that_link_fetcher_handler_bails_early(
     # Assert 2020-01-01 has correct granule count
     granule_count = (
         db_session.query(GranuleCount)
-        .filter(GranuleCount.date == query_date)  # type: ignore
+        .filter(GranuleCount.date == query_date, GranuleCount.platform == "S2A")  # type: ignore
         .first()
     )
     assert granule_count is not None
-    assert_that(granule_count.available_links).is_equal_to(6786)
+    assert_that(granule_count.available_links).is_equal_to(2020)
     assert_that(granule_count.fetched_links).is_equal_to(5)
     assert_that(granule_count.last_fetched_time).is_equal_to(datetime.now())
 

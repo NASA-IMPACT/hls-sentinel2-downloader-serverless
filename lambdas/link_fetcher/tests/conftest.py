@@ -165,6 +165,7 @@ def generate_mock_responses_for_one_day(mock_search_response):
         "&publishedAfter={0}T00:00:00Z"
         "&publishedBefore={0}T23:59:59Z"
         "&startDate=2019-12-02T00:00:00Z"
+        "&platform=S2A"
         "&sortParam=published"
         "&sortOrder=desc"
         "&maxRecords=2000"
