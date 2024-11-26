@@ -49,8 +49,7 @@ lint:
 	$(MAKE) -C alembic_migration lint
 
 format:
-	pipenv run isort --profile black cdk/ integration_tests/
-	pipenv run black cdk/ integration_tests/
+	pipenv run ruff format cdk/ integration_tests/
 	$(MAKE) -C lambdas/link_fetcher format
 	$(MAKE) -C lambdas/date_generator format
 	$(MAKE) -C lambdas/downloader format
