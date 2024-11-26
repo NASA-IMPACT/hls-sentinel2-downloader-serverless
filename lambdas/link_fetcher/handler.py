@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Final,
+    Literal,
     Mapping,
     Protocol,
     Sequence,
@@ -39,6 +40,7 @@ SEARCH_URL: Final = os.environ.get(
     "SEARCH_URL",
     "https://catalogue.dataspace.copernicus.eu",
 )
+Platform = Literal["S2A", "S2B"]
 
 
 @dataclass(frozen=True)
@@ -72,14 +74,16 @@ def _handler(
     session_maker: SessionMaker,
 ) -> HandlerResult:
     accepted_tile_ids = get_accepted_tile_ids()
-    query_date = event["query_date"]
+    query_date, query_platform = event["query_date_platform"]
     day = datetime.strptime(query_date, "%Y-%m-%d").date()
 
-    fetched_links = get_fetched_links(session_maker, day)
-    params = get_query_parameters(fetched_links, day)
+    fetched_links = get_fetched_links(session_maker, day, query_platform)
+    params = get_query_parameters(fetched_links, day, query_platform)
     search_results, total_results = get_page_for_query_and_total_results(params)
-    print(f"Previously fetched links for {query_date}: {fetched_links}/{total_results}")
-    update_total_results(session_maker, day, total_results)
+    print(
+        f"Previously fetched links for {query_date}/{query_platform}: {fetched_links}/{total_results}"
+    )
+    update_total_results(session_maker, day, query_platform, total_results)
     bail_early = False
 
     while search_results:
@@ -89,10 +93,14 @@ def _handler(
         )
         add_search_results_to_db_and_sqs(session_maker, filtered_search_results)
         update_last_fetched_link_time(session_maker)
-        update_fetched_links(session_maker, day, number_of_fetched_links)
+        update_fetched_links(
+            session_maker, day, query_platform, number_of_fetched_links
+        )
 
         params = {**params, "index": params["index"] + number_of_fetched_links}
-        print(f"Fetched links for {query_date}: {params['index'] - 1}/{total_results}")
+        print(
+            f"Fetched links for {query_date}/{query_platform}: {params['index'] - 1}/{total_results}"
+        )
 
         if bail_early := context.get_remaining_time_in_millis() < MIN_REMAINING_MILLIS:
             print("Bailing early to avoid Lambda timeout")
@@ -100,7 +108,11 @@ def _handler(
 
         search_results, _ = get_page_for_query_and_total_results(params)
 
-    return {"query_date": query_date, "completed": not bail_early}
+    return {
+        "query_date": query_date,
+        "query_platform": query_platform,
+        "completed": not bail_early,
+    }
 
 
 def add_search_results_to_db_and_sqs(
@@ -163,7 +175,9 @@ def add_search_result_to_sqs(
     )
 
 
-def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
+def get_fetched_links(
+    session_maker: SessionMaker, day: date, platform: Platform
+) -> int:
     """
     For a given day, return the total
     `fetched_links`, where `fetched_links` is the total number of granules that have
@@ -173,10 +187,13 @@ def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
         for database interactions
     :param day: date representing the day to return results for
+    :param platform: Sentinel-2 platform to search for (S2A, S2B, etc)
     :returns: int representing `fetched_links`
     """
     with session_maker() as session:
-        granule_count = session.query(GranuleCount).filter_by(date=day).first()
+        granule_count = (
+            session.query(GranuleCount).filter_by(date=day, platform=platform).first()
+        )
 
         if granule_count:
             return granule_count.fetched_links
@@ -193,17 +210,24 @@ def get_fetched_links(session_maker: SessionMaker, day: date) -> int:
         return 0
 
 
-def update_total_results(session_maker: SessionMaker, day: date, total_results: int):
+def update_total_results(
+    session_maker: SessionMaker, day: date, platform: Platform, total_results: int
+):
     """
     For a given day and number of results, update the `available_links` value
     :param session_maker: sessionmaker representing the SQLAlchemy sessionmaker to use
         for database interactions
     :param day: date representing the day to update `available_links` for
+    :param platform: Sensor platform (S2A, S2B, etc)
     :param total_results: int representing the total results available for the day,
         this value will be applied to `available_links`
     """
     with session_maker() as session:
-        if granule_count := session.query(GranuleCount).filter_by(date=day).first():
+        if (
+            granule_count := session.query(GranuleCount)
+            .filter_by(date=day, platform=platform)
+            .first()
+        ):
             granule_count.available_links = total_results
             session.commit()
 
@@ -281,7 +305,9 @@ def filter_search_results(
     )
 
 
-def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
+def get_query_parameters(
+    start: int, day: date, platform: Platform
+) -> Mapping[str, Any]:
     """
     Returns the query parameters that are needed for getting new imagery from
     search (Copernicus Data Space Ecosystem)
@@ -298,6 +324,7 @@ def get_query_parameters(start: int, day: date) -> Mapping[str, Any]:
         "publishedAfter": f"{date_string}T00:00:00Z",
         "publishedBefore": f"{date_string}T23:59:59Z",
         "startDate": f"{oldest_acquisition_date.strftime('%Y-%m-%d')}T00:00:00Z",
+        "platform": platform,
         "sortParam": "published",
         "sortOrder": "desc",
         "maxRecords": 2000,
