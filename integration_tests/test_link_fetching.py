@@ -44,7 +44,7 @@ def test_that_link_fetching_invocation_executes_correctly(
     )
 
     granules = db_session.query(Granule).all()
-    assert_that(granules).is_length(78)
+    assert_that(granules).is_length(222)
 
     # 5 days of granule count per platform
     for platform in ("S2A", "S2B"):
@@ -55,7 +55,7 @@ def test_that_link_fetching_invocation_executes_correctly(
     assert_that(statuses).is_length(1)
 
     polling2.poll(
-        check_sqs_message_count, args=(sqs_client, queue_url, 78), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 222), step=5, timeout=120
     )
 
 
@@ -95,7 +95,7 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
     )
 
     granules = db_session.query(Granule).all()
-    assert_that(granules).is_length(78)
+    assert_that(granules).is_length(222)
 
     # Assert that the original granule we added is still there
     granule_we_inserted = (
@@ -115,5 +115,5 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
     assert_that(statuses).is_length(1)
 
     polling2.poll(
-        check_sqs_message_count, args=(sqs_client, queue_url, 77), step=5, timeout=120
+        check_sqs_message_count, args=(sqs_client, queue_url, 221), step=5, timeout=120
     )
