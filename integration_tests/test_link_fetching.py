@@ -48,7 +48,11 @@ def test_that_link_fetching_invocation_executes_correctly(
 
     # 5 days of granule count per platform
     for platform in ("S2A", "S2B"):
-        granule_counts = db_session.query(GranuleCount).query(platform=platform).all()
+        granule_counts = (
+            db_session.query(GranuleCount)
+            .filter(GranuleCount.platform == platform)
+            .all()
+        )
         assert_that(granule_counts).is_length(5)
 
     statuses = db_session.query(Status).all()
@@ -108,7 +112,11 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
 
     # 5 days of granule count per platform
     for platform in ("S2A", "S2B"):
-        granule_counts = db_session.query(GranuleCount).query(platform=platform).all()
+        granule_counts = (
+            db_session.query(GranuleCount)
+            .filter(GranuleCount.platform == platform)
+            .all()
+        )
         assert_that(granule_counts).is_length(5)
 
     statuses = db_session.query(Status).all()
