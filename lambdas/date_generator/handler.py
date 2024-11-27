@@ -1,16 +1,20 @@
 from datetime import datetime, timedelta
+from itertools import product
 from typing import List
 
 
 def handler(event, context):
-    return {"query_dates": get_dates()}
+    platforms = ["S2A", "S2B"]
+    return {
+        "query_dates_platforms": list(product(get_dates(), platforms)),
+    }
 
 
 def get_dates() -> List[str]:
     """
     Returns 5 date strings from `datetime.now() - 1 day` with the latest day first
     Strings are formatted as %Y-%m-%d
-    :returns: List[str] representing 21 days from yesterday
+    :returns: List[str] representing 5 days from yesterday
     """
     yesterdays_date = datetime.now().date() - timedelta(days=1)
     return [

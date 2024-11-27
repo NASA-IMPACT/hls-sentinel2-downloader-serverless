@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "id": "9137bc21-5ca8-50b7-bda0-55899ecd0640",
+    "totalResults": 2020,
+    "exactCount": 1,
+    "startIndex": 10000,
+    "itemsPerPage": 100,
+    "query": {
+      "originalFilters": {
+        "processingLevel": "S2MSI1C",
+        "publishedAfter": "2020-01-01T00:00:00Z",
+        "publishedBefore": "2020-01-01T23:59:59Z",
+        "startDate": "2019-12-02T00:00:00Z",
+        "platform": "S2A",
+        "collection": "SENTINEL-2"
+      },
+      "appliedFilters": {
+        "processingLevel": "S2MSI1C",
+        "publishedAfter": "2020-01-01T00:00:00Z",
+        "publishedBefore": "2020-01-01T23:59:59Z",
+        "startDate": "2019-12-02T00:00:00Z",
+        "platform": "S2A",
+        "collection": "SENTINEL-2"
+      },
+      "processingTime": 0.496579977
+    },
+    "links": [
+      {
+        "rel": "self",
+        "type": "application/json",
+        "title": "self",
+        "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/search.json?processingLevel=S2MSI1C&publishedAfter=2020-01-01T00%3A00%3A00Z&publishedBefore=2020-01-01T23%3A59%3A59Z&startDate=2019-12-02T00%3A00%3A00Z&sortParam=published&sortOrder=desc&maxRecords=100&index=10000&platform=S2A&exactCount=true"
+      },
+      {
+        "rel": "search",
+        "type": "application/opensearchdescription+xml",
+        "title": "OpenSearch Description Document",
+        "href": "https://catalogue.dataspace.copernicus.eu/resto/api/collections/Sentinel2/describe.xml"
+      }
+    ]
+  },
+  "features": []
+}
+
