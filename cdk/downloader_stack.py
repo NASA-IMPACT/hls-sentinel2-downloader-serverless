@@ -329,7 +329,7 @@ class DownloaderStack(Stack):
             default_integration=aws_apigatewayv2_integrations.HttpLambdaIntegration(
                 "EsaPushSubscriptionHandlerApi-Integration",
                 handler=link_subscription,
-            )
+            ),
         )
 
         aws_ssm.StringParameter(
