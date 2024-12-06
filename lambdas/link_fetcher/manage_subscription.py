@@ -206,7 +206,7 @@ class SubscriptionAPI:
         response.raise_for_status()
         subscription_information = response.json()
         subscription_id = subscription_information["Id"]
-        print("Subscription created. Its ID is " + subscription_id + ".")
+        print(f"Subscription created {subscription_id=}")
         print("Below is full response:")
         print(subscription_information)
         return subscription_id
@@ -236,12 +236,11 @@ class SubscriptionAPI:
             "Authorization": f"Bearer {token.access_token}",
         }
         response = requests.delete(
-            url=self.token_api.config.subscriptions_api_base_url
-            + f"({subscription_id})",
+            url=f"{self.token_api.config.subscriptions_api_base_url}({subscription_id})",
             headers=headers,
         )
         response.raise_for_status()
-        print("Subscription terminated. Its ID was " + subscription_id + ".")
+        print(f"Subscription terminated {subscription_id=}.")
 
 
 @click.command()
