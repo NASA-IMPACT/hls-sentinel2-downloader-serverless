@@ -6,7 +6,8 @@ from aws_cdk import (
     Duration,
     RemovalPolicy,
     Stack,
-    aws_apigateway,
+    aws_apigatewayv2,
+    aws_apigatewayv2_integrations,
     aws_cloudwatch,
     aws_ec2,
     aws_events,
@@ -321,22 +322,21 @@ class DownloaderStack(Stack):
             threshold=1,
         )
 
-        forwarder_api = aws_apigateway.LambdaRestApi(
+        forwarder_api = aws_apigatewayv2.HttpApi(
             self,
-            "EsaForwarderApi",
-            rest_api_name="EsaForwarderApi",
-            handler=link_subscription,
-            proxy=True,
-            integration_options={
-                "proxy": True,
-            },
+            "EsaPushSubscriptionHandlerApi",
+            api_name="EsaPushSubscriptionHandlerApi",
+            default_integration=aws_apigatewayv2_integrations.HttpLambdaIntegration(
+                "EsaPushSubscriptionHandlerApi-Integration",
+                handler=link_subscription,
+            )
         )
 
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-link-subscription-endpoint-url",
             string_value=forwarder_api.url,
-            parameter_name=f"/integration_tests/{identifier}/link_subscription_endpoint_url",
+            parameter_name=f"/hls-s2-downloader-serverless/{identifier}/link_subscription_endpoint_url",
         )
 
         downloader_environment_vars = {
