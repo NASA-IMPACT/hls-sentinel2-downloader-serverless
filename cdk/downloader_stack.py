@@ -422,8 +422,8 @@ class DownloaderStack(Stack):
         link_fetcher_map_task = sfn.Map(
             self,
             id=f"{identifier}-link-fetcher-map",
-            input_path="$.Payload.query_dates",
-            parameters={"query_date.$": "$$.Map.Item.Value"},
+            input_path="$.Payload.query_dates_platforms",
+            parameters={"query_date_platform.$": "$$.Map.Item.Value"},
             max_concurrency=3,
         ).iterator(
             link_fetcher_task.next(
