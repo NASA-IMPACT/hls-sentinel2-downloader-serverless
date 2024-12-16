@@ -36,7 +36,7 @@ class TestEndpointConfig:
         assert config.notification_password == "baz"
 
     @pytest.fixture
-    def endpoint_config_secret(self) -> EndpointConfig:
+    def endpoint_config_secret(self) -> Iterator[EndpointConfig]:
         config = EndpointConfig(
             stage="local",
             notification_username="bar",
