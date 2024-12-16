@@ -7,7 +7,7 @@ inst_reqs = [
     f"aws-cdk.aws-lambda-python-alpha=={aws_cdk_version}a0",
     "boto3",
     "polling2",
-    "psycopg2",
+    "psycopg2-binary==2.9.10",
     "python-dotenv",
 ]
 
