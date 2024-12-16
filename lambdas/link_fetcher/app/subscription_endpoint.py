@@ -154,7 +154,10 @@ def process_notification(
         logger.info(f"Rejected {search_result=} (unacceptable tile)")
 
 
-def build_app(config: EndpointConfig) -> FastAPI:
+def build_app(
+    config: EndpointConfig,
+    now_utc: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
+) -> FastAPI:
     """Create FastAPI app"""
     app = FastAPI()
     app.add_middleware(
@@ -192,11 +195,11 @@ def build_app(config: EndpointConfig) -> FastAPI:
             logging.error("Unauthorized")
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # process notification
         process_notification(
             notification=notification,
             accepted_tile_ids=accepted_tile_ids,
             session_maker=session_maker,
+            now_utc=now_utc,
         )
         return Response(status_code=204)
 

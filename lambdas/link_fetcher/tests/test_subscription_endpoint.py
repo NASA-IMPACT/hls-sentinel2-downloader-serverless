@@ -1,7 +1,8 @@
 import json
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 from unittest.mock import Mock, patch
 
 import boto3
@@ -9,7 +10,6 @@ import httpx
 import pytest
 from db.models.granule import Granule
 from fastapi import FastAPI
-from freezegun import freeze_time
 from moto import mock_aws
 from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
@@ -195,16 +195,23 @@ class TestApp:
         )
 
     @pytest.fixture
-    def app(
-        self, config: EndpointConfig, db_connection_secret, mock_sqs_queue
+    def now_utc(self, request) -> Callable[[], datetime]:
+        if callable(getattr(request, "param", None)):
+            return request.param
+        return lambda: datetime.now(tz=timezone.utc)
+
+    @pytest.fixture
+    def test_client(
+        self,
+        config: EndpointConfig,
+        db_connection_secret,
+        mock_sqs_queue,
+        now_utc,
     ) -> FastAPI:
         self.endpoint_config = config
         self.db_connection_secret = db_connection_secret
         self.mock_sqs_queue = mock_sqs_queue
-        return build_app(config)
-
-    @pytest.fixture
-    def test_client(self, app: FastAPI) -> TestClient:
+        app = build_app(config, now_utc)
         return TestClient(app)
 
     def test_handles_new_created_event(
@@ -227,28 +234,32 @@ class TestApp:
         assert resp.status_code == 204
         mock_process_notification.assert_called_once()
 
+    @pytest.mark.parametrize(
+        "now_utc",
+        [lambda: datetime.fromisoformat("2024-09-12T14:52:06.118Z")],
+        indirect=True,
+    )
     def test_handles_new_created_event_is_added(
         self,
         test_client: TestClient,
         db_session: Session,
         event_s2_created: dict,
+        now_utc: Callable[[], datetime],
     ):
         """Test happy path for handling subscription event, mocking DB and SQS
 
-        This is also distinguished by using a "recent" event notification that works
-        by freezing/rewinding time to acquisition date for the test duration.
+        We ensure the new event is "recent" enough to accept by redefining the
+        `now_utc` that our application is provided to match the publication
+        date of the test data.
         """
-        # we can't inject an older "utc_now" into `process_notification` so we have to
-        # patch `datetime.now()` with freezegun
-        with freeze_time(event_s2_created["value"]["PublicationDate"]):
-            resp = test_client.post(
-                "/events",
-                json=event_s2_created,
-                auth=(
-                    self.endpoint_config.notification_username,
-                    self.endpoint_config.notification_password,
-                ),
-            )
+        resp = test_client.post(
+            "/events",
+            json=event_s2_created,
+            auth=(
+                self.endpoint_config.notification_username,
+                self.endpoint_config.notification_password,
+            ),
+        )
 
         # processed successfully but no content
         resp.raise_for_status()
