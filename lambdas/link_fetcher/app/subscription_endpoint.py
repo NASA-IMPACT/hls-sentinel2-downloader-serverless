@@ -5,7 +5,7 @@ import secrets
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Callable
-from urllib import urljoin
+from urllib.parse import urljoin
 
 import boto3
 import iso8601
