@@ -5,6 +5,7 @@ import secrets
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Callable
+from urllib import urljoin
 
 import boto3
 import iso8601
@@ -81,9 +82,9 @@ class EndpointConfig:
             f"/hls-s2-downloader-serverless/{self.stage}/link_subscription_endpoint_url"
         )
         result = ssm_client.get_parameter(Name=param_name)
-        if (value := result["Parameter"].get("Value")) is None:
+        if (url := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
-        return f"{value}events"
+        return urljoin(url, "events")
 
 
 def parse_search_result(
