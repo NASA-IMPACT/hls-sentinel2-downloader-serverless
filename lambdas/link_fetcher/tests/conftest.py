@@ -18,7 +18,7 @@ from sqlalchemy.engine import Engine, Transaction, url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from handler import SEARCH_URL, SearchResult
+from app.search_handler import SEARCH_URL, SearchResult
 
 UNIT_TEST_DIR = pathlib.Path(__file__).parent
 
@@ -30,7 +30,7 @@ def mock_search_response():
 
 @pytest.fixture
 def accepted_tile_ids() -> Set[str]:
-    with open(UNIT_TEST_DIR.parent / "allowed_tiles.txt") as lines:
+    with open(UNIT_TEST_DIR.parent / "app" / "allowed_tiles.txt") as lines:
         return set(map(str.strip, lines))
 
 
@@ -131,7 +131,8 @@ def sqs_client():
 
 @pytest.fixture
 def mock_sqs_queue(request, sqs_resource, monkeysession, sqs_client):
-    queue = sqs_resource.create_queue(QueueName=f"mock-queue-{request.node.name}"[:80])
+    request_name = hash(request.node.name)
+    queue = sqs_resource.create_queue(QueueName=f"mock-queue-{request_name}"[:80])
     monkeysession.setenv("TO_DOWNLOAD_SQS_QUEUE_URL", queue.url)
     return queue
 

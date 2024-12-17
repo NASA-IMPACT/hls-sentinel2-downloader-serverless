@@ -6,16 +6,17 @@ from aws_cdk import (
     Duration,
     RemovalPolicy,
     Stack,
+    aws_apigatewayv2,
+    aws_apigatewayv2_integrations,
     aws_cloudwatch,
     aws_ec2,
     aws_events,
     aws_events_targets,
     aws_iam,
     aws_lambda,
-    aws_s3,
 )
 from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
-from aws_cdk import aws_logs, aws_rds, aws_secretsmanager, aws_sqs, aws_ssm
+from aws_cdk import aws_logs, aws_rds, aws_s3, aws_secretsmanager, aws_sqs, aws_ssm
 from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
 from constructs import Construct
@@ -255,7 +256,7 @@ class DownloaderStack(Stack):
             self,
             id=f"{identifier}-link-fetcher",
             entry="lambdas/link_fetcher",
-            index="handler.py",
+            index="app/search_handler.py",
             handler="handler",
             layers=[
                 db_layer,
@@ -284,6 +285,58 @@ class DownloaderStack(Stack):
             metric=link_fetcher.metric_errors(),
             evaluation_periods=3,
             threshold=1,
+        )
+
+        link_subscription = aws_lambda_python.PythonFunction(
+            self,
+            id=f"{identifier}-link-subscription",
+            entry="lambdas/link_fetcher",
+            index="app/subscription_handler.py",
+            handler="handler",
+            layers=[
+                db_layer,
+            ],
+            memory_size=200,
+            timeout=Duration.minutes(15),
+            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            environment=link_fetcher_environment_vars,
+        )
+
+        aws_logs.LogGroup(
+            self,
+            id=f"{identifier}-link-subscription-log-group",
+            log_group_name=f"/aws/lambda/{link_subscription.function_name}",
+            removal_policy=RemovalPolicy.DESTROY
+            if removal_policy_destroy
+            else RemovalPolicy.RETAIN,
+            retention=aws_logs.RetentionDays.ONE_DAY
+            if removal_policy_destroy
+            else aws_logs.RetentionDays.TWO_WEEKS,
+        )
+
+        aws_cloudwatch.Alarm(
+            self,
+            id=f"{identifier}-link-subscription-errors-alarm",
+            metric=link_fetcher.metric_errors(),
+            evaluation_periods=3,
+            threshold=1,
+        )
+
+        forwarder_api = aws_apigatewayv2.HttpApi(
+            self,
+            "EsaPushSubscriptionHandlerApi",
+            api_name="EsaPushSubscriptionHandlerApi",
+            default_integration=aws_apigatewayv2_integrations.HttpLambdaIntegration(
+                "EsaPushSubscriptionHandlerApi-Integration",
+                handler=link_subscription,
+            ),
+        )
+
+        aws_ssm.StringParameter(
+            self,
+            id=f"{identifier}-link-subscription-endpoint-url",
+            string_value=forwarder_api.url,
+            parameter_name=f"/hls-s2-downloader-serverless/{identifier}/link_subscription_endpoint_url",
         )
 
         downloader_environment_vars = {
@@ -338,7 +391,7 @@ class DownloaderStack(Stack):
             self,
             id=f"{identifier}-downloader-role-arn",
             string_value=self.downloader.role.role_arn,
-            parameter_name=(f"/integration_tests/{identifier}/downloader_role_arn"),
+            parameter_name=f"/integration_tests/{identifier}/downloader_role_arn",
         )
 
         self.downloader.role.add_managed_policy(lambda_insights_policy)
@@ -351,14 +404,8 @@ class DownloaderStack(Stack):
         downloader_bucket.grant_write(self.downloader)
 
         downloader_rds_secret.grant_read(link_fetcher)
+        downloader_rds_secret.grant_read(link_subscription)
         downloader_rds_secret.grant_read(self.downloader)
-
-        scihub_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
-            self,
-            id=f"{identifier}-scihub-credentials",
-            secret_name=f"hls-s2-downloader-serverless/{identifier}/scihub-credentials",
-        )
-        scihub_credentials.grant_read(self.downloader)
 
         copernicus_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
             self,
@@ -368,9 +415,17 @@ class DownloaderStack(Stack):
         copernicus_credentials.grant_read(self.downloader)
         copernicus_credentials.grant_read(self.token_rotator)
 
+        esa_subscription_credentials = aws_secretsmanager.Secret.from_secret_name_v2(
+            self,
+            id=f"{identifier}-esa-subscription-credentials",
+            secret_name=f"hls-s2-downloader-serverless/{identifier}/esa-subscription-credentials",
+        )
+        esa_subscription_credentials.grant_read(link_subscription)
+
         token_parameter.grant_read(self.downloader)
 
         to_download_queue.grant_send_messages(link_fetcher)
+        to_download_queue.grant_send_messages(link_subscription)
         to_download_queue.grant_consume_messages(self.downloader)
 
         # We must resort to using CfnEventSourceMapping to set the maximum concurrency

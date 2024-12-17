@@ -40,8 +40,6 @@ $ npm install # This installs any node packages that are within package.json (CD
 $ make install # This calls `pipenv install --dev` on the repo root and any of the directories that contain a Makefile with `install`
 ```
 
-_**Note** you might have an issue installing `psycopg2` - I found [this](https://github.com/pypa/pipenv/issues/3991#issuecomment-564645309) helpful_
-
 A file named `.env` is expected in the root of the repository, the expected values are:
 
 ```bash

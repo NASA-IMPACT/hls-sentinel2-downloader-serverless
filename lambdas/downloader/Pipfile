@@ -15,7 +15,7 @@ db = {editable = true, path = "./../../layers/db"}
 pytest-docker = "==2.0.1"
 alembic = "==1.12.1"
 moto = "==5.0.17"
-psycopg2 = "==2.9.10"
+psycopg2-binary = "==2.9.10"
 assertpy = "==1.1"
 responses = "==0.23.1"
 freezegun = "==1.0.0"
