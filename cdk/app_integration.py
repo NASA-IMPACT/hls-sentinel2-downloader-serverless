@@ -11,6 +11,7 @@ app = App()
 
 identifier = os.environ["IDENTIFIER"].replace("/", "")
 permissions_boundary_arn = os.getenv("PERMISSIONS_BOUNDARY_ARN")
+platforms = os.environ["PLATFORMS"]
 
 integration_stack = IntegrationStack(
     app,
@@ -24,6 +25,7 @@ downloader_stack = DownloaderStack(
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=integration_stack.upload_bucket.bucket_name,
+    platforms=platforms,
     permissions_boundary_arn=permissions_boundary_arn,
     search_url=integration_stack.scihub_url,
     zipper_url=integration_stack.scihub_url,

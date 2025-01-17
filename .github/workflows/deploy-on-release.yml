@@ -196,6 +196,7 @@ jobs:
           REMOVAL_POLICY_DESTROY="FALSE"
           UPLOAD_BUCKET="${{ secrets.UPLOAD_BUCKET }}"
           PERMISSIONS_BOUNDARY_ARN="${{ vars.PERMISSIONS_BOUNDARY_ARN }}"
+          PLATFORMS="${{ vars.PLATFORMS }}"
           EOF
 
       - name: Set up Python 3.11
