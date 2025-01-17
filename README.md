@@ -25,7 +25,7 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 
 To develop on this project, you should install:
 
-* NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node 18
+- NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node LTS
 * [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) - There is a `package.json` in the repository, it's recommended to run `npm install` in the repository root and make use of `npx <command>` rather than globally installing AWS CDK
 * [pyenv](https://github.com/pyenv/pyenv) / Python 3.11
 * [pipenv](https://github.com/pypa/pipenv)

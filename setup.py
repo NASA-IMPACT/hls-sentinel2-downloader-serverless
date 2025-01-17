@@ -1,10 +1,10 @@
 from setuptools import find_packages, setup
 
 # Runtime requirements.
-aws_cdk_version = "2.162.1"
 inst_reqs = [
-    f"aws-cdk-lib=={aws_cdk_version}",
-    f"aws-cdk.aws-lambda-python-alpha=={aws_cdk_version}a0",
+    "aws-cdk-lib>=2.0.0",
+    "aws-cdk.aws-lambda-python-alpha",
+    "constructs>=10.0.0",
     "boto3",
     "polling2",
     "psycopg2-binary==2.9.10",

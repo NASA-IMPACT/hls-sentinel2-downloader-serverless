@@ -357,7 +357,7 @@ jobs:
       - name: Setup up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version: "lts/*"
 
       - name: Install AWS CDK
         run: |
