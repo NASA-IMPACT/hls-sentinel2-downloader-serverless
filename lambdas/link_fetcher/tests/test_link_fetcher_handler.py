@@ -410,12 +410,12 @@ def test_that_link_fetcher_handler_correctly_functions(
             return MIN_REMAINING_MILLIS
 
     result = _handler(
-        {"query_date_platform": ["2020-01-01", "S2A"]},
+        {"query_date_platform": ("2020-01-01", "S2A")},
         MockContext(),
         lambda: db_session,
     )
 
-    assert result == {"query_date_platform": ["2020-01-01", "S2A"], "completed": True}
+    assert result == {"query_date_platform": ("2020-01-01", "S2A"), "completed": True}
 
     # Assert all filtered granules present
     granules = db_session.query(Granule).all()
@@ -464,13 +464,13 @@ def test_that_link_fetcher_handler_bails_early(
             return MIN_REMAINING_MILLIS - 1
 
     result = _handler(
-        {"query_date_platform": ["2020-01-01", "S2A"]},
+        {"query_date_platform": ("2020-01-01", "S2A")},
         MockContext(),
         lambda: db_session,
     )
 
     # Assert that we bailed early
-    assert result == {"query_date_platform": ["2020-01-01", "S2A"], "completed": False}
+    assert result == {"query_date_platform": ("2020-01-01", "S2A"), "completed": False}
 
     # Assert all filtered granules present
     granules = db_session.query(Granule).all()

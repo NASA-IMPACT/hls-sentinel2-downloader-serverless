@@ -16,4 +16,4 @@ format:
 	pipenv run ruff format
 
 test:
-	pipenv run pytest -v --cov=handler --cov-report term-missing tests/
+	pipenv run pytest -v --cov=app --cov-report term-missing tests/
