@@ -6,6 +6,8 @@ from aws_cdk import aws_lambda_python_alpha as aws_lambda_python
 from aws_cdk import aws_logs, aws_s3, aws_secretsmanager, aws_ssm
 from constructs import Construct
 
+from cdk import DEFAULT_BUNDLING_OPTIONS
+
 
 class IntegrationStack(Stack):
     def __init__(
@@ -49,6 +51,7 @@ class IntegrationStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             timeout=Duration.minutes(1),
             memory_size=128,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
@@ -68,6 +71,7 @@ class IntegrationStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             timeout=Duration.minutes(1),
             memory_size=128,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(

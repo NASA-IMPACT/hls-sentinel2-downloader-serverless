@@ -21,6 +21,8 @@ from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
 from constructs import Construct
 
+from cdk import DEFAULT_BUNDLING_OPTIONS
+
 
 class DownloaderStack(Stack):
     def __init__(
@@ -137,6 +139,7 @@ class DownloaderStack(Stack):
             memory_size=1200,
             timeout=Duration.minutes(5),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         token_parameter.grant_write(self.token_rotator.role)  # type: ignore
@@ -159,6 +162,7 @@ class DownloaderStack(Stack):
             id=f"{identifier}-db-layer",
             entry="layers/db",
             compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         migration_function = aws_lambda_python.PythonFunction(
@@ -174,6 +178,7 @@ class DownloaderStack(Stack):
                 db_layer,
             ],
             environment={"DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn},
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         downloader_rds_secret.grant_read(migration_function)
@@ -218,6 +223,7 @@ class DownloaderStack(Stack):
             timeout=Duration.seconds(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment={"PLATFORMS": platforms},
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
@@ -273,6 +279,7 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=link_fetcher_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
@@ -312,6 +319,7 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=link_fetcher_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
@@ -374,6 +382,7 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=downloader_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
@@ -573,6 +582,7 @@ def add_requeuer(
             "TO_DOWNLOAD_SQS_QUEUE_URL": queue.queue_url,
             "DB_CONNECTION_SECRET_ARN": secret.secret_arn,
         },
+        bundling=DEFAULT_BUNDLING_OPTIONS,
     )
 
     aws_logs.LogGroup(
