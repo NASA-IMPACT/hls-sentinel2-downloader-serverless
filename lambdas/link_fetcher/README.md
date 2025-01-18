@@ -18,7 +18,6 @@ README describes both forms of link fetching.
 The Link Fetchers purpose is to query Copernicus Data Space Ecosystem for new imagery links to download. It is invoked within the `Link Fetching` Step Function; every invocation is performed on one day in the form `YYYY-MM-DD`. Images to download are stored as records in the `granule` table, the `granule_count` table is also updated with available and fetched link counts. The `To Download` queue is also populated with the images IDs and download URLs.
 
 ## Handler breakdown (Polling)
-## Handler breakdown (Polling)
 
 Provided below is some pseudo-code to explain the process happening each time the lambda is invoked:
 
@@ -141,3 +140,4 @@ A `Makefile` is provided to abstract commonly used commands away:
 > This will run the unit tests of the project with `pytest` using the contents of your `.env` file
 
 ---
+

@@ -5,6 +5,7 @@ import secrets
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Callable
+from urllib.parse import urljoin
 
 import boto3
 import iso8601
@@ -81,9 +82,9 @@ class EndpointConfig:
             f"/hls-s2-downloader-serverless/{self.stage}/link_subscription_endpoint_url"
         )
         result = ssm_client.get_parameter(Name=param_name)
-        if (value := result["Parameter"].get("Value")) is None:
+        if (url := result["Parameter"].get("Value")) is None:
             raise ValueError(f"No such SSM parameter {param_name}")
-        return f"{value}events"
+        return urljoin(url, "events")
 
 
 def parse_search_result(
@@ -153,7 +154,10 @@ def process_notification(
         logger.info(f"Rejected {search_result=} (unacceptable tile)")
 
 
-def build_app(config: EndpointConfig) -> FastAPI:
+def build_app(
+    config: EndpointConfig,
+    now_utc: Callable[[], datetime] = lambda: datetime.now(tz=timezone.utc),
+) -> FastAPI:
     """Create FastAPI app"""
     app = FastAPI()
     app.add_middleware(
@@ -191,11 +195,11 @@ def build_app(config: EndpointConfig) -> FastAPI:
             logging.error("Unauthorized")
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # process notification
         process_notification(
             notification=notification,
             accepted_tile_ids=accepted_tile_ids,
             session_maker=session_maker,
+            now_utc=now_utc,
         )
         return Response(status_code=204)
 
