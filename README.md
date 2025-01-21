@@ -6,14 +6,18 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 
 # Contents
 
-* [🧑‍💻 Development - Requirements](#requirements)
-* [🧑‍💻 Development - Getting started 🏃‍♀️](#getting-started-🏃‍♀️)
-* [🧑‍💻 Development - Repository TL;DR:](#repository-tldr)
-* [🧑‍💻 Development - Lambda and Layer development TL;DR:](#lambda-and-layer-development-tldr)
-* [🧑‍💻 Development - Makefile goodness](#makefile-goodness)
-* [🚀 Deployment - Prerequisites](#prerequisites)
-* [🚀 Deployment - Standard Deployments](#standard-deployments)
-* [🚀 Deployment - Testing Deployments](#testing-deployments)
+- [Requirements](#requirements)
+- [Getting started 🏃‍♀️](#getting-started-️)
+- [Using `REMOVAL_POLICY_DESTROY`](#using-removal_policy_destroy)
+- [Repository TL;DR:](#repository-tldr)
+- [Lambda and Layer development TL;DR](#lambda-and-layer-development-tldr)
+- [Makefile goodness](#makefile-goodness)
+- [Prerequisites](#prerequisites)
+  - [SciHub Credentials](#scihub-credentials)
+  - [Copernicus Credentials](#copernicus-credentials)
+  - [Upload Bucket](#upload-bucket)
+- [Standard Deployments](#standard-deployments)
+- [Testing Deployments](#testing-deployments)
 
 # Development
 
@@ -21,7 +25,7 @@ This project aims to provide a serverless implementation of the current [HLS S2 
 
 To develop on this project, you should install:
 
-* NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node 18
+- NVM [Node Version Manager](https://github.com/nvm-sh/nvm) / Node LTS
 * [AWS CDK](https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html) - There is a `package.json` in the repository, it's recommended to run `npm install` in the repository root and make use of `npx <command>` rather than globally installing AWS CDK
 * [pyenv](https://github.com/pyenv/pyenv) / Python 3.11
 * [pipenv](https://github.com/pypa/pipenv)
@@ -52,6 +56,7 @@ ENABLE_DOWNLOADING="TRUE" # Or "FALSE" - If TRUE then the TO_UPLOAD queue is set
 SCHEDULE_LINK_FETCHING="TRUE" # Or "FALSE" - If TRUE then link fetching will happen every day at midday.
 REMOVAL_POLICY_DESTROY="TRUE" # Or "FALSE" - See below for what is deleted if TRUE
 UPLOAD_BUCKET="<name-of-aws-s3-bucket-to-upload-images-to>"
+PLATFORMS="S2B,S2C" # Comma-separated list of platforms to query for
 ```
 
 An example that you can modify and rename to `.env` is provided: `example.env`
@@ -76,7 +81,7 @@ The pattern for this monorepo approach was devised amongst a few folks at Develo
 
 Most directories will contain a README to explain what the purpose is of the component and how to develop it.
 
-## Lambda and Layer development TL;DR:
+## Lambda and Layer development TL;DR
 
 Every Lambda and Layer directory has a `Makefile` inside, this contains a subset of the commands found in the [root repository Makefile](#makefile-goodness). Each `Makefile` should come with `install`, `lint`, `format`, and `test` as standard, these are then added as calls in the root Makefile so that we can install/lint/format/unit test all our code at a project level.
 

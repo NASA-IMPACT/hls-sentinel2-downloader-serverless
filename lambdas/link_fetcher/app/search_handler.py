@@ -3,7 +3,6 @@ from datetime import date, datetime, timedelta
 from typing import (
     Any,
     Final,
-    Literal,
     Mapping,
     Protocol,
     Sequence,
@@ -32,7 +31,6 @@ SEARCH_URL: Final = os.environ.get(
     "SEARCH_URL",
     "https://catalogue.dataspace.copernicus.eu",
 )
-Platform = Literal["S2A", "S2B"]
 
 
 class Context(Protocol):
@@ -40,7 +38,7 @@ class Context(Protocol):
 
 
 class HandlerResult(TypedDict):
-    query_date: str
+    query_date_platform: Tuple[str, str]
     completed: bool
 
 
@@ -89,14 +87,12 @@ def _handler(
         search_results, _ = get_page_for_query_and_total_results(params)
 
     return {
-        "query_date_platform": [query_date, query_platform],
+        "query_date_platform": (query_date, query_platform),
         "completed": not bail_early,
     }
 
 
-def get_fetched_links(
-    session_maker: SessionMaker, day: date, platform: Platform
-) -> int:
+def get_fetched_links(session_maker: SessionMaker, day: date, platform: str) -> int:
     """
     For a given day, return the total
     `fetched_links`, where `fetched_links` is the total number of granules that have
@@ -131,7 +127,7 @@ def get_fetched_links(
 
 
 def update_total_results(
-    session_maker: SessionMaker, day: date, platform: Platform, total_results: int
+    session_maker: SessionMaker, day: date, platform: str, total_results: int
 ):
     """
     For a given day and number of results, update the `available_links` value
@@ -175,7 +171,7 @@ def update_last_fetched_link_time(session_maker: SessionMaker):
 
 
 def update_fetched_links(
-    session_maker: SessionMaker, day: date, platform: Platform, fetched_links: int
+    session_maker: SessionMaker, day: date, platform: str, fetched_links: int
 ):
     """
     For a given day, update the `fetched_links` value in `granule_count` to the provided
@@ -198,9 +194,7 @@ def update_fetched_links(
             session.commit()
 
 
-def get_query_parameters(
-    start: int, day: date, platform: Platform
-) -> Mapping[str, Any]:
+def get_query_parameters(start: int, day: date, platform: str) -> Mapping[str, Any]:
     """
     Returns the query parameters that are needed for getting new imagery from
     search (Copernicus Data Space Ecosystem)

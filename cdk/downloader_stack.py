@@ -21,6 +21,8 @@ from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
 from constructs import Construct
 
+from cdk import DEFAULT_BUNDLING_OPTIONS
+
 
 class DownloaderStack(Stack):
     def __init__(
@@ -30,6 +32,7 @@ class DownloaderStack(Stack):
         *,
         identifier: str,
         upload_bucket: str,
+        platforms: str,
         permissions_boundary_arn: Optional[str] = None,
         search_url: Optional[str] = None,
         zipper_url: Optional[str] = None,
@@ -101,9 +104,11 @@ class DownloaderStack(Stack):
             ),
             subnet_group=rds_subnet_group,
             default_database_name="hlss2downloader",
-            removal_policy=RemovalPolicy.DESTROY
-            if removal_policy_destroy
-            else RemovalPolicy.RETAIN,
+            removal_policy=(
+                RemovalPolicy.DESTROY
+                if removal_policy_destroy
+                else RemovalPolicy.RETAIN
+            ),
         )
         downloader_rds_secret = downloader_rds.secret
 
@@ -134,9 +139,10 @@ class DownloaderStack(Stack):
             memory_size=1200,
             timeout=Duration.minutes(5),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
-        token_parameter.grant_write(self.token_rotator.role)
+        token_parameter.grant_write(self.token_rotator.role)  # type: ignore
 
         rule = aws_events.Rule(
             self,
@@ -156,6 +162,7 @@ class DownloaderStack(Stack):
             id=f"{identifier}-db-layer",
             entry="layers/db",
             compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_11],
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         migration_function = aws_lambda_python.PythonFunction(
@@ -171,6 +178,7 @@ class DownloaderStack(Stack):
                 db_layer,
             ],
             environment={"DB_CONNECTION_SECRET_ARN": downloader_rds_secret.secret_arn},
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         downloader_rds_secret.grant_read(migration_function)
@@ -214,18 +222,24 @@ class DownloaderStack(Stack):
             memory_size=128,
             timeout=Duration.seconds(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
+            environment={"PLATFORMS": platforms},
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
             self,
             id=f"{identifier}-date-generator-log-group",
             log_group_name=f"/aws/lambda/{date_generator.function_name}",
-            removal_policy=RemovalPolicy.DESTROY
-            if removal_policy_destroy
-            else RemovalPolicy.RETAIN,
-            retention=aws_logs.RetentionDays.ONE_DAY
-            if removal_policy_destroy
-            else aws_logs.RetentionDays.TWO_WEEKS,
+            removal_policy=(
+                RemovalPolicy.DESTROY
+                if removal_policy_destroy
+                else RemovalPolicy.RETAIN
+            ),
+            retention=(
+                aws_logs.RetentionDays.ONE_DAY
+                if removal_policy_destroy
+                else aws_logs.RetentionDays.TWO_WEEKS
+            ),
         )
 
         link_fetcher_environment_vars = {
@@ -265,18 +279,23 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=link_fetcher_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
             self,
             id=f"{identifier}-link-fetcher-log-group",
             log_group_name=f"/aws/lambda/{link_fetcher.function_name}",
-            removal_policy=RemovalPolicy.DESTROY
-            if removal_policy_destroy
-            else RemovalPolicy.RETAIN,
-            retention=aws_logs.RetentionDays.ONE_DAY
-            if removal_policy_destroy
-            else aws_logs.RetentionDays.TWO_WEEKS,
+            removal_policy=(
+                RemovalPolicy.DESTROY
+                if removal_policy_destroy
+                else RemovalPolicy.RETAIN
+            ),
+            retention=(
+                aws_logs.RetentionDays.ONE_DAY
+                if removal_policy_destroy
+                else aws_logs.RetentionDays.TWO_WEEKS
+            ),
         )
 
         aws_cloudwatch.Alarm(
@@ -300,18 +319,23 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=link_fetcher_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
             self,
             id=f"{identifier}-link-subscription-log-group",
             log_group_name=f"/aws/lambda/{link_subscription.function_name}",
-            removal_policy=RemovalPolicy.DESTROY
-            if removal_policy_destroy
-            else RemovalPolicy.RETAIN,
-            retention=aws_logs.RetentionDays.ONE_DAY
-            if removal_policy_destroy
-            else aws_logs.RetentionDays.TWO_WEEKS,
+            removal_policy=(
+                RemovalPolicy.DESTROY
+                if removal_policy_destroy
+                else RemovalPolicy.RETAIN
+            ),
+            retention=(
+                aws_logs.RetentionDays.ONE_DAY
+                if removal_policy_destroy
+                else aws_logs.RetentionDays.TWO_WEEKS
+            ),
         )
 
         aws_cloudwatch.Alarm(
@@ -335,7 +359,7 @@ class DownloaderStack(Stack):
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-link-subscription-endpoint-url",
-            string_value=forwarder_api.url,
+            string_value=forwarder_api.url,  # type: ignore
             parameter_name=f"/hls-s2-downloader-serverless/{identifier}/link_subscription_endpoint_url",
         )
 
@@ -358,18 +382,23 @@ class DownloaderStack(Stack):
             timeout=Duration.minutes(15),
             runtime=aws_lambda.Runtime.PYTHON_3_11,
             environment=downloader_environment_vars,
+            bundling=DEFAULT_BUNDLING_OPTIONS,
         )
 
         aws_logs.LogGroup(
             self,
             id=f"{identifier}-downloader-log-group",
             log_group_name=f"/aws/lambda/{self.downloader.function_name}",
-            removal_policy=RemovalPolicy.DESTROY
-            if removal_policy_destroy
-            else RemovalPolicy.RETAIN,
-            retention=aws_logs.RetentionDays.ONE_DAY
-            if removal_policy_destroy
-            else aws_logs.RetentionDays.TWO_WEEKS,
+            removal_policy=(
+                RemovalPolicy.DESTROY
+                if removal_policy_destroy
+                else RemovalPolicy.RETAIN
+            ),
+            retention=(
+                aws_logs.RetentionDays.ONE_DAY
+                if removal_policy_destroy
+                else aws_logs.RetentionDays.TWO_WEEKS
+            ),
         )
 
         aws_cloudwatch.Alarm(
@@ -390,11 +419,11 @@ class DownloaderStack(Stack):
         aws_ssm.StringParameter(
             self,
             id=f"{identifier}-downloader-role-arn",
-            string_value=self.downloader.role.role_arn,
+            string_value=self.downloader.role.role_arn,  # type: ignore
             parameter_name=f"/integration_tests/{identifier}/downloader_role_arn",
         )
 
-        self.downloader.role.add_managed_policy(lambda_insights_policy)
+        self.downloader.role.add_managed_policy(lambda_insights_policy)  # type: ignore
 
         downloader_bucket = aws_s3.Bucket.from_bucket_name(
             self,
@@ -553,18 +582,21 @@ def add_requeuer(
             "TO_DOWNLOAD_SQS_QUEUE_URL": queue.queue_url,
             "DB_CONNECTION_SECRET_ARN": secret.secret_arn,
         },
+        bundling=DEFAULT_BUNDLING_OPTIONS,
     )
 
     aws_logs.LogGroup(
         scope,
         id=f"{identifier}-requeuer-log-group",
         log_group_name=f"/aws/lambda/{requeuer.function_name}",
-        removal_policy=RemovalPolicy.DESTROY
-        if removal_policy_destroy
-        else RemovalPolicy.RETAIN,
-        retention=aws_logs.RetentionDays.ONE_DAY
-        if removal_policy_destroy
-        else aws_logs.RetentionDays.TWO_WEEKS,
+        removal_policy=(
+            RemovalPolicy.DESTROY if removal_policy_destroy else RemovalPolicy.RETAIN
+        ),
+        retention=(
+            aws_logs.RetentionDays.ONE_DAY
+            if removal_policy_destroy
+            else aws_logs.RetentionDays.TWO_WEEKS
+        ),
     )
 
     secret.grant_read(requeuer)

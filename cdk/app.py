@@ -14,6 +14,7 @@ upload_bucket = os.environ["UPLOAD_BUCKET"]
 enable_downloading = os.environ["ENABLE_DOWNLOADING"] == "TRUE"
 schedule_link_fetching = os.environ["SCHEDULE_LINK_FETCHING"] == "TRUE"
 removal_policy_destroy = os.environ["REMOVAL_POLICY_DESTROY"] == "TRUE"
+platforms = os.environ["PLATFORMS"]
 print(identifier)
 
 
@@ -22,6 +23,7 @@ DownloaderStack(
     f"hls-s2-downloader-serverless-{identifier}",
     identifier=identifier,
     upload_bucket=upload_bucket,
+    platforms=platforms,
     permissions_boundary_arn=permissions_boundary_arn,
     enable_downloading=enable_downloading,
     schedule_link_fetching=schedule_link_fetching,
