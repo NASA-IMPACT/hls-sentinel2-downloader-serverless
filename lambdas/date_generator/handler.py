@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from itertools import product
 
-
 DATE_FORMAT_YMD = "%Y-%m-%d"
 DEFAULT_LOOKBACK_DAYS = 5
 
