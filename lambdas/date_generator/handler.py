@@ -2,13 +2,28 @@ import os
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from itertools import product
+from typing import TypedDict
+
+
+class Event(TypedDict, total=False):
+    """Input event payload
+
+    These inputs are not required but can be provided to override
+    behavior for unit testing or backfills. Defaults are set inside
+    of the handler function.
+    """
+
+    platforms: Sequence[str]
+    now: str
+    lookback_days: int
+
 
 DATE_FORMAT_YMD = "%Y-%m-%d"
 DEFAULT_LOOKBACK_DAYS = 5
 
 
 def handler(
-    event: dict,
+    event: Event,
     _context,
 ):
     """
