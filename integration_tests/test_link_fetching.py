@@ -33,7 +33,8 @@ def test_that_link_fetching_invocation_executes_correctly(
     queue_url: str,
 ):
     execution_arn = step_function_client.start_execution(
-        stateMachineArn=step_function_arn, input=json.dumps({})
+        stateMachineArn=step_function_arn,
+        input=json.dumps({"platforms": ["S2A", "S2B"]}),
     )["executionArn"]
 
     polling2.poll(
@@ -88,7 +89,8 @@ def test_that_link_fetching_invocation_executes_correctly_when_a_duplicate_granu
     db_session.commit()
 
     execution_arn = step_function_client.start_execution(
-        stateMachineArn=step_function_arn, input=json.dumps({})
+        stateMachineArn=step_function_arn,
+        input=json.dumps({"platforms": ["S2A", "S2B"]}),
     )["executionArn"]
 
     polling2.poll(
