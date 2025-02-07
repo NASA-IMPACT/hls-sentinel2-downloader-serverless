@@ -106,9 +106,15 @@ def parse_search_result(
     # * FormatType: "Extracted"
     # * DownloadLink: str
     # * ContentLength: int
-    # * Checksum: { "Value": str, "Algorithm": "MD5" | "BLAKE3", "ChecksumDate": datetime}
+    # * Checksum: [{ "Value": str, "Algorithm": "MD5" | "BLAKE3", "ChecksumDate": datetime}, ...]
     # * S3Path: str
     extracted = extracted_links[0]
+
+    # grab MD5 checksum
+    checksum = [
+        checksum["Value"] for checksum in extracted["Checksum"]
+        if checksum["Algorithm"] == "MD5"
+    ][0]
 
     search_result = SearchResult(
         image_id=payload["Id"],
@@ -119,6 +125,7 @@ def parse_search_result(
         endposition=iso8601.parse_date(payload["ContentDate"]["End"]),
         ingestiondate=iso8601.parse_date(payload["PublicationDate"]),
         download_url=extracted["DownloadLink"],
+        checksum=checksum,
     )
     return search_result
 
