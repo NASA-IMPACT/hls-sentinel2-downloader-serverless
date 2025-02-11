@@ -728,6 +728,7 @@ def test_that_handler_correctly_logs_and_errors_if_update_download_finish_fails(
             handler(sqs_message, None)
 
     mock_increase_retry_count.assert_called_once()
+    mock_get_image_checksum.assert_called_once()
 
 
 @responses.activate
@@ -741,6 +742,11 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
     mock_get_copernicus_token,
     example_checksum_response,
 ):
+    """Happy path case for link fetching via scheduled search
+
+    In this pathway we do NOT know the download checksum because the search API doesn't
+    include it.
+    """
     sqs_message = {
         "Records": [
             {
@@ -819,3 +825,178 @@ def test_that_handler_correctly_downloads_file_and_updates_granule(
             mock.call("Successfully downloaded image: test-filename"),
         ]
     )
+    responses.assert_call_count(checksum_url.replace(" ", "%20"), 1)
+
+
+@responses.activate
+@freeze_time("2020-02-02 00:00:00")
+@mock.patch("handler.LOGGER.info")
+@mock.patch("handler.get_image_checksum")
+def test_that_handler_doesnt_get_checksum_if_provided_in_message(
+    patched_get_image_checksum,
+    patched_logger,
+    db_session,
+    fake_safe_file_contents,
+    mock_s3_bucket,
+    mock_get_copernicus_token,
+    example_checksum_response,
+):
+    """Ensure we don't try to fetch the checksum on first attempt if provided in message
+
+    The subscription API includes the checksum in the payload they send us, so we don't
+    need to ask ESA for the checksum again.
+    """
+    checksum_value = "36F3AB53F6D2D9592CF50CE4682FF7EA"
+    sqs_message = {
+        "Records": [
+            {
+                "body": json.dumps(
+                    {
+                        "id": "test-id",
+                        "filename": "test-filename",
+                        "download_url": download_url,
+                        "checksum": checksum_value,
+                    }
+                )
+            }
+        ]
+    }
+    responses.add(
+        responses.GET,
+        download_url,
+        body=fake_safe_file_contents,
+        stream=True,
+        status=200,
+    )
+    db_session.add(
+        Granule(
+            id="test-id",
+            filename="test-filename",
+            tileid="NM901",
+            size=100,
+            beginposition=datetime.now(),
+            endposition=datetime.now(),
+            ingestiondate=datetime.now(),
+            download_url=download_url,
+            downloaded=False,
+            checksum=checksum_value,
+        )
+    )
+    db_session.commit()
+
+    handler(sqs_message, None)
+
+    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
+    assert_that(granule.downloaded).is_true()
+    assert_that(granule.checksum).is_equal_to(checksum_value)
+
+    bucket_objects = list(mock_s3_bucket.objects.all())
+    assert_that(bucket_objects).is_length(1)
+    assert_that(bucket_objects[0].key).is_equal_to("test-filename.zip")
+    bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
+    assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
+
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime.now()))
+
+    patched_logger.assert_has_calls(
+        [
+            mock.call("Received event to download image: test-filename"),
+            mock.call("Successfully downloaded image: test-filename"),
+        ]
+    )
+    patched_get_image_checksum.assert_not_called()
+
+
+@responses.activate
+@freeze_time("2020-02-02 00:00:00")
+@mock.patch("handler.LOGGER.info")
+def test_that_handler_fetches_checksum_if_retry_count_greater_than_zero(
+    patched_logger,
+    db_session,
+    fake_safe_file_contents,
+    mock_s3_bucket,
+    mock_get_copernicus_token,
+    example_checksum_response,
+):
+    """Ensure the download handler fetches the MD5 checksum if download is retried
+
+    We've observed that ESA sometimes provides an inaccurate checksum, so we want to
+    ensure that our downloader doesn't continually use an incorrect checksum and tries
+    to refetch it on a repeat attempt.
+    """
+    checksum_value = example_checksum_response["value"][0]["Checksum"][0]["Value"]
+    sqs_message = {
+        "Records": [
+            {
+                "body": json.dumps(
+                    {
+                        "id": "test-id",
+                        "filename": "test-filename",
+                        "download_url": download_url,
+                        "checksum": "some-incorrect-checksum",
+                    }
+                )
+            }
+        ]
+    }
+    responses.add(
+        responses.GET,
+        download_url,
+        body=fake_safe_file_contents,
+        stream=True,
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        checksum_url,
+        json=example_checksum_response,
+        status=200,
+    )
+    db_session.add(
+        Granule(
+            id="test-id",
+            filename="test-filename",
+            tileid="NM901",
+            size=100,
+            beginposition=datetime.now(),
+            endposition=datetime.now(),
+            ingestiondate=datetime.now(),
+            download_url=download_url,
+            downloaded=False,
+            download_retries=1,
+            checksum="some-incorrect-checksum",
+        )
+    )
+    db_session.commit()
+
+    handler(sqs_message, None)
+
+    granule = db_session.query(Granule).filter(Granule.id == "test-id").first()
+    assert_that(granule.downloaded).is_true()
+    assert_that(granule.checksum).is_equal_to(checksum_value)
+
+    bucket_objects = list(mock_s3_bucket.objects.all())
+    assert_that(bucket_objects).is_length(1)
+    assert_that(bucket_objects[0].key).is_equal_to("test-filename.zip")
+    bucket_object_content = bucket_objects[0].get()["Body"].read().decode("utf-8")
+    assert_that(bucket_object_content).contains("THIS IS A FAKE SAFE FILE")
+
+    status = (
+        db_session.query(Status)
+        .filter(Status.key_name == "last_file_downloaded_time")
+        .first()
+    )
+    assert_that(status.value).is_equal_to(str(datetime.now()))
+
+    patched_logger.assert_has_calls(
+        [
+            mock.call("Received event to download image: test-filename"),
+            mock.call("Successfully downloaded image: test-filename"),
+        ]
+    )
+    responses.assert_call_count(checksum_url.replace(" ", "%20"), 1)

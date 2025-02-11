@@ -82,6 +82,7 @@ class TestSearchResultParsing:
         """Test happy path of parsing event to SearchResult"""
         search_result = parse_search_result(event_s2_created["value"])
         assert isinstance(search_result, SearchResult)
+        assert search_result.checksum == "700a3f2014ab3670408b94e4310924dd"
 
     def test_raises_if_no_extracted_data(self, event_s2_created: dict):
         """Test we catch if there's no "extracted" data"""
