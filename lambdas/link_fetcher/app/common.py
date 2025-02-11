@@ -110,7 +110,7 @@ def add_search_results_to_db_and_sqs(
                         endposition=result.endposition,
                         ingestiondate=result.ingestiondate,
                         download_url=result.download_url,
-                        checksum=result.checksum or ""
+                        checksum=result.checksum or "",
                     )  # type: ignore
                 )
                 session.commit()

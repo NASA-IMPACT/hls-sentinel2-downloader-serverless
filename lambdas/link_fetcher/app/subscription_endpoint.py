@@ -112,7 +112,8 @@ def parse_search_result(
 
     # grab MD5 checksum
     checksum = [
-        checksum["Value"] for checksum in extracted["Checksum"]
+        checksum["Value"]
+        for checksum in extracted["Checksum"]
         if checksum["Algorithm"] == "MD5"
     ][0]
 
