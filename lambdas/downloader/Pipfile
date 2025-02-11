@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 boto3 = "==1.35.44"
-requests = "==2.31.0"
+requests = "~=2.32"
 boto3-stubs = {version = "==1.17.10.0", extras = ["s3"]}
 sqlalchemy = "==1.4.0"
 
