@@ -118,6 +118,8 @@ def add_search_results_to_db_and_sqs(
             except IntegrityError:
                 print(f"{result.image_id} already in Database, not adding")
                 session.rollback()
+            else:
+                print(f"Added {result.image_id} to the Database")
 
 
 def add_search_result_to_sqs(
