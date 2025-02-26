@@ -35,6 +35,7 @@ class SearchResult:
     endposition: datetime
     ingestiondate: datetime
     download_url: str
+    checksum: str | None = None
 
 
 def parse_tile_id_from_title(title: str) -> str:
@@ -109,6 +110,7 @@ def add_search_results_to_db_and_sqs(
                         endposition=result.endposition,
                         ingestiondate=result.ingestiondate,
                         download_url=result.download_url,
+                        checksum=result.checksum or "",
                     )  # type: ignore
                 )
                 session.commit()
@@ -116,6 +118,8 @@ def add_search_results_to_db_and_sqs(
             except IntegrityError:
                 print(f"{result.image_id} already in Database, not adding")
                 session.rollback()
+            else:
+                print(f"Added {result.image_id} to the Database")
 
 
 def add_search_result_to_sqs(
@@ -128,13 +132,15 @@ def add_search_result_to_sqs(
     :param sqs_client: SQSClient representing a boto3 SQS client
     :param queue_url: str presenting the URL of the queue to send the message to
     """
+    message = {
+        "id": search_result.image_id,
+        "filename": search_result.filename,
+        "download_url": search_result.download_url,
+    }
+    if search_result.checksum is not None:
+        message["checksum"] = search_result.checksum
+
     sqs_client.send_message(
         QueueUrl=queue_url,
-        MessageBody=json.dumps(
-            {
-                "id": search_result.image_id,
-                "filename": search_result.filename,
-                "download_url": search_result.download_url,
-            }
-        ),
+        MessageBody=json.dumps(message),
     )

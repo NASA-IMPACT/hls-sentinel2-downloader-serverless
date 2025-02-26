@@ -57,11 +57,14 @@ def handler(event, context):
     image_id = image_message["id"]
     image_filename = image_message["filename"]
     download_url = get_download_url(image_message["id"])
+    # the checksum isn't provided if the message was from the "search" based handler,
+    # only the "event" based handler gets this information
+    image_checksum = image_message.get("checksum")
 
     LOGGER.info(f"Received event to download image: {image_filename}")
 
     try:
-        get_granule(image_id)
+        granule = get_granule(image_id)
     except GranuleNotFoundException as e:
         LOGGER.error(str(e))
         return
@@ -70,7 +73,12 @@ def handler(event, context):
         return
 
     try:
-        image_checksum = get_image_checksum(image_id)
+        # retrieve checksum if,
+        #   * not provided by SQS message (search handler doesn't know the checksum)
+        #   * OR if this isn't our first try because checksum might be wrong, see:
+        #     https://github.com/NASA-IMPACT/hls-sentinel2-downloader-serverless/issues/29
+        if image_checksum is None or granule.download_retries > 0:
+            image_checksum = get_image_checksum(image_id)
 
         download_file(
             image_checksum,

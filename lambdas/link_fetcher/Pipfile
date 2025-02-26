@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 boto3 = "==1.35.44"
 humanfriendly = "==9.1"
-requests = "==2.31.0"
+requests = "~=2.32"
 iso8601 = "==2.0.0"
 sqlalchemy = "==1.4.0"
 fastapi = "*"
